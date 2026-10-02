@@ -877,3 +877,18 @@ function render() {
 
 window.addEventListener("hashchange", render);
 render();
+
+// Service health: the footer names the service the page talks to and whether it answers.
+(async () => {
+  const el = document.getElementById("svc");
+  if (!el) return;
+  let host = API;
+  try { host = new URL(API).host; } catch {}
+  try {
+    const r = await fetch(API + "/api/health", { cache: "no-store" });
+    if (!r.ok) throw new Error(String(r.status));
+    el.textContent = `Service ${host} is reachable.`;
+  } catch {
+    el.textContent = `Service ${host} is not answering. Start it with airlock serve or set web/config.js.`;
+  }
+})();

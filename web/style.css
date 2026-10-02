@@ -250,3 +250,5 @@ details.constants[open] summary{margin-bottom:8px}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+.site-foot .svc{margin-top:8px;font:400 12px/1.5 var(--font-mono);color:var(--ink-soft)}
