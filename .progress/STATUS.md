@@ -26,3 +26,14 @@
 ## Next (re-planned)
 - Leak dataset: read recent mainnet ZEC t-outputs read-only, call /v0/status per address, count what leaks. Nothing published until orchestrator OKs disclosure.
 - Watchdog against recorded status transitions; web app (static frontend + Rust service).
+
+## Proven (2026-10-03, evening)
+- NU7 pins adopted (docs/PINS.md; Cargo.lock from countersign). Breaks hit: rand 0.10 (SysRng), 3-tuple UA decode, Rev 2 UA strings. `cargo test`: 21 + 1 green. B1 analyzer green, B2 live audit of swap e89ed92b43d6 re-run on the new pins: 0 shared identifiers, exit 0.
+- 1Click REJECTS ZIP 316 Revision 2 UAs: dry quote with `zu1...` recipient returned 400 "recipient is not valid" for all 5 origins (2026-10-03 21:03 server time). `Wallet::orchard_ua` re-encodes to Revision 1 (`u1...`); index 0 is byte-identical to the pre-migration string; dry quotes 201 again for 5 origins. Test pins both encodings.
+- Watchdog: 7 tests, red proven (timeout comparison mutated, stuck test FAILED), recorded live statuses (13 non-success + 5 success) parse and map to outcomes.
+- Leak dataset (read-only, spikes/leak-scan/FINDINGS.md): 909 live 1Click deposit t-addresses in 1,501 mainnet blocks, all ZEC-origin, 896 SUCCESS (latest update 2026-10-02T20:38Z, so ZEC outbound is settling), 558 expose a shielded refund UA, 120 recipients link 306 swaps, 50 refund addresses link 131 swaps. Not published.
+- Kill-gate evidence: ZEC-origin 1Click swaps settle now. Inbound (any token to shielded ZEC) delivery stays unproven: needs a funded swap, on hold by operator rule.
+
+## Next
+- `watch` driver run against a real terminal swap (public SUCCESS address) to exercise the loop.
+- Web app: static frontend + Rust service (axum), exposure checker for any deposit address, outbound plan, receipt.

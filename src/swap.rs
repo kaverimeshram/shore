@@ -94,9 +94,7 @@ pub async fn quote_outbound(
             deadline: q.quote.deadline.unwrap_or_default(),
         });
     }
-    let mut id = [0u8; 6];
-    rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut id);
-    let swap = Swap { id: hex::encode(id), destination_asset: destination_asset.into(), parts: out, residual_zat: residual };
+    let swap = Swap { id: hex::encode(crate::wallet::random_bytes::<6>()?), destination_asset: destination_asset.into(), parts: out, residual_zat: residual };
     swap.save(dir)?;
     Ok(swap)
 }

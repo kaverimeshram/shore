@@ -12,12 +12,12 @@ name = "airlock"
 path = "src/main.rs"
 
 [dependencies]
-zcash_client_backend = { version = "=0.24.0", features = ["orchard", "sync", "lightwalletd-tonic-tls-webpki-roots", "lightwalletd-tonic-transport", "zcash_proofs", "tor"] }
-zcash_keys = { version = "=0.16.1", features = ["orchard", "sapling"] }
-zcash_protocol = "=0.10.6"
-zcash_address = "=0.13.0"
-orchard = "=0.15.5"
-zip32 = "=0.2.1"
+zcash_client_backend = { version = "=0.25.0-pre.0", features = ["orchard", "sync", "pczt", "lightwalletd-tonic-tls-webpki-roots", "lightwalletd-tonic-transport", "zcash_proofs", "tor"] }
+zcash_keys = { version = "=0.17.0-pre.0", features = ["orchard", "sapling"] }
+zcash_protocol = "=0.11.0-pre.0"
+zcash_address = "=0.14.0-pre.0"
+orchard = "=0.16.0"
+zip32 = "=0.3.0"
 
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
@@ -27,7 +27,7 @@ anyhow = "1"
 hyper = "1"
 http-body-util = "0.1"
 hex = "0.4"
-rand = "0.8"
+rand = { version = "0.10", features = ["sys_rng"] }
 
 [profile.dev.package.halo2_proofs]
 opt-level = 3
