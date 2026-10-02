@@ -1,0 +1,110 @@
+[
+ {
+  "status": "REFUNDED",
+  "updatedAt": "2026-10-02T12:02:58.000Z",
+  "refundReason": "AMOUNT_LESS_THAN_MIN_AMOUNT_OUT",
+  "timeEstimate": 510
+ },
+ {
+  "status": "PROCESSING",
+  "updatedAt": "2026-10-02T19:09:16.000Z",
+  "refundReason": null,
+  "timeEstimate": 2257
+ },
+ {
+  "status": "REFUNDED",
+  "updatedAt": "2026-10-01T18:25:51.000Z",
+  "refundReason": "AMOUNT_LESS_THAN_MIN_AMOUNT_OUT",
+  "timeEstimate": 454
+ },
+ {
+  "status": "REFUNDED",
+  "updatedAt": "2026-10-01T14:49:47.000Z",
+  "refundReason": "NO_LIQUIDITY",
+  "timeEstimate": 459
+ },
+ {
+  "status": "REFUNDED",
+  "updatedAt": "2026-10-01T15:20:58.000Z",
+  "refundReason": "NO_LIQUIDITY",
+  "timeEstimate": 459
+ },
+ {
+  "status": "PROCESSING",
+  "updatedAt": "2026-10-02T18:41:01.000Z",
+  "refundReason": null,
+  "timeEstimate": 452
+ },
+ {
+  "status": "REFUNDED",
+  "updatedAt": "2026-10-01T21:13:48.000Z",
+  "refundReason": "PARTIAL_DEPOSIT",
+  "timeEstimate": 597
+ },
+ {
+  "status": "REFUNDED",
+  "updatedAt": "2026-10-01T20:13:46.000Z",
+  "refundReason": "AMOUNT_LESS_THAN_MIN_AMOUNT_OUT",
+  "timeEstimate": 452
+ },
+ {
+  "status": "PROCESSING",
+  "updatedAt": "2026-10-02T19:44:28.000Z",
+  "refundReason": null,
+  "timeEstimate": 2252
+ },
+ {
+  "status": "REFUNDED",
+  "updatedAt": "2026-10-01T22:19:44.000Z",
+  "refundReason": "PARTIAL_DEPOSIT",
+  "timeEstimate": 510
+ },
+ {
+  "status": "PROCESSING",
+  "updatedAt": "2026-10-02T20:38:12.000Z",
+  "refundReason": null,
+  "timeEstimate": 455
+ },
+ {
+  "status": "REFUNDED",
+  "updatedAt": "2026-10-01T20:43:54.000Z",
+  "refundReason": "AMOUNT_LESS_THAN_MIN_AMOUNT_OUT",
+  "timeEstimate": 510
+ },
+ {
+  "status": "INCOMPLETE_DEPOSIT",
+  "updatedAt": "2026-10-02T18:05:07.000Z",
+  "refundReason": null,
+  "timeEstimate": 462
+ },
+ {
+  "status": "SUCCESS",
+  "updatedAt": "2026-10-02T06:48:46.000Z",
+  "refundReason": null,
+  "timeEstimate": 510
+ },
+ {
+  "status": "SUCCESS",
+  "updatedAt": "2026-10-01T12:45:25.000Z",
+  "refundReason": null,
+  "timeEstimate": 510
+ },
+ {
+  "status": "SUCCESS",
+  "updatedAt": "2026-10-01T22:45:22.000Z",
+  "refundReason": null,
+  "timeEstimate": 457
+ },
+ {
+  "status": "SUCCESS",
+  "updatedAt": "2026-10-01T13:11:06.000Z",
+  "refundReason": null,
+  "timeEstimate": 452
+ },
+ {
+  "status": "SUCCESS",
+  "updatedAt": "2026-10-01T21:51:32.000Z",
+  "refundReason": null,
+  "timeEstimate": 462
+ }
+]

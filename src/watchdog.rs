@@ -159,4 +159,27 @@ mod tests {
         t.observe(0, Success, 2);
         assert!(t.may_fund(50_000_000, cap), "released once the first part is terminal");
     }
+
+    /// Statuses recorded from live /v0/status reads of public swaps on 2026-10-02 (13 non-success
+    /// plus 5 success, tests/fixtures/recorded_statuses.json): every real status string must
+    /// parse, and each terminal one must produce the matching outcome.
+    #[test]
+    fn recorded_live_statuses_drive_the_tracker() {
+        let rec: Vec<serde_json::Value> = serde_json::from_str(include_str!("../tests/fixtures/recorded_statuses.json")).unwrap();
+        let mut seen = std::collections::BTreeMap::new();
+        for r in &rec {
+            let st: SwapStatus = serde_json::from_value(r["status"].clone()).expect("real status string must parse");
+            let mut t = Tracker::new(CFG, &[(1, u64::MAX)]);
+            let acts = t.observe(0, st, 1);
+            let want = match st {
+                Success => Some(Outcome::Success),
+                Refunded => Some(Outcome::Refunded),
+                Failed => Some(Outcome::Failed),
+                _ => None,
+            };
+            assert_eq!(acts.iter().find_map(|a| if let Action::Done { outcome, .. } = a { Some(*outcome) } else { None }), want, "{st:?}");
+            *seen.entry(format!("{st:?}")).or_insert(0) += 1;
+        }
+        assert!(seen.contains_key("Refunded") && seen.contains_key("Processing") && seen.contains_key("Success"), "{seen:?}");
+    }
 }
