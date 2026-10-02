@@ -19,7 +19,7 @@ key) scans lightwalletd and reports the note with its txid and mined height.
 
 **Outbound, shielded ZEC to another chain.** `split` cuts the amount into `{1,2,5} x 10^k`
 denominations capped per hold. One non-dry quote per part, each over its own isolated Tor
-circuit, each with its own refund UA and destination. A ZIP 318 transfer-delay schedule (mean 66
+circuit, each with its own refund UA and destination, and each carrying the deadline (120 minutes) and slippage (2%) that most live swaps use, because both are public in `/v0/status`. A ZIP 318 transfer-delay schedule (mean 66
 blocks, cap 576) suggests when to send each part.
 
 **Exposure receipt.** Per swap, a table of what each observer can read, built from the live

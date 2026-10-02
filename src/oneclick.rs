@@ -140,6 +140,10 @@ fn decode<T: serde::de::DeserializeOwned>((code, body): (u16, String)) -> Result
 /// on 2026-10-03, 519 requested 120 minutes, 276 requested 60 and none requested 24 hours.
 pub const REQUEST_DEADLINE_SECS: u64 = 2 * 3600;
 
+/// Slippage tolerance in basis points, public in /v0/status. 659 of the 909 live swaps read on
+/// 2026-10-03 used 200; matching the majority keeps our parts inside the crowd.
+pub const SLIPPAGE_BPS: u32 = 200;
+
 /// RFC3339 UTC `now + secs`, the only date arithmetic the client needs.
 pub fn deadline_in(secs: u64) -> String {
     let t = std::time::SystemTime::now() + std::time::Duration::from_secs(secs);
