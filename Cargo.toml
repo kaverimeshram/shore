@@ -28,3 +28,23 @@ hyper = "1"
 http-body-util = "0.1"
 hex = "0.4"
 rand = "0.8"
+
+[profile.dev.package.halo2_proofs]
+opt-level = 3
+[profile.dev.package.halo2_gadgets]
+opt-level = 3
+[profile.dev.package.pasta_curves]
+opt-level = 3
+[profile.dev.package.orchard]
+opt-level = 3
+[profile.dev.package.ff]
+opt-level = 3
+[profile.dev.package.group]
+opt-level = 3
+[profile.dev.package.rayon]
+opt-level = 3
+[profile.dev.package.rayon-core]
+opt-level = 3
+[profile.dev.package.blake2b_simd]
+opt-level = 3
+[profile.dev.package.sinsemilla]

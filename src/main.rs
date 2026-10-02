@@ -105,6 +105,22 @@ async fn main() -> Result<()> {
                 std::process::exit(1);
             }
         }
+        Some("inspect") => {
+            // airlock inspect <depositAddress>...   what /v0/status reveals for any funded one-time t-address
+            if args.len() < 2 {
+                bail!("usage: airlock inspect <depositAddress>...");
+            }
+            let mut raws = Vec::new();
+            for d in &args[1..] {
+                let s = oc.status(d).await?;
+                println!("{d} {:?}", s.status);
+                for (field, v) in airlock::exposure::identifiers(&s.raw) {
+                    println!("  {field} = {v}");
+                }
+                raws.push(s.raw);
+            }
+            println!("shared identifiers across addresses: {}", airlock::exposure::shared_identifiers(&raws).len());
+        }
         Some("audit") => {
             // airlock audit <swap-id>   live /v0/status reads over isolated circuits, receipt, shared count
             let Some(id) = args.get(1) else { bail!("usage: airlock audit <swap-id>") };
@@ -116,7 +132,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | watch <swap-id> | audit <swap-id>"),
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }
