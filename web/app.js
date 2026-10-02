@@ -67,6 +67,20 @@ function fmtTime(iso) {
   return d.toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
+function clock(ms) {
+  const d = new Date(ms);
+  const hm = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  return d.toDateString() === new Date().toDateString() ? hm : `${d.toLocaleDateString([], { month: "short", day: "numeric" })} ${hm}`;
+}
+
+function countdown(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  return hh ? `${hh}h ${String(mm).padStart(2, "0")}m` : mm ? `${mm}m ${String(ss).padStart(2, "0")}s` : `${ss}s`;
+}
+
 class ApiError extends Error {
   constructor(status, message) {
     super(message);
@@ -301,6 +315,13 @@ function chambers(plan) {
   return h("ol", { class: "chambers", "aria-label": "Parts of the exit, widths proportional to amount" }, cells);
 }
 
+/* spacing between part quotes: [min, max] in ms, drawn per gap with crypto.getRandomValues */
+const SPACINGS = [
+  { key: "hours", label: "Spread over hours (recommended)", lo: 5 * 60e3, hi: 45 * 60e3 },
+  { key: "hour", label: "Within the hour", lo: 2 * 60e3, hi: 10 * 60e3 },
+  { key: "seconds", label: "Seconds (testing)", lo: 4e3, hi: 25e3 },
+];
+
 function pageSplit(main) {
   const state = { amount: "", cap: "", asset: "", plan: null, dest: [], refund: [] };
   let planCtl = null;
@@ -311,6 +332,8 @@ function pageSplit(main) {
   const amountIn = h("input", { id: "amount", name: "amount", type: "text", inputmode: "decimal", autocomplete: "off", required: true });
   const capIn = h("input", { id: "cap", name: "cap", type: "text", inputmode: "decimal", autocomplete: "off", required: true });
   const assetSel = h("select", { id: "asset", name: "asset", required: true, disabled: true }, h("option", { value: "" }, "Loading assets"));
+  const spacingSel = h("select", { id: "spacing", name: "spacing" },
+    SPACINGS.map((o, i) => h("option", { value: o.key, selected: i === 0 }, o.label)));
   const preview = h("div", { "aria-live": "polite" });
   const partsBox = h("div", { class: "part-fields" });
   const status = h("div", { "aria-live": "polite" });
@@ -387,69 +410,54 @@ function pageSplit(main) {
     const asset = assetSel.value;
     const dest = state.dest.map((v) => (v || "").trim());
     const refund = state.refund.map((v) => (v || "").trim());
-    const made = plan.parts.map(() => null);
+    const spacing = SPACINGS.find((o) => o.key === spacingSel.value) || SPACINGS[0];
     submit.disabled = true;
     createCtl = new AbortController();
     const signal = createCtl.signal;
-    const cells = plan.parts.map(() => h("span", {}, "queued"));
+    const order = shuffle(plan.parts.map((_, i) => i));
+    const first = order[0];
     const line = h("p", { class: "wait", role: "status" });
     put(status, h("div", { class: "note" },
       h("p", { class: "label" }, "Creating the swap"),
-      h("p", {}, "One part at a time, in a shuffled order, each over its own Tor circuit with a random pause between parts. Keep this tab open."),
-      h("ul", { class: "plan-list" }, plan.parts.map((p, i) => h("li", {}, h("span", {}, `Part ${i + 1}, ${formatZec(p.zat)} ZEC`), cells[i]))),
+      h("p", {}, "Only the first part is quoted now, over its own Tor circuit. Every other part is quoted later, at its own time."),
       line));
-    const pause = (ms, label) => new Promise((resolve) => {
-      const end = Date.now() + ms;
-      const tick = () => put(line, `${label} ${Math.max(0, Math.ceil((end - Date.now()) / 1000))}s`);
-      tick();
-      const iv = setInterval(tick, 500);
-      const t = setTimeout(done, ms);
-      signal.addEventListener("abort", done);
-      function done() { clearInterval(iv); clearTimeout(t); resolve(); }
-    });
     const keep = (ev) => { ev.preventDefault(); ev.returnValue = ""; };
     window.addEventListener("beforeunload", keep);
     try {
-      const order = shuffle(plan.parts.map((_, i) => i));
-      for (let k = 0; k < order.length; k++) {
-        const i = order[k];
-        if (k > 0) {
-          await pause(randInt(4000, 25000), "Next part in");
+      let made;
+      for (;;) {
+        put(line, `Part ${first + 1} of ${plan.parts.length}: opening its own circuit and quote. Usually 5 to 15 s.`);
+        try {
+          made = await api("/api/quote", {
+            method: "POST", headers: { "content-type": "application/json" }, signal,
+            body: JSON.stringify({ amountZat: plan.parts[first].zat, destinationAsset: asset, destination: dest[first], refund: refund[first] }),
+          });
+          break;
+        } catch (err) {
+          if (err.name === "AbortError") return;
+          await new Promise((resolve) => {
+            put(line, h("span", { role: "alert" }, `failed: ${err.message} `),
+              h("button", { type: "button", class: "btn-text", onclick: resolve }, `Retry part ${first + 1}`));
+            signal.addEventListener("abort", resolve);
+          });
           if (signal.aborted) return;
         }
-        for (;;) {
-          put(cells[i], "asking 1Click");
-          put(line, `Part ${i + 1} of ${plan.parts.length}: opening its own circuit and quote. Usually 5 to 15 s.`);
-          try {
-            made[i] = await api("/api/quote", {
-              method: "POST", headers: { "content-type": "application/json" }, signal,
-              body: JSON.stringify({ amountZat: plan.parts[i].zat, destinationAsset: asset, destination: dest[i], refund: refund[i] }),
-            });
-            put(cells[i], "quote created");
-            break;
-          } catch (err) {
-            if (err.name === "AbortError") return;
-            await new Promise((resolve) => {
-              put(cells[i], h("span", { role: "alert" }, `failed: ${err.message} `),
-                h("button", { type: "button", class: "btn-text", onclick: resolve }, `Retry part ${i + 1}`));
-              put(line, "This part did not open. Retry it on its own; no other part is sent.");
-              signal.addEventListener("abort", resolve);
-            });
-            if (signal.aborted) return;
-          }
-        }
       }
-      const swap = {
-        id: randHex(6), createdAt: new Date().toISOString(), destinationAsset: asset,
-        parts: made.map((m) => ({ amountZat: m.amountZat, depositAddress: m.depositAddress, deadline: m.deadline, destination: m.destination, refund: m.refund })),
-      };
+      let at = Date.now();
+      const parts = plan.parts.map((p, i) => ({ amountZat: p.zat, destination: dest[i], refund: refund[i], pending: true, quoteAt: 0 }));
+      parts[first] = { amountZat: made.amountZat, depositAddress: made.depositAddress, deadline: made.deadline, destination: made.destination, refund: made.refund };
+      for (const i of order.slice(1)) {
+        at += randInt(spacing.lo, spacing.hi);
+        parts[i].quoteAt = at;
+      }
+      const swap = { id: randHex(6), createdAt: new Date().toISOString(), destinationAsset: asset, parts };
       try {
         writeList(SWAPS_KEY, [...readList(SWAPS_KEY), swap]);
       } catch {
         put(status, h("div", { class: "note", role: "alert" },
           h("p", { class: "label" }, "Not saved"),
-          h("p", {}, "This browser would not store the swap. Copy each deposit address now."),
-          swap.parts.map((p, i) => h("p", { class: "data" }, `Part ${i + 1}, ${formatZec(p.amountZat)} ZEC: ${p.depositAddress}`))));
+          h("p", {}, "This browser would not store the swap, so the later parts cannot be quoted. Copy this deposit address now."),
+          h("p", { class: "data" }, `Part ${first + 1}, ${formatZec(made.amountZat)} ZEC: ${made.depositAddress}`)));
         return;
       }
       location.hash = `#/swap/${swap.id}`;
@@ -471,6 +479,7 @@ function pageSplit(main) {
             h("label", { class: "field", for: "amount" }, h("span", { class: "label" }, "Amount in ZEC"), amountIn),
             h("label", { class: "field", for: "cap" }, h("span", { class: "label" }, "Per-part cap in ZEC"), capIn)),
           h("label", { class: "field", for: "asset" }, h("span", { class: "label" }, "Destination asset"), h("div", { class: "select-wrap" }, assetSel)),
+          h("label", { class: "field", for: "spacing" }, h("span", { class: "label" }, "Spacing between part quotes"), h("div", { class: "select-wrap" }, spacingSel)),
           h("div", { class: "field" }, h("span", { class: "label" }, "Parts"), preview),
           partsBox,
           h("div", { class: "form-row" }, submit),
@@ -500,6 +509,7 @@ function identifiersOf(part, d) {
 function sharedAcross(swap, reads) {
   const by = new Map();
   swap.parts.forEach((p, k) => {
+    if (p.pending) return;
     for (const id of identifiersOf(p, reads[k].d)) {
       if (!by.has(id.key)) by.set(id.key, { field: id.field, value: id.value, parts: [] });
       by.get(id.key).parts.push(k);
@@ -526,9 +536,20 @@ function observerSecs(chain, statusNote, solverExtra) {
   ];
 }
 
-function partsList(swap, reads) {
+function partsList(swap, reads, q) {
   return h("ol", { class: "parts" }, swap.parts.map((p, k) => {
     const r = reads[k];
+    if (p.pending) {
+      return h("li", {},
+        h("span", { class: "n", "aria-hidden": "true" }, String(k + 1)),
+        h("div", {},
+          h("p", { class: "amt" }, `Part ${k + 1}, ${formatZec(p.amountZat)} ZEC`),
+          h("p", { class: "meta" },
+            h("span", { class: "status" }, q.busy === k ? "asking 1Click" : "quote pending"),
+            h("span", {}, `Quote opens at ${clock(p.quoteAt)} local`),
+            h("span", { class: "cd", "data-k": String(k) })),
+          q.errs[k] ? h("p", { class: "help", role: "alert" }, `Last attempt failed: ${q.errs[k]}`) : null));
+    }
     return h("li", {},
       h("span", { class: "n", "aria-hidden": "true" }, String(k + 1)),
       h("div", {},
@@ -543,30 +564,42 @@ function partsList(swap, reads) {
 
 function swapReceipt(swap, reads, shared, readAt) {
   let i = 0;
-  const read = reads.filter((r) => r.d).length;
+  const total = swap.parts.length;
+  const quoted = swap.parts.filter((p) => !p.pending).length;
+  const pending = total - quoted;
+  const read = swap.parts.filter((p, k) => !p.pending && reads[k].d).length;
   const blocks = swap.parts.map((p, k) =>
     h("div", { class: "r-sec part-block" },
-      h("p", { class: "label" }, `Part ${k + 1}${reads[k].d ? `, ${reads[k].d.status}` : ""}`),
-      reads[k].d
-        ? reads[k].d.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ }))
-        : h("p", { class: "wait" }, "Reading the status for this part.")));
+      h("p", { class: "label" }, `Part ${k + 1}${p.pending ? ", quote pending" : reads[k].d ? `, ${reads[k].d.status}` : ""}`),
+      p.pending
+        ? h("p", { class: "wait" }, `Quote opens at ${clock(p.quoteAt)} local. Nothing is public for this part yet.`)
+        : reads[k].d
+          ? reads[k].d.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ }))
+          : h("p", { class: "wait" }, "Reading the status for this part.")));
+  const count = pending ? h("p", { class: "plan-note" }, `${quoted} of ${total} parts quoted`) : null;
   let linked;
   if (shared.length > 0) {
     linked = h("div", { class: "r-sec" },
       h("p", { class: "label" }, `Shared across parts: ${shared.length}`),
       shared.map((s) => h("div", {},
         row(s.field, s.value, { hl: true, i: i++ }),
-        h("p", { class: "help" }, `in parts ${s.parts.map((x) => x + 1).join(", ")}`))));
-  } else if (read === swap.parts.length) {
+        h("p", { class: "help" }, `in parts ${s.parts.map((x) => x + 1).join(", ")}`))),
+      count);
+  } else if (quoted >= 2 && read === quoted) {
     linked = h("div", { class: "r-sec" },
       h("p", { class: "label" }, "Shared across parts"),
       h("div", { class: "seal-line" },
         h("div", { class: "seal", role: "img", "aria-label": "0 shared identifiers" }, h("b", {}, "0"), h("span", {}, "shared identifiers")),
-        h("p", {}, "No identifier repeats across the parts. A stranger holding one deposit address cannot reach the others.")));
+        h("p", {}, `No identifier repeats across the ${quoted} parts. A stranger holding one deposit address cannot reach the others.`)),
+      count);
   } else {
     linked = h("div", { class: "r-sec" },
       h("p", { class: "label" }, "Shared across parts"),
-      h("p", { class: "wait" }, `Read ${read} of ${swap.parts.length} parts. The count prints once every part has been read.`));
+      h("p", { class: "wait" }, quoted < 2 && !pending
+        ? "One part only, so there is nothing to compare."
+        : quoted < 2 ? "The count prints once at least 2 parts are quoted and read."
+        : `Read ${read} of ${quoted} quoted parts. The count prints once each has been read.`),
+      count);
   }
   return h("article", { class: "receipt", "aria-labelledby": "r-h" },
     h("p", { class: "label" }, "Exposure receipt"),
@@ -642,20 +675,35 @@ function pageSwap(main, id) {
   const right = h("div", {});
   const timers = [];
   const ctls = [];
+  /* one quote at a time: busy is the part index being quoted, nextOk spaces consecutive quotes in this session */
+  const q = { busy: null, errs: {}, retryAt: {}, nextOk: 0, saveErr: false };
+  let quoteCtl = null;
   let lastKey = "";
   let lastAt = null;
   let dead = false;
 
   function paint() {
-    const key = JSON.stringify(reads.map((r) => [r.d, r.err && r.err.message]));
+    const key = JSON.stringify([swap.parts, reads.map((r) => [r.d, r.err && r.err.message]), q.busy, q.errs, q.saveErr]);
     if (key === lastKey) {
       const src = right.querySelector(".src");
       if (src) src.textContent = srcLine(lastAt);
       return;
     }
     lastKey = key;
-    put(left, partsList(swap, reads));
+    put(left, partsList(swap, reads, q), q.saveErr ? h("p", { class: "help", role: "alert" }, "This browser would not store the new quote. Copy its deposit address now.") : null);
     put(right, swapReceipt(swap, reads, sharedAcross(swap, reads), lastAt));
+    tickCountdowns();
+  }
+
+  const effective = (k) => Math.max(swap.parts[k].quoteAt, q.retryAt[k] || 0, q.nextOk);
+
+  function tickCountdowns() {
+    for (const el of left.querySelectorAll(".cd")) {
+      const k = Number(el.dataset.k);
+      if (q.busy === k) { el.textContent = "quoting now"; continue; }
+      const ms = effective(k) - Date.now();
+      el.textContent = ms > 0 ? `in ${countdown(ms)}` : "due now";
+    }
   }
 
   async function readPart(k) {
@@ -671,8 +719,48 @@ function pageSwap(main, id) {
     return !reads[k].d || !TERMINAL.has(reads[k].d.status);
   }
 
+  async function quoteDue() {
+    if (dead || q.busy !== null) return;
+    const now = Date.now();
+    const due = swap.parts.map((p, k) => k).filter((k) => swap.parts[k].pending && effective(k) <= now)
+      .sort((a, b) => swap.parts[a].quoteAt - swap.parts[b].quoteAt);
+    if (!due.length) return;
+    const k = due[0];
+    const p = swap.parts[k];
+    q.busy = k;
+    quoteCtl = new AbortController();
+    paint();
+    try {
+      const made = await api("/api/quote", {
+        method: "POST", headers: { "content-type": "application/json" }, signal: quoteCtl.signal,
+        body: JSON.stringify({ amountZat: p.amountZat, destinationAsset: swap.destinationAsset, destination: p.destination, refund: p.refund }),
+      });
+      if (dead) return;
+      swap.parts[k] = { amountZat: made.amountZat, depositAddress: made.depositAddress, deadline: made.deadline, destination: made.destination, refund: made.refund };
+      delete q.errs[k];
+      q.nextOk = Date.now() + randInt(4000, 25000);
+      try {
+        const list = readList(SWAPS_KEY);
+        if (!list.some((x) => x.id === id)) { dead = true; return; }
+        writeList(SWAPS_KEY, list.map((x) => (x.id === id ? swap : x)));
+      } catch {
+        q.saveErr = true;
+      }
+      pollEach([k], readPart, timers, () => dead);
+    } catch (e) {
+      if (e.name === "AbortError" || dead) return;
+      q.errs[k] = e.message;
+      q.retryAt[k] = Date.now() + randInt(50000, 70000);
+    } finally {
+      q.busy = null;
+      if (!dead) paint();
+    }
+  }
+
   paint();
-  pollEach(shuffle(swap.parts.map((_, k) => k)), readPart, timers, () => dead);
+  pollEach(shuffle(swap.parts.map((_, k) => k).filter((k) => !swap.parts[k].pending)), readPart, timers, () => dead);
+  const ticker = setInterval(() => { tickCountdowns(); quoteDue(); }, 1000);
+  quoteDue();
 
   put(main,
     h("section", { class: "page", "aria-labelledby": "swap-h" },
@@ -681,13 +769,15 @@ function pageSwap(main, id) {
       h("div", { class: "page-grid" },
         h("div", {},
           h("div", { class: "steps" },
-            h("p", {}, "Send each part from your own wallet to its deposit address."),
+            h("p", {}, "Send each part from your own wallet to its deposit address once it is quoted."),
             h("p", {}, "Parts can be funded one at a time, in any order, before each deadline."),
+            h("p", {}, "Keep this tab open. Each part is quoted at its own time so the quotes do not cluster."),
             h("p", {}, "This swap is saved only in this browser.")),
           left,
           h("div", { class: "form-row" }, deleteButton(SWAPS_KEY, id, "#/swap"))),
         right)));
-  return () => { dead = true; timers.forEach(clearTimeout); ctls.forEach((c) => c && c.abort()); };
+  tickCountdowns();
+  return () => { dead = true; clearInterval(ticker); timers.forEach(clearTimeout); ctls.forEach((c) => c && c.abort()); if (quoteCtl) quoteCtl.abort(); };
 }
 
 /* ---------- pages: inbound ---------- */
