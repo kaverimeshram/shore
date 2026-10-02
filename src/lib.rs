@@ -1,4 +1,6 @@
+pub mod blockcache;
 pub mod exposure;
+pub mod notewatch;
 pub mod oneclick;
 pub mod server;
 pub mod splitter;

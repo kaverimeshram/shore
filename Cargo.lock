@@ -66,19 +66,25 @@ name = "airlock"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axum",
+ "blake2b_simd",
  "hex",
  "http-body-util",
  "hyper",
  "orchard",
  "rand 0.10.3",
+ "rand_chacha 0.10.0",
  "reqwest",
+ "rusqlite",
  "serde",
  "serde_json",
  "tokio",
+ "tonic",
  "tower-http",
  "zcash_address",
  "zcash_client_backend",
+ "zcash_client_sqlite",
  "zcash_keys",
  "zcash_protocol",
  "zip32",
@@ -433,9 +439,13 @@ dependencies = [
  "bitvec",
  "blake2s_simd",
  "byteorder",
+ "crossbeam-channel",
  "ff 0.14.0",
  "group 0.14.0",
+ "log",
+ "num_cpus",
  "rand_core 0.10.1",
+ "rayon",
  "subtle",
 ]
 
@@ -930,6 +940,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-channel"
+version = "0.5.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98b0cc327b5bc766e7fda9c9260cc0fa81b43a8e240440422dff70788e3f9ef1"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-deque"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1043,6 +1062,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "daggy"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70def8d72740e44d9f676d8dab2c933a236663d86dd24319b57a2bed4d694774"
+dependencies = [
+ "petgraph 0.7.1",
 ]
 
 [[package]]
@@ -1901,7 +1929,9 @@ dependencies = [
  "ff 0.14.0",
  "group 0.14.0",
  "pairing",
+ "rand 0.10.3",
  "rand_core 0.10.1",
+ "rayon",
 ]
 
 [[package]]
@@ -2047,6 +2077,12 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "hermit-abi"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
 
 [[package]]
 name = "hex"
@@ -2650,6 +2686,7 @@ version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "133c182a6a2c87864fe97778797e46c7e999672690dc9fa3ee8e241aa4a9c13f"
 dependencies = [
+ "cc",
  "pkg-config",
  "vcpkg",
 ]
@@ -2938,6 +2975,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "num_cpus"
+version = "1.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91df4bbde75afed763b708b7eee1e8e7651e02d97f6d5dd763e89367e957b23b"
+dependencies = [
+ "hermit-abi",
+ "libc",
+]
+
+[[package]]
 name = "num_enum"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3159,6 +3206,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
+name = "pastey"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ee67f1008b1ba2321834326597b8e186293b049a023cdef258527550b9935b4"
+
+[[package]]
 name = "pczt"
 version = "0.10.0-pre.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3202,6 +3255,16 @@ name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
+
+[[package]]
+name = "petgraph"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3672b37090dbd86368a4145bc067582552b29c27377cad4e0a306c97f9bd7772"
+dependencies = [
+ "fixedbitset",
+ "indexmap 2.14.2",
+]
 
 [[package]]
 name = "petgraph"
@@ -3482,7 +3545,7 @@ dependencies = [
  "itertools 0.14.0",
  "log",
  "multimap",
- "petgraph",
+ "petgraph 0.8.3",
  "prettyplease",
  "prost",
  "prost-types",
@@ -3660,6 +3723,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_chacha"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e6af7f3e25ded52c41df4e0b1af2d047e45896c2f3281792ed68a1c243daedb"
+dependencies = [
+ "ppv-lite86",
+ "rand_core 0.10.1",
+]
+
+[[package]]
 name = "rand_core"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3682,6 +3755,16 @@ name = "rand_core"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
+
+[[package]]
+name = "rand_distr"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
+dependencies = [
+ "num-traits",
+ "rand 0.10.3",
+]
 
 [[package]]
 name = "rand_jitter"
@@ -3950,6 +4033,7 @@ dependencies = [
  "libsqlite3-sys",
  "smallvec",
  "time",
+ "uuid",
 ]
 
 [[package]]
@@ -4137,6 +4221,30 @@ dependencies = [
  "ref-cast",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "schemerz"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e82960ac11ccabd77d53c933532612079e01205b5873ec5095f4b3426493434"
+dependencies = [
+ "daggy",
+ "indexmap 1.9.3",
+ "log",
+ "thiserror 1.0.69",
+ "uuid",
+]
+
+[[package]]
+name = "schemerz-rusqlite"
+version = "0.370.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca6df8a13fb3b7914f94ac6579bd5e76b9292f135886e6becc3525f9e5116827"
+dependencies = [
+ "rusqlite",
+ "schemerz",
+ "uuid",
 ]
 
 [[package]]
@@ -4986,6 +5094,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac2a5518c70fa84342385732db33fb3f44bc4cc748936eb5833d2df34d6445ef"
 dependencies = [
  "async-trait",
+ "axum",
  "base64 0.22.1",
  "bytes",
  "h2",
@@ -6259,6 +6368,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
+name = "uuid"
+version = "1.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ef6dac1e96601b4fb3acccccff2139741fcb757cb9a36089bf5be91cfb285ce"
+dependencies = [
+ "getrandom 0.4.3",
+ "js-sys",
+ "serde_core",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6873,6 +6994,7 @@ dependencies = [
  "bip32",
  "bls12_381",
  "bs58",
+ "byteorder",
  "document-features",
  "dynosaur",
  "flume",
@@ -6930,6 +7052,56 @@ dependencies = [
 ]
 
 [[package]]
+name = "zcash_client_sqlite"
+version = "0.23.0-pre.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e8954e0ebe6f1850f21e9b1da262ec214e149234db7bf424bc7816324619f2a"
+dependencies = [
+ "bip32",
+ "bitflags 2.13.2",
+ "bs58",
+ "byteorder",
+ "document-features",
+ "group 0.14.0",
+ "hex",
+ "incrementalmerkletree",
+ "jubjub",
+ "maybe-rayon",
+ "nonempty",
+ "orchard",
+ "pastey",
+ "pczt",
+ "prost",
+ "rand 0.10.3",
+ "rand_core 0.10.1",
+ "rand_distr",
+ "regex",
+ "rusqlite",
+ "sapling-crypto",
+ "schemerz",
+ "schemerz-rusqlite",
+ "secp256k1",
+ "secrecy",
+ "serde",
+ "shardtree",
+ "static_assertions",
+ "subtle",
+ "time",
+ "tracing",
+ "uuid",
+ "zcash_address",
+ "zcash_client_backend",
+ "zcash_encoding",
+ "zcash_keys",
+ "zcash_pool_migration",
+ "zcash_primitives",
+ "zcash_protocol",
+ "zcash_script",
+ "zcash_transparent",
+ "zip32",
+]
+
+[[package]]
 name = "zcash_encoding"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6951,6 +7123,7 @@ dependencies = [
  "blake2b_simd",
  "bls12_381",
  "bs58",
+ "byteorder",
  "corez",
  "document-features",
  "group 0.14.0",
@@ -6980,6 +7153,28 @@ dependencies = [
  "cipher 0.5.2",
  "rand_core 0.10.1",
  "subtle",
+]
+
+[[package]]
+name = "zcash_pool_migration"
+version = "0.2.0-pre.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a04b3479f0a71ac560fdf07ca5119b1c9d1e44a42991a3c0595612fd51b46440"
+dependencies = [
+ "blake2b_simd",
+ "corez",
+ "getset",
+ "incrementalmerkletree",
+ "libm",
+ "orchard",
+ "pczt",
+ "rand_core 0.10.1",
+ "shardtree",
+ "zcash_client_backend",
+ "zcash_keys",
+ "zcash_primitives",
+ "zcash_protocol",
+ "zip32",
 ]
 
 [[package]]

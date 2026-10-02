@@ -92,6 +92,37 @@ async fn main() -> Result<()> {
                 println!("handle {i}: {body}");
             }
         }
+        Some("note") => {
+            // airlock note <test|main> [min-zat] [timeout-secs]   wait until a note of at least min-zat lands in the wallet (view-only scan)
+            use airlock::notewatch::{endpoint, tip, NoteWatch};
+            use zcash_protocol::consensus::Network;
+            let net = match args.get(1).map(String::as_str) {
+                Some("main") => Network::MainNetwork,
+                Some("test") => Network::TestNetwork,
+                _ => bail!("usage: airlock note <test|main> [min-zat] [timeout-secs]"),
+            };
+            let min: u64 = args.get(2).map_or(Ok(1), |s| s.parse())?;
+            let timeout: u64 = args.get(3).map_or(Ok(600), |s| s.parse())?;
+            let w = Wallet::open(dir)?;
+            let db = dir.join(format!("notes-{}.db", args[1]));
+            let birthday = tip(net).await?.saturating_sub(10);
+            let mut nw = NoteWatch::open(&db, net, &w.ufvk(&net)?, birthday).await?;
+            println!("lightwalletd {}\nreceive at (Orchard-only UA, index 0):\n  revision 2: {}\n  revision 1: {}", endpoint(net), w.orchard_ua_on(&net, 0)?, airlock::wallet::to_revision_1(&w.orchard_ua_on(&net, 0)?)?);
+            let start = std::time::Instant::now();
+            loop {
+                let scanned = nw.sync().await?;
+                let hit: Vec<_> = nw.landed()?.into_iter().filter(|n| n.value_zat >= min && n.mined_height.is_some()).collect();
+                println!("scanned to {scanned}, notes >= {min} zat: {}", hit.len());
+                if let Some(n) = hit.first() {
+                    println!("LANDED {n:?}");
+                    break;
+                }
+                if start.elapsed().as_secs() > timeout {
+                    bail!("no note of at least {min} zat within {timeout}s");
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(20)).await;
+            }
+        }
         Some("serve") => {
             // airlock serve [addr]   HTTP service for the web app
             airlock::server::serve(args.get(1).map_or("127.0.0.1:8787", String::as_str), dir.to_path_buf()).await?;
@@ -136,7 +167,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | serve [addr] | watch <swap-id> | audit <swap-id>"),
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }

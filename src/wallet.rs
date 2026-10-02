@@ -47,13 +47,25 @@ impl Wallet {
     /// Orchard-only mainnet UA at diversifier index `i`. Each index is a distinct address
     /// that shares no receiver with any other index.
     pub fn orchard_ua(&self, i: u32) -> Result<String> {
-        let usk = UnifiedSpendingKey::from_seed(&MainNetwork, &self.seed, AccountId::ZERO)
+        to_revision_1(&self.orchard_ua_on(&MainNetwork, i)?)
+    }
+
+    /// The account's unified full viewing key, for a view-only watcher. Never the spending key.
+    pub fn ufvk<P: zcash_protocol::consensus::Parameters>(&self, params: &P) -> Result<String> {
+        let usk = UnifiedSpendingKey::from_seed(params, &self.seed, AccountId::ZERO)
+            .map_err(|e| anyhow::anyhow!("usk: {e:?}"))?;
+        Ok(usk.to_unified_full_viewing_key().encode(params))
+    }
+
+    /// Orchard-only UA on any network, in the crate's native encoding (Revision 2).
+    pub fn orchard_ua_on<P: zcash_protocol::consensus::Parameters>(&self, params: &P, i: u32) -> Result<String> {
+        let usk = UnifiedSpendingKey::from_seed(params, &self.seed, AccountId::ZERO)
             .map_err(|e| anyhow::anyhow!("usk: {e:?}"))?;
         let ufvk = usk.to_unified_full_viewing_key();
         let ua = ufvk
             .address(DiversifierIndex::from(i), UnifiedAddressRequest::ORCHARD)
             .map_err(|e| anyhow::anyhow!("ua at {i}: {e:?}"))?;
-        to_revision_1(&ua.encode(&MainNetwork))
+        Ok(ua.encode(params))
     }
 }
 
