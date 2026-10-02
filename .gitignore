@@ -6,3 +6,7 @@ spikes/leak-scan/blocks.jsonl
 spikes/leak-scan/taddrs.json
 spikes/leak-scan/hits*.json
 spikes/leak-scan/err.txt
+.progress/NEAR-DISCLOSURE.md
+spikes/leak-scan/by-wallet.out
+spikes/leak-scan/analysis.out
+work/
