@@ -4,7 +4,7 @@
 use crate::{notewatch::NoteWatch, wallet::Wallet};
 use anyhow::{anyhow, bail, Result};
 use pczt::roles::{prover::Prover, signer::Signer};
-use rand::{rngs::SysRng, SeedableRng, TryRng};
+use rand::{rngs::SysRng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use zcash_client_backend::{
     data_api::{

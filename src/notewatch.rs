@@ -2,7 +2,7 @@
 //! key) and reports the notes that landed, with txid and mined height read from the wallet db.
 use crate::blockcache::MemBlockCache;
 use anyhow::{anyhow, Context, Result};
-use rand::{rngs::SysRng, SeedableRng, TryRng};
+use rand::{rngs::SysRng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use std::path::Path;
 use zcash_client_backend::{

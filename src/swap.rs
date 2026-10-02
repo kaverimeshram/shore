@@ -46,7 +46,36 @@ impl Swap {
     }
 }
 
-/// Creates the parts of one outbound swap. `destinations` must hold one distinct address per part.
+/// One part: a non-dry quote over its own isolated Tor circuit. Stateless, nothing is written.
+pub async fn quote_part(tor: &tor::Client, amount_zat: u64, destination_asset: &str, destination: &str, refund_ua: &str) -> Result<Part> {
+    let q = Client::with_transport(Transport::isolated(tor))
+        .quote(&QuoteRequest {
+            dry: false,
+            deposit_mode: "SIMPLE",
+            swap_type: SwapType::ExactInput,
+            slippage_tolerance: 100,
+            origin_asset: ZEC_ASSET.into(),
+            deposit_type: "ORIGIN_CHAIN",
+            destination_asset: destination_asset.into(),
+            amount: amount_zat.to_string(),
+            refund_to: refund_ua.into(),
+            refund_type: "ORIGIN_CHAIN",
+            recipient: destination.into(),
+            recipient_type: "DESTINATION_CHAIN",
+            deadline: deadline_in(24 * 3600),
+        })
+        .await?;
+    Ok(Part {
+        amount_zat,
+        deposit_address: q.quote.deposit_address.ok_or_else(|| anyhow::anyhow!("non-dry quote returned no depositAddress"))?,
+        refund_ua: refund_ua.into(),
+        destination: destination.into(),
+        correlation_id: q.correlation_id,
+        deadline: q.quote.deadline.unwrap_or_default(),
+    })
+}
+
+/// Creates the parts of one outbound swap, `jitter_secs` (min, max) apart. `destinations` must hold one distinct address per part.
 pub async fn quote_outbound(
     tor: &tor::Client,
     mut next_refund: impl FnMut() -> Result<String>,
@@ -55,6 +84,7 @@ pub async fn quote_outbound(
     max_part: u64,
     destination_asset: &str,
     destinations: &[String],
+    jitter_secs: (u64, u64),
 ) -> Result<Swap> {
     let Split { parts, residual } = split(total_zat, max_part, destinations.len())?;
     if parts.len() != destinations.len() {
@@ -64,34 +94,13 @@ pub async fn quote_outbound(
         bail!("destinations repeat: a shared destination links the parts");
     }
     let mut out = Vec::new();
-    for (amount, dest) in parts.iter().zip(destinations) {
-        let refund_ua = next_refund()?;
-        let oc = Client::with_transport(Transport::isolated(tor));
-        let q = oc
-            .quote(&QuoteRequest {
-                dry: false,
-                deposit_mode: "SIMPLE",
-                swap_type: SwapType::ExactInput,
-                slippage_tolerance: 100,
-                origin_asset: ZEC_ASSET.into(),
-                deposit_type: "ORIGIN_CHAIN",
-                destination_asset: destination_asset.into(),
-                amount: amount.to_string(),
-                refund_to: refund_ua.clone(),
-                refund_type: "ORIGIN_CHAIN",
-                recipient: dest.clone(),
-                recipient_type: "DESTINATION_CHAIN",
-                deadline: deadline_in(24 * 3600),
-            })
-            .await?;
-        out.push(Part {
-            amount_zat: *amount,
-            deposit_address: q.quote.deposit_address.ok_or_else(|| anyhow::anyhow!("non-dry quote returned no depositAddress"))?,
-            refund_ua,
-            destination: dest.clone(),
-            correlation_id: q.correlation_id,
-            deadline: q.quote.deadline.unwrap_or_default(),
-        });
+    for (i, (amount, dest)) in parts.iter().zip(destinations).enumerate() {
+        if i > 0 {
+            // quotes created back to back would carry a timing pattern; space them out
+            let secs = jitter_secs.0 + u64::from(u32::from_le_bytes(crate::wallet::random_bytes::<4>()?)) % (jitter_secs.1 - jitter_secs.0 + 1);
+            tokio::time::sleep(std::time::Duration::from_secs(secs)).await;
+        }
+        out.push(quote_part(tor, *amount, destination_asset, dest, &next_refund()?).await?);
     }
     let swap = Swap { id: hex::encode(crate::wallet::random_bytes::<6>()?), destination_asset: destination_asset.into(), parts: out, residual_zat: residual };
     swap.save(dir)?;
@@ -219,7 +228,6 @@ pub struct Inbound {
 /// EXACT_OUTPUT so the note that lands is the amount asked for. No unshield step exists.
 pub async fn quote_inbound(
     tor: &tor::Client,
-    dir: &Path,
     amount_out_zat: u64,
     origin_asset: &str,
     origin_refund: &str,
@@ -256,7 +264,13 @@ pub async fn quote_inbound(
         min_amount_in: q.quote.min_amount_in,
         deadline: q.quote.deadline.unwrap_or_default(),
     };
-    std::fs::create_dir_all(dir.join("inbound"))?;
-    std::fs::write(dir.join("inbound").join(format!("{}.json", inbound.id)), serde_json::to_vec_pretty(&inbound)?)?;
     Ok(inbound)
+}
+
+impl Inbound {
+    pub fn save(&self, dir: &Path) -> Result<()> {
+        std::fs::create_dir_all(dir.join("inbound"))?;
+        std::fs::write(dir.join("inbound").join(format!("{}.json", self.id)), serde_json::to_vec_pretty(self)?)?;
+        Ok(())
+    }
 }

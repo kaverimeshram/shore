@@ -82,7 +82,7 @@ async fn main() -> Result<()> {
             let tor = Transport::bootstrap_tor(&tor_dir()).await?;
             let w = Wallet::open(dir)?;
             let dests: Vec<String> = dests.split(',').map(String::from).collect();
-            let swap = quote_outbound(&tor, || w.fresh_ua(dir), dir, zat(zec)?, zat(cap)?, asset, &dests).await?;
+            let swap = quote_outbound(&tor, || w.fresh_ua(dir), dir, zat(zec)?, zat(cap)?, asset, &dests, (4, 25)).await?;
             println!("swap {}", swap.id);
             for p in &swap.parts {
                 println!("  {} zat -> deposit {} deadline {}", p.amount_zat, p.deposit_address, p.deadline);
@@ -102,7 +102,8 @@ async fn main() -> Result<()> {
             let [_, zec, asset, refund] = &args[..] else { bail!("usage: inbound <zec> <originAssetId> <originRefundAddress>") };
             let tor = Transport::bootstrap_tor(&tor_dir()).await?;
             let w = Wallet::open(dir)?;
-            let ib = quote_inbound(&tor, dir, zat(zec)?, asset, refund, &w.fresh_ua(dir)?).await?;
+            let ib = quote_inbound(&tor, zat(zec)?, asset, refund, &w.fresh_ua(dir)?).await?;
+            ib.save(dir)?;
             println!("inbound {}\n  send {} (min {}) of {}\n  to {}\n  lands in {}\n  deadline {}", ib.id, ib.amount_in, ib.min_amount_in, ib.origin_asset, ib.deposit_address, ib.recipient, ib.deadline);
         }
         Some("fund") => {
