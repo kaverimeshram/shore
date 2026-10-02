@@ -51,7 +51,14 @@ impl NoteWatch {
         .map_err(|e| anyhow!("create_pczt_from_proposal: {e}"))?;
         let view = redact_pczt_for_signer(&full, SignerView::Compact).serialize().map_err(|e| anyhow!("serialize view: {e:?}"))?;
 
-        let intent = countersign_core::Intent::from_unified_address(dest, zats, None, max_fee).map_err(|e| anyhow!(e))?;
+        // A transparent destination (a 1Click deposit address) takes COUNTERSIGN's opt-in transparent
+        // intent: one P2PKH output of exactly this amount, no memo, change back to the signer.
+        let intent = if dest.starts_with('t') {
+            countersign_core::Intent::to_transparent_once(dest, zats, max_fee)
+        } else {
+            countersign_core::Intent::from_unified_address(dest, zats, None, max_fee)
+        }
+        .map_err(|e| anyhow!(e))?;
         let sigs = wallet.approve_and_sign(&view, &intent, countersign_core::Network::Test)?;
 
         let mut signer = Signer::new(full).map_err(|e| anyhow!("Signer::new: {e:?}"))?;

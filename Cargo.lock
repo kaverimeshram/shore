@@ -875,6 +875,7 @@ dependencies = [
  "pczt",
  "rand_core 0.10.1",
  "zcash_address",
+ "zcash_keys",
  "zcash_protocol",
  "zip32",
 ]
