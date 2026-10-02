@@ -1,13 +1,13 @@
 //! Fresh Orchard-only unified addresses from one local seed. The seed lives in the
 //! gitignored work/ directory and is never printed or logged.
 use anyhow::{bail, Context, Result};
+use rand::TryRng;
 use std::path::Path;
 use zcash_keys::keys::{UnifiedAddressRequest, UnifiedSpendingKey};
 use zcash_protocol::consensus::MainNetwork;
 use zip32::{AccountId, DiversifierIndex};
 
 pub fn random_bytes<const N: usize>() -> Result<[u8; N]> {
-    use rand::TryRng;
     let mut b = [0u8; N];
     rand::rngs::SysRng.try_fill_bytes(&mut b).map_err(|e| anyhow::anyhow!("os rng: {e:?}"))?;
     Ok(b)
@@ -30,6 +30,19 @@ impl Wallet {
         let bytes = hex::decode(std::fs::read_to_string(&p)?.trim()).context("seed.hex is not hex")?;
         let Ok(seed) = <[u8; 32]>::try_from(bytes) else { bail!("seed.hex must be 32 bytes") };
         Ok(Self { seed })
+    }
+
+    /// Runs COUNTERSIGN's policy check on a signer-view PCZT and signs only if it matches `intent`.
+    /// The seed never leaves this type.
+    pub fn approve_and_sign(
+        &self,
+        signer_view: &[u8],
+        intent: &countersign_core::Intent,
+        net: countersign_core::Network,
+    ) -> Result<Vec<countersign_core::Signature>> {
+        use rand::SeedableRng;
+        let rng = rand_chacha::ChaCha20Rng::try_from_rng(&mut rand::rngs::SysRng).map_err(|e| anyhow::anyhow!("os rng: {e:?}"))?;
+        countersign_core::approve_and_sign(signer_view, intent, &self.seed, net, rng).map_err(|e| anyhow::anyhow!("REFUSED: {e:?}"))
     }
 
     /// Next never-used index from `<dir>/ua-index`, persisted so no UA is ever handed out twice.

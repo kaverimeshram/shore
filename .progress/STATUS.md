@@ -48,3 +48,11 @@
 - This is the read-back half of B3. The swap half (1Click delivering to the UA) is on hold by operator rule.
 - Inbound quote path: `airlock inbound 0.01 <USDC base> <0x refund>` returned a non-dry quote with a Base deposit address and a Revision 1 Orchard UA recipient (inbound 612fbdaab66d, unfunded). Endpoints POST /api/inbound, GET /api/inbound/{id} written, built, not yet exercised live.
 - Jittered schedule: ZIP 318 transfer delay distribution (mean 66 blocks, cap 576), 2 tests, mean checked over 20,000 samples.
+
+## Proven (COUNTERSIGN signing, testnet)
+- `airlock fund <testnet UA> 50000`: view-only propose, COUNTERSIGN policy check + signature (`countersign_core::approve_and_sign`, path dep), prove, extract, broadcast, poll. Testnet tx 540762b04fcfe08e0c943c15cf90af4ba409fb1756ff245dd5e235b74a35594c mined at height 4,435,827 (handoff-tx and GetTransaction agree). 56 s end to end.
+- Red: signer refuses with `FeeTooHigh { fee: 10000, max: 1 }` when the approved max fee is 1.
+- Expiry: tx v6, expiry_height 4,435,848, mined 4,435,827. No airlock code sets an expiry (library default, 40 blocks past the target height); `grep expiry src` is empty. No tip+200.
+- Mainnet funding is refused in code (`fund` returns an error unless the network is testnet).
+- GAP: COUNTERSIGN's policy refuses any transparent output (`ForbiddenPool("transparent")`), so the shielded to deposit t-address hop cannot go through it yet. Asked zc-countersign for a transparent-output Intent.
+- Static web app committed: Check, Split, Inbound, Swap pages; `uicraft gate` 0 high; zero console errors at 375 and 1440; fixed a doubled-decimal bug in the inbound amount.

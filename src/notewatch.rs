@@ -34,12 +34,12 @@ pub struct Landed {
 }
 
 pub struct NoteWatch {
-    network: Network,
-    db: Db,
+    pub(crate) network: Network,
+    pub(crate) db: Db,
     path: std::path::PathBuf,
 }
 
-async fn client(n: Network) -> Result<Lwd> {
+pub(crate) async fn client(n: Network) -> Result<Lwd> {
     let ch = tonic::transport::Channel::from_shared(endpoint(n).to_string())?
         .tls_config(tonic::transport::ClientTlsConfig::new().with_webpki_roots())?
         .connect()

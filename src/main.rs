@@ -34,6 +34,11 @@ async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let oc = Client::new()?;
     match args.first().map(String::as_str) {
+        Some("ua-test") => {
+            // airlock ua-test <index>   testnet Orchard-only UA at an index (Revision 2)
+            let i: u32 = args.get(1).map_or(Ok(0), |s| s.parse())?;
+            println!("{}", Wallet::open(dir)?.orchard_ua_on(&zcash_protocol::consensus::Network::TestNetwork, i)?);
+        }
         Some("ua") => {
             let ua = Wallet::open(dir)?.fresh_ua(dir)?;
             println!("{ua}\nreceivers: {:?}", receivers(&ua)?);
@@ -99,6 +104,19 @@ async fn main() -> Result<()> {
             let w = Wallet::open(dir)?;
             let ib = quote_inbound(&tor, dir, zat(zec)?, asset, refund, &w.fresh_ua(dir)?).await?;
             println!("inbound {}\n  send {} (min {}) of {}\n  to {}\n  lands in {}\n  deadline {}", ib.id, ib.amount_in, ib.min_amount_in, ib.origin_asset, ib.deposit_address, ib.recipient, ib.deadline);
+        }
+        Some("fund") => {
+            // airlock fund <dest-unified-address> <zats> [max-fee]   testnet only: signed through COUNTERSIGN, mined read-back
+            use airlock::notewatch::{tip, NoteWatch};
+            use zcash_protocol::consensus::Network;
+            let (Some(dest), Some(z)) = (args.get(1), args.get(2)) else { bail!("usage: fund <dest> <zats> [max-fee]") };
+            let max_fee: u64 = args.get(3).map_or(Ok(20_000), |s| s.parse())?;
+            let w = Wallet::open(dir)?;
+            let net = Network::TestNetwork;
+            let birthday = tip(net).await?.saturating_sub(10);
+            let mut nw = NoteWatch::open(&dir.join("notes-test.db"), net, &w.ufvk(&net)?, birthday).await?;
+            let (txid, h) = nw.fund(&w, dest, z.parse()?, max_fee, 900).await?;
+            println!("MINED {txid} at height {h}");
         }
         Some("note") => {
             // airlock note <test|main> [min-zat] [timeout-secs]   wait until a note of at least min-zat lands in the wallet (view-only scan)
@@ -175,7 +193,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | fund <dest> <zats> | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }

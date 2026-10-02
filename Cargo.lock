@@ -69,10 +69,12 @@ dependencies = [
  "async-trait",
  "axum",
  "blake2b_simd",
+ "countersign-core",
  "hex",
  "http-body-util",
  "hyper",
  "orchard",
+ "pczt",
  "rand 0.10.3",
  "rand_chacha 0.10.0",
  "reqwest",
@@ -86,8 +88,10 @@ dependencies = [
  "zcash_client_backend",
  "zcash_client_sqlite",
  "zcash_keys",
+ "zcash_primitives",
  "zcash_protocol",
  "zip32",
+ "zip321",
 ]
 
 [[package]]
@@ -862,6 +866,18 @@ name = "corez"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4df6f98652d30167eaeea34d77b730e07c8caba6df17bd4551842b9b8da01deb"
+
+[[package]]
+name = "countersign-core"
+version = "0.1.0"
+dependencies = [
+ "orchard",
+ "pczt",
+ "rand_core 0.10.1",
+ "zcash_address",
+ "zcash_protocol",
+ "zip32",
+]
 
 [[package]]
 name = "cpubits"
@@ -3219,6 +3235,7 @@ checksum = "e4875346691fe8d61ee4995e0be580530893f5aacf08d8fae14bfd2c0733ecb9"
 dependencies = [
  "blake2b_simd",
  "bls12_381",
+ "document-features",
  "ff 0.14.0",
  "getset",
  "jubjub",

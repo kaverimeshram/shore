@@ -1,5 +1,6 @@
 pub mod blockcache;
 pub mod exposure;
+pub mod fund;
 pub mod notewatch;
 pub mod oneclick;
 pub mod server;

@@ -14,6 +14,10 @@ path = "src/main.rs"
 [dependencies]
 zcash_client_backend = { version = "=0.25.0-pre.0", features = ["orchard", "sync", "pczt", "lightwalletd-tonic-tls-webpki-roots", "lightwalletd-tonic-transport", "zcash_proofs", "tor"] }
 zcash_client_sqlite = { version = "=0.23.0-pre.0", features = ["orchard", "unstable", "transparent-inputs", "serde"] }
+zcash_primitives = "=0.31.0-pre.0"
+zip321 = "=0.10.0-pre.0"
+pczt = { version = "=0.10.0-pre.0", features = ["orchard", "signer", "prover", "tx-extractor", "io-finalizer", "spend-finalizer"] }
+countersign-core = { path = "../countersign/crates/countersign-core" }
 zcash_keys = { version = "=0.17.0-pre.0", features = ["orchard", "sapling"] }
 zcash_protocol = "=0.11.0-pre.0"
 zcash_address = "=0.14.0-pre.0"
