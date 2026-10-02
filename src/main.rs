@@ -1,4 +1,4 @@
-use airlock::swap::{quote_outbound, read_parts, receipt, shared_count, watch, Swap};
+use airlock::swap::{quote_inbound, quote_outbound, read_parts, receipt, shared_count, watch, Swap};
 use airlock::watchdog::{Config, Outcome};
 use airlock::transport::Transport;
 use airlock::oneclick::{deadline_in, Client, QuoteRequest, SwapType, ZEC_ASSET};
@@ -92,6 +92,14 @@ async fn main() -> Result<()> {
                 println!("handle {i}: {body}");
             }
         }
+        Some("inbound") => {
+            // airlock inbound <zec> <originAssetId> <originRefundAddress>   unfunded non-dry quote into a fresh Orchard-only UA
+            let [_, zec, asset, refund] = &args[..] else { bail!("usage: inbound <zec> <originAssetId> <originRefundAddress>") };
+            let tor = Transport::bootstrap_tor(&tor_dir()).await?;
+            let w = Wallet::open(dir)?;
+            let ib = quote_inbound(&tor, dir, zat(zec)?, asset, refund, &w.fresh_ua(dir)?).await?;
+            println!("inbound {}\n  send {} (min {}) of {}\n  to {}\n  lands in {}\n  deadline {}", ib.id, ib.amount_in, ib.min_amount_in, ib.origin_asset, ib.deposit_address, ib.recipient, ib.deadline);
+        }
         Some("note") => {
             // airlock note <test|main> [min-zat] [timeout-secs]   wait until a note of at least min-zat lands in the wallet (view-only scan)
             use airlock::notewatch::{endpoint, tip, NoteWatch};
@@ -167,7 +175,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }

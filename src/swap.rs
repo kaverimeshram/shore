@@ -202,3 +202,61 @@ pub fn receipt_json(swap: &Swap, reads: &[StatusResponse]) -> serde_json::Value 
         "sharedConstants": shared_leaves(&raws).into_iter().map(|(p, v, i)| serde_json::json!({"path": p, "value": v, "parts": i})).collect::<Vec<_>>(),
     })
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Inbound {
+    pub id: String,
+    pub origin_asset: String,
+    pub deposit_address: String,
+    pub recipient: String,
+    pub amount_out_zat: u64,
+    pub amount_in: String,
+    pub min_amount_in: String,
+    pub deadline: String,
+}
+
+/// Inbound swap: pay in `origin_asset`, land as shielded ZEC in `recipient` (Orchard-only UA).
+/// EXACT_OUTPUT so the note that lands is the amount asked for. No unshield step exists.
+pub async fn quote_inbound(
+    tor: &tor::Client,
+    dir: &Path,
+    amount_out_zat: u64,
+    origin_asset: &str,
+    origin_refund: &str,
+    recipient: &str,
+) -> Result<Inbound> {
+    let recipient = crate::wallet::to_revision_1(recipient)?;
+    if crate::wallet::receivers(&recipient)? != ["orchard"] {
+        bail!("recipient must be an Orchard-only unified address");
+    }
+    let q = Client::with_transport(Transport::isolated(tor))
+        .quote(&QuoteRequest {
+            dry: false,
+            deposit_mode: "SIMPLE",
+            swap_type: SwapType::ExactOutput,
+            slippage_tolerance: 100,
+            origin_asset: origin_asset.into(),
+            deposit_type: "ORIGIN_CHAIN",
+            destination_asset: ZEC_ASSET.into(),
+            amount: amount_out_zat.to_string(),
+            refund_to: origin_refund.into(),
+            refund_type: "ORIGIN_CHAIN",
+            recipient: recipient.clone(),
+            recipient_type: "DESTINATION_CHAIN",
+            deadline: deadline_in(24 * 3600),
+        })
+        .await?;
+    let inbound = Inbound {
+        id: hex::encode(crate::wallet::random_bytes::<6>()?),
+        origin_asset: origin_asset.into(),
+        deposit_address: q.quote.deposit_address.ok_or_else(|| anyhow::anyhow!("non-dry quote returned no depositAddress"))?,
+        recipient,
+        amount_out_zat,
+        amount_in: q.quote.amount_in_formatted,
+        min_amount_in: q.quote.min_amount_in,
+        deadline: q.quote.deadline.unwrap_or_default(),
+    };
+    std::fs::create_dir_all(dir.join("inbound"))?;
+    std::fs::write(dir.join("inbound").join(format!("{}.json", inbound.id)), serde_json::to_vec_pretty(&inbound)?)?;
+    Ok(inbound)
+}

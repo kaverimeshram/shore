@@ -5,7 +5,7 @@ use crate::{
     exposure::identifiers,
     oneclick::Client,
     splitter::{is_canonical, split},
-    swap::{quote_outbound, read_parts, receipt_json, Swap},
+    swap::{quote_inbound, quote_outbound, read_parts, receipt_json, Inbound, Swap},
     transport::Transport,
     wallet::{receivers, to_revision_1},
 };
@@ -48,6 +48,8 @@ pub async fn serve(addr: &str, dir: PathBuf) -> Result<()> {
         .route("/api/tokens", get(tokens))
         .route("/api/plan", post(plan))
         .route("/api/inspect/{addr}", get(inspect))
+        .route("/api/inbound", post(create_inbound))
+        .route("/api/inbound/{id}", get(get_inbound))
         .route("/api/swaps", post(create_swap))
         .route("/api/swaps/{id}", get(get_swap))
         .layer(tower_http::cors::CorsLayer::permissive())
@@ -204,6 +206,56 @@ async fn get_swap(State(app): S, UrlPath(id): UrlPath<String>) -> Res {
         let _slot = app.tor_slots.acquire().await?;
         let reads = read_parts(&app.tor, &swap).await?;
         Ok(receipt_json(&swap, &reads))
+    })
+    .await
+    .map_err(|e| bad(StatusCode::BAD_GATEWAY, e))?;
+    Ok(Json(v))
+}
+
+#[derive(Deserialize)]
+struct InboundReq {
+    #[serde(rename = "amountZec")]
+    amount_zec: String,
+    #[serde(rename = "originAsset")]
+    origin_asset: String,
+    /// Refund address on the origin chain.
+    #[serde(rename = "originRefund")]
+    origin_refund: String,
+    /// Orchard-only unified address from the caller's own wallet.
+    recipient: String,
+}
+
+async fn create_inbound(State(app): S, Json(r): Json<InboundReq>) -> Res {
+    let go = async {
+        let _slot = app.tor_slots.acquire().await?;
+        let ib = quote_inbound(&app.tor, &app.dir, zat(&r.amount_zec)?, &r.origin_asset, &r.origin_refund, &r.recipient).await?;
+        Ok::<_, anyhow::Error>(inbound_json(&ib))
+    };
+    go.await.map(Json).map_err(|e| bad(StatusCode::BAD_REQUEST, e))
+}
+
+fn inbound_json(ib: &Inbound) -> Value {
+    json!({
+        "inboundId": ib.id, "originAsset": ib.origin_asset, "depositAddress": ib.deposit_address,
+        "recipient": ib.recipient, "amountOutZat": ib.amount_out_zat, "amountIn": ib.amount_in,
+        "minAmountIn": ib.min_amount_in, "deadline": ib.deadline,
+    })
+}
+
+async fn get_inbound(State(app): S, UrlPath(id): UrlPath<String>) -> Res {
+    if id.len() != 12 || !id.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(bad(StatusCode::BAD_REQUEST, "inbound ids are 12 hex characters"));
+    }
+    let raw = std::fs::read(app.dir.join("inbound").join(format!("{id}.json"))).map_err(|_| bad(StatusCode::NOT_FOUND, "unknown inbound swap"))?;
+    let ib: Inbound = serde_json::from_slice(&raw).map_err(|e| bad(StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let v = cached(&app, format!("inbound:{id}"), Duration::from_secs(20), || async {
+        let _slot = app.tor_slots.acquire().await?;
+        let s = Client::with_transport(Transport::isolated(&app.tor)).status(&ib.deposit_address).await?;
+        let mut v = inbound_json(&ib);
+        v["status"] = s.raw["status"].clone();
+        v["updatedAt"] = s.raw["updatedAt"].clone();
+        v["publicOnStatus"] = json!(identifiers(&s.raw).into_iter().map(|(f, x)| json!({"field": f, "value": x})).collect::<Vec<_>>());
+        Ok(v)
     })
     .await
     .map_err(|e| bad(StatusCode::BAD_GATEWAY, e))?;
