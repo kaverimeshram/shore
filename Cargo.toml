@@ -27,6 +27,8 @@ anyhow = "1"
 hyper = "1"
 http-body-util = "0.1"
 hex = "0.4"
+axum = "0.8"
+tower-http = { version = "0.6", features = ["cors"] }
 rand = { version = "0.10", features = ["sys_rng"] }
 
 [profile.dev.package.halo2_proofs]

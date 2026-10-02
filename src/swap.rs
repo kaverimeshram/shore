@@ -6,7 +6,6 @@ use crate::{
     oneclick::{deadline_in, parse_rfc3339, Client, QuoteRequest, StatusResponse, SwapType, ZEC_ASSET},
     splitter::{split, Split},
     transport::Transport,
-    wallet::Wallet,
 };
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
@@ -50,7 +49,7 @@ impl Swap {
 /// Creates the parts of one outbound swap. `destinations` must hold one distinct address per part.
 pub async fn quote_outbound(
     tor: &tor::Client,
-    wallet: &Wallet,
+    mut next_refund: impl FnMut() -> Result<String>,
     dir: &Path,
     total_zat: u64,
     max_part: u64,
@@ -66,7 +65,7 @@ pub async fn quote_outbound(
     }
     let mut out = Vec::new();
     for (amount, dest) in parts.iter().zip(destinations) {
-        let refund_ua = wallet.fresh_ua(dir)?;
+        let refund_ua = next_refund()?;
         let oc = Client::with_transport(Transport::isolated(tor));
         let q = oc
             .quote(&QuoteRequest {
@@ -173,4 +172,33 @@ pub async fn watch(
         }
     }
     Ok(tracker.outcomes())
+}
+
+/// The receipt as data, for the web service. Same facts as [`receipt`].
+pub fn receipt_json(swap: &Swap, reads: &[StatusResponse]) -> serde_json::Value {
+    use crate::exposure::{identifiers, shared_identifiers, shared_leaves};
+    let raws: Vec<_> = reads.iter().map(|r| r.raw.clone()).collect();
+    let parts: Vec<_> = swap
+        .parts
+        .iter()
+        .zip(reads)
+        .enumerate()
+        .map(|(i, (p, r))| {
+            serde_json::json!({
+                "index": i,
+                "amountZat": p.amount_zat,
+                "status": r.raw["status"],
+                "depositAddress": p.deposit_address,
+                "deadline": p.deadline,
+                "publicOnStatus": identifiers(&r.raw).into_iter().map(|(f, v)| serde_json::json!({"field": f, "value": v})).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    serde_json::json!({
+        "swapId": swap.id,
+        "residualZat": swap.residual_zat,
+        "parts": parts,
+        "sharedIdentifiers": shared_identifiers(&raws).into_iter().map(|x| serde_json::json!({"field": x.field, "value": x.value, "parts": x.parts})).collect::<Vec<_>>(),
+        "sharedConstants": shared_leaves(&raws).into_iter().map(|(p, v, i)| serde_json::json!({"path": p, "value": v, "parts": i})).collect::<Vec<_>>(),
+    })
 }

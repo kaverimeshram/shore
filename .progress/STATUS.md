@@ -37,3 +37,8 @@
 ## Next
 - `watch` driver run against a real terminal swap (public SUCCESS address) to exercise the loop.
 - Web app: static frontend + Rust service (axum), exposure checker for any deposit address, outbound plan, receipt.
+
+## Proven (service)
+- `airlock serve` (axum): /api/health, /api/tokens, /api/plan, /api/inspect/{t-addr}, POST /api/swaps, GET /api/swaps/{id}. Live on 127.0.0.1:8787: plan 1.3/0.5 -> 4 canonical parts; inspect of an own deposit address returns the public fields; POST /api/swaps with repeated refund UA -> 400 (red), with 3 distinct refunds -> swap bd0c40d63886 with 3 real unfunded quotes over Tor (green); GET returns receipt JSON, shared identifiers [] and 26 shared constants, 11 s over Tor.
+- Service holds no keys: refund UAs come from the caller's wallet, converted to Revision 1 server side.
+- Blind spot: no funded swap, so deposit and delivery are unexercised.

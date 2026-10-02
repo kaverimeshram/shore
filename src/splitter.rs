@@ -2,7 +2,11 @@
 //! zatoshi in `[0.01 ZEC, 10000 ZEC]`) so each crossing joins the same anonymity set as a
 //! pool-migration transfer, and no single hold exceeds `max_part`.
 use anyhow::{bail, Result};
-use zcash_protocol::zip318::largest_one_two_five;
+use zcash_protocol::{value::Zatoshis, zip318::{is_canonical_denomination, largest_one_two_five}};
+
+pub fn is_canonical(zat: u64) -> bool {
+    Zatoshis::from_u64(zat).is_ok_and(is_canonical_denomination)
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Split {
@@ -35,12 +39,11 @@ pub fn split(total: u64, max_part: u64, max_parts: usize) -> Result<Split> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zcash_protocol::{value::Zatoshis, zip318::is_canonical_denomination};
 
     const ZEC: u64 = 100_000_000;
 
     fn canon(p: u64) -> bool {
-        is_canonical_denomination(Zatoshis::from_u64(p).unwrap())
+        is_canonical(p)
     }
 
     #[test]

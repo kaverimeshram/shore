@@ -1,5 +1,6 @@
 pub mod exposure;
 pub mod oneclick;
+pub mod server;
 pub mod splitter;
 pub mod swap;
 pub mod transport;

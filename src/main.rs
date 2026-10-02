@@ -77,7 +77,7 @@ async fn main() -> Result<()> {
             let tor = Transport::bootstrap_tor(&tor_dir()).await?;
             let w = Wallet::open(dir)?;
             let dests: Vec<String> = dests.split(',').map(String::from).collect();
-            let swap = quote_outbound(&tor, &w, dir, zat(zec)?, zat(cap)?, asset, &dests).await?;
+            let swap = quote_outbound(&tor, || w.fresh_ua(dir), dir, zat(zec)?, zat(cap)?, asset, &dests).await?;
             println!("swap {}", swap.id);
             for p in &swap.parts {
                 println!("  {} zat -> deposit {} deadline {}", p.amount_zat, p.deposit_address, p.deadline);
@@ -91,6 +91,10 @@ async fn main() -> Result<()> {
                 let (_, body) = Transport::isolated(&tor).get("https://check.torproject.org/api/ip").await?;
                 println!("handle {i}: {body}");
             }
+        }
+        Some("serve") => {
+            // airlock serve [addr]   HTTP service for the web app
+            airlock::server::serve(args.get(1).map_or("127.0.0.1:8787", String::as_str), dir.to_path_buf()).await?;
         }
         Some("watch") => {
             // airlock watch <swap-id> [interval-secs] [hold-timeout-secs]
@@ -132,7 +136,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | watch <swap-id> | audit <swap-id>"),
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | serve [addr] | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }
