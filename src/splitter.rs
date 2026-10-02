@@ -36,6 +36,23 @@ pub fn split(total: u64, max_part: u64, max_parts: usize) -> Result<Split> {
     Ok(Split { parts, residual: rem })
 }
 
+/// Send offsets in blocks from now, one per part, cumulative. Each gap is exponential with the
+/// ZIP 318 transfer delay mean (66 blocks) capped at the ZIP 318 transfer delay cap (576), so
+/// part timing follows the same distribution as migration crossings and carries no pattern.
+pub fn schedule(n: usize, rng: &mut impl rand::Rng) -> Vec<u32> {
+    use rand::RngExt;
+    use zcash_protocol::zip318::{TRANSFER_DELAY_CAP, TRANSFER_DELAY_MEAN};
+    let (mean, cap) = (f64::from(TRANSFER_DELAY_MEAN.get()), TRANSFER_DELAY_CAP.get());
+    let mut at = 0u32;
+    (0..n)
+        .map(|_| {
+            let u: f64 = rng.random();
+            at += ((-mean * (1.0 - u).ln()).round() as u32).clamp(1, cap);
+            at
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -79,5 +96,30 @@ mod floor_tests {
     #[test]
     fn floor_matches_zip318() {
         assert_eq!(super::FLOOR, u64::from(zcash_protocol::zip318::MAX_RESIDUAL_VALUE));
+    }
+}
+
+#[cfg(test)]
+mod schedule_tests {
+    use super::*;
+    use rand::SeedableRng;
+
+    #[test]
+    fn gaps_are_capped_positive_and_mean_matches_zip318() {
+        let mut rng = rand_chacha::ChaCha20Rng::seed_from_u64(7);
+        let s = schedule(20_000, &mut rng);
+        let gaps: Vec<u32> = std::iter::once(s[0]).chain(s.windows(2).map(|w| w[1] - w[0])).collect();
+        assert!(gaps.iter().all(|&g| (1..=576).contains(&g)));
+        let mean = gaps.iter().map(|&g| f64::from(g)).sum::<f64>() / gaps.len() as f64;
+        // a capped exponential with mean 66 and cap 576 has mean just under 66
+        assert!((60.0..=68.0).contains(&mean), "mean gap {mean}");
+        assert!(s.windows(2).all(|w| w[0] < w[1]), "offsets strictly increase");
+    }
+
+    #[test]
+    fn schedules_differ_between_calls() {
+        let mut a = rand_chacha::ChaCha20Rng::seed_from_u64(1);
+        let mut b = rand_chacha::ChaCha20Rng::seed_from_u64(2);
+        assert_ne!(schedule(6, &mut a), schedule(6, &mut b));
     }
 }

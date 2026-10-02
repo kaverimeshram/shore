@@ -4,7 +4,7 @@
 use crate::{
     exposure::identifiers,
     oneclick::Client,
-    splitter::{is_canonical, split},
+    splitter::{is_canonical, schedule, split},
     swap::{quote_inbound, quote_outbound, read_parts, receipt_json, Inbound, Swap},
     transport::Transport,
     wallet::{receivers, to_revision_1},
@@ -18,6 +18,8 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
+use rand::SeedableRng;
+use rand::TryRng;
 use std::{collections::HashMap, path::PathBuf, sync::Arc, time::{Duration, Instant}};
 use tokio::sync::{Mutex, Semaphore};
 use zcash_client_backend::tor;
@@ -110,8 +112,11 @@ struct PlanReq {
 
 fn plan_json(amount: &str, cap: &str) -> Result<Value> {
     let s = split(zat(amount)?, zat(cap)?, MAX_PARTS)?;
+    let mut rng = rand_chacha::ChaCha20Rng::try_from_rng(&mut rand::rngs::SysRng).map_err(|e| anyhow!("os rng: {e:?}"))?;
+    let at = schedule(s.parts.len(), &mut rng);
     Ok(json!({
-        "parts": s.parts.iter().map(|&p| json!({ "zat": p, "canonical": is_canonical(p) })).collect::<Vec<_>>(),
+        // sendAtBlocks: suggested offsets from now, blocks of about 75 s (25 s after NU7)
+        "parts": s.parts.iter().zip(&at).map(|(&p, &b)| json!({ "zat": p, "canonical": is_canonical(p), "sendAtBlocks": b })).collect::<Vec<_>>(),
         "residualZat": s.residual,
     }))
 }

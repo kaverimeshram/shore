@@ -42,3 +42,9 @@
 - `airlock serve` (axum): /api/health, /api/tokens, /api/plan, /api/inspect/{t-addr}, POST /api/swaps, GET /api/swaps/{id}. Live on 127.0.0.1:8787: plan 1.3/0.5 -> 4 canonical parts; inspect of an own deposit address returns the public fields; POST /api/swaps with repeated refund UA -> 400 (red), with 3 distinct refunds -> swap bd0c40d63886 with 3 real unfunded quotes over Tor (green); GET returns receipt JSON, shared identifiers [] and 26 shared constants, 11 s over Tor.
 - Service holds no keys: refund UAs come from the caller's wallet, converted to Revision 1 server side.
 - Blind spot: no funded swap, so deposit and delivery are unexercised.
+
+## Proven (note read-back, testnet)
+- `airlock note test 200000`: view-only scan (UFVK, no spending key) through testnet.zec.rocks found the Ironwood note of 200,000 zat sent by zc-countersign: txid a37a3dbc29b5093aee3f016278321e8ab999d0f1be223d6fbf8abd511c24cd39, mined height 4,435,638. Independent GetTransaction on the same txid returns height 4435638. Red: threshold 300,000 zat exits with "no note ... within 25s".
+- This is the read-back half of B3. The swap half (1Click delivering to the UA) is on hold by operator rule.
+- Inbound quote path: `airlock inbound 0.01 <USDC base> <0x refund>` returned a non-dry quote with a Base deposit address and a Revision 1 Orchard UA recipient (inbound 612fbdaab66d, unfunded). Endpoints POST /api/inbound, GET /api/inbound/{id} written, built, not yet exercised live.
+- Jittered schedule: ZIP 318 transfer delay distribution (mean 66 blocks, cap 576), 2 tests, mean checked over 20,000 samples.
