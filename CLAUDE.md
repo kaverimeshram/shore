@@ -56,3 +56,10 @@ Register each acceptance as a progress criterion from the workspace root:
 
 2026-10-05: inbound does not land shielded, or 1Click stays paused (forum 57978 reports a pause
 after a 2026-10-01 exploit, unverified). Narrow to the exposure analyzer and audit tool.
+
+## Visual rules
+
+- Always read @DESIGN.md before generating any UI.
+- Do not invent colours, fonts, radii, or spacing outside DESIGN.md. Add new tokens to
+  DESIGN.md first, in its existing format, with a computed contrast ratio if the token carries text.
+- Use semantic tokens (`{colors.hazard}`, `{rounded.control}`, etc.), never raw hex, in components.
