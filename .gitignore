@@ -10,3 +10,7 @@ spikes/leak-scan/err.txt
 spikes/leak-scan/by-wallet.out
 spikes/leak-scan/analysis.out
 work/
+design-research/shots/
+design-research/refs/
+design-research/negative/
+.uicraft-read.json
