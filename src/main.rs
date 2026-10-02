@@ -1,4 +1,5 @@
-use airlock::exposure::shared_identifiers;
+use airlock::swap::{quote_outbound, read_parts, receipt, shared_count, Swap};
+use airlock::transport::Transport;
 use airlock::oneclick::{deadline_in, Client, QuoteRequest, SwapType, ZEC_ASSET};
 use airlock::wallet::{receivers, Wallet};
 use anyhow::{bail, Result};
@@ -14,21 +15,32 @@ const ORIGINS: [(&str, &str, &str); 5] = [
     ("BTC", "nep141:btc.omft.near", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"),
 ];
 
+fn tor_dir() -> std::path::PathBuf {
+    Path::new("work").join("tor")
+}
+
+fn zat(zec: &str) -> Result<u64> {
+    let (i, f) = zec.split_once('.').unwrap_or((zec, ""));
+    if f.len() > 8 {
+        bail!("{zec} has more than 8 decimals");
+    }
+    Ok(i.parse::<u64>()? * 100_000_000 + format!("{f:0<8}").parse::<u64>()?)
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let dir = Path::new("work");
     let args: Vec<String> = std::env::args().skip(1).collect();
     let oc = Client::new()?;
     match args.first().map(String::as_str) {
         Some("ua") => {
-            let w = Wallet::open(Path::new("work"))?;
-            let i: u32 = args.get(1).map_or(Ok(0), |s| s.parse())?;
-            let ua = w.orchard_ua(i)?;
+            let ua = Wallet::open(dir)?.fresh_ua(dir)?;
             println!("{ua}\nreceivers: {:?}", receivers(&ua)?);
         }
         Some("dry") => {
             // airlock dry [zatoshi]   one EXACT_OUTPUT dry quote per origin asset into one Orchard-only UA
             let zat = args.get(1).cloned().unwrap_or_else(|| "1000000".into());
-            let ua = Wallet::open(Path::new("work"))?.orchard_ua(0)?;
+            let ua = Wallet::open(dir)?.fresh_ua(dir)?;
             println!("recipient {ua}\nreceivers {:?}", receivers(&ua)?);
             for (label, asset, refund) in ORIGINS {
                 let q = QuoteRequest {
@@ -58,24 +70,50 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Some("audit") => {
-            // airlock audit <depositAddress>...   live /v0/status reads, shared identifier count
-            if args.len() < 2 {
-                bail!("usage: airlock audit <depositAddress>...");
+        Some("outbound-quote") => {
+            // airlock outbound-quote <zec> <cap-zec> <destAssetId> <dest1,dest2,...>
+            let [_, zec, cap, asset, dests] = &args[..] else { bail!("usage: outbound-quote <zec> <cap-zec> <destAssetId> <dest,dest,...>") };
+            let tor = Transport::bootstrap_tor(&tor_dir()).await?;
+            let w = Wallet::open(dir)?;
+            let dests: Vec<String> = dests.split(',').map(String::from).collect();
+            let swap = quote_outbound(&tor, &w, dir, zat(zec)?, zat(cap)?, asset, &dests).await?;
+            println!("swap {}", swap.id);
+            for p in &swap.parts {
+                println!("  {} zat -> deposit {} deadline {}", p.amount_zat, p.deposit_address, p.deadline);
             }
-            let mut raws = Vec::new();
-            for d in &args[1..] {
-                let s = oc.status(d).await?;
-                println!("{d} {:?}", s.status);
-                raws.push(s.raw);
-            }
-            let shared = shared_identifiers(&raws);
-            for s in &shared {
-                println!("SHARED {} = {} in parts {:?}", s.field, s.value, s.parts);
-            }
-            println!("shared identifiers: {}", shared.len());
         }
-        _ => bail!("usage: airlock ua [n] | dry [zatoshi] | audit <depositAddress>..."),
+        Some("circuits") => {
+            // airlock circuits [n]   exit IP seen by a server for n isolated handles, to show circuits differ
+            let n: usize = args.get(1).map_or(Ok(3), |s| s.parse())?;
+            let tor = Transport::bootstrap_tor(&tor_dir()).await?;
+            for i in 0..n {
+                let (_, body) = Transport::isolated(&tor).get("https://check.torproject.org/api/ip").await?;
+                println!("handle {i}: {body}");
+            }
+        }
+        Some("audit") => {
+            // airlock audit <swap-id>   live /v0/status reads over isolated circuits, receipt, shared count
+            let Some(id) = args.get(1) else { bail!("usage: airlock audit <swap-id>") };
+            let swap = Swap::load(dir, id)?;
+            let tor = Transport::bootstrap_tor(&tor_dir()).await?;
+            let reads = read_parts(&tor, &swap).await?;
+            print!("{}", receipt(&swap, &reads));
+            if shared_count(&reads) > 0 {
+                std::process::exit(2);
+            }
+        }
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | audit <swap-id>"),
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn zat_parses_decimals() {
+        assert_eq!(super::zat("1.3").unwrap(), 130_000_000);
+        assert_eq!(super::zat("0.00000001").unwrap(), 1);
+        assert_eq!(super::zat("2").unwrap(), 200_000_000);
+        assert!(super::zat("0.123456789").is_err());
+    }
 }

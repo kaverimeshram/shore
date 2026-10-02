@@ -2,6 +2,7 @@
 //! research/tech/oneclick-openapi.yaml (QuoteRequest, QuoteResponse, GetExecutionStatusResponse).
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
+use crate::transport::Transport;
 use serde_json::Value;
 
 pub const BASE: &str = "https://1click.chaindefuser.com";
@@ -94,58 +95,42 @@ pub struct StatusResponse {
 
 #[derive(Clone)]
 pub struct Client {
-    http: reqwest::Client,
+    http: Transport,
     base: String,
 }
 
 impl Client {
     pub fn new() -> Result<Self> {
-        Self::with_http(reqwest::Client::builder().timeout(std::time::Duration::from_secs(30)).build()?)
+        Ok(Self::with_transport(Transport::direct()?))
     }
 
-    /// Per-part isolation: pass a client built on its own Tor circuit (SOCKS proxy).
-    pub fn with_http(http: reqwest::Client) -> Result<Self> {
-        Ok(Self { http, base: BASE.into() })
-    }
-
-    pub fn base(mut self, base: &str) -> Self {
-        self.base = base.trim_end_matches('/').into();
-        self
+    /// Per-part isolation: pass a transport on its own Tor circuit.
+    pub fn with_transport(http: Transport) -> Self {
+        Self { http, base: BASE.into() }
     }
 
     pub async fn tokens(&self) -> Result<Vec<Token>> {
-        let r = self.http.get(format!("{}/v0/tokens", self.base)).send().await?;
-        decode(r).await
+        decode(self.http.get(&format!("{}/v0/tokens", self.base)).await?)
     }
 
     pub async fn quote(&self, q: &QuoteRequest) -> Result<QuoteResponse> {
-        let r = self.http.post(format!("{}/v0/quote", self.base)).json(q).send().await?;
-        decode(r).await
+        decode(self.http.post_json(&format!("{}/v0/quote", self.base), &serde_json::to_value(q)?).await?)
     }
 
     pub async fn status(&self, deposit_address: &str) -> Result<StatusResponse> {
-        let r = self
-            .http
-            .get(format!("{}/v0/status", self.base))
-            .query(&[("depositAddress", deposit_address)])
-            .send()
-            .await?;
-        let raw: Value = decode(r).await?;
+        let raw: Value = decode(self.http.get(&format!("{}/v0/status?depositAddress={deposit_address}", self.base)).await?)?;
         let status = serde_json::from_value(raw.get("status").cloned().context("status field missing")?)?;
         Ok(StatusResponse { status, raw })
     }
 
     pub async fn submit_deposit(&self, tx_hash: &str, deposit_address: &str) -> Result<Value> {
         let body = serde_json::json!({ "txHash": tx_hash, "depositAddress": deposit_address });
-        let r = self.http.post(format!("{}/v0/deposit/submit", self.base)).json(&body).send().await?;
-        decode(r).await
+        decode(self.http.post_json(&format!("{}/v0/deposit/submit", self.base), &body).await?)
     }
 }
 
-async fn decode<T: serde::de::DeserializeOwned>(r: reqwest::Response) -> Result<T> {
-    let code = r.status();
-    let body = r.text().await?;
-    if !code.is_success() {
+fn decode<T: serde::de::DeserializeOwned>((code, body): (u16, String)) -> Result<T> {
+    if !(200..300).contains(&code) {
         bail!("1click HTTP {code}: {body}");
     }
     serde_json::from_str(&body).with_context(|| format!("decode 1click body: {body}"))

@@ -1,0 +1,31 @@
+{
+  "id": "e89ed92b43d6",
+  "destination_asset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+  "parts": [
+    {
+      "amount_zat": 50000000,
+      "deposit_address": "t1SXQbFhhTtngZjeEbSEymUyPxgMVvCkzYA",
+      "refund_ua": "u1uufrl3tucq9vjgvssws978y0nm6d6cncqk75qs62htzctwytgpqqsdwlpe5jvl83xqyn2vtkptk4cw535n575yf3nrwpcrydpgrkpgmk",
+      "destination": "0x7d31736a3fe0d8e66f65aec71db8fab56a84b1ab",
+      "correlation_id": "eea90294-7a1c-4a39-902f-8a6e5a7ccedc",
+      "deadline": "2026-10-06T18:58:48.000Z"
+    },
+    {
+      "amount_zat": 50000000,
+      "deposit_address": "t1gHTwuyaB6AG8tZRTEwAuNKqiWr7eqwDEj",
+      "refund_ua": "u1z9nue2w506aew53wagm6zxgey3e9anctcwkkktx746wrk7as6wjyk9wg3trv6ms2ansfgy2fw77z696mh37a7ncv6t8d5t5nty4eydx5",
+      "destination": "0x58d0f4a3b67d1125bdf72991f8a72a4a67077c8c",
+      "correlation_id": "24eafffc-09b3-4dde-9489-287f86974fde",
+      "deadline": "2026-10-06T18:58:56.000Z"
+    },
+    {
+      "amount_zat": 50000000,
+      "deposit_address": "t1K8eHawEVfWYsP2HDx4mQhYR88vqrjk3CQ",
+      "refund_ua": "u1at332fmftn9e264t6km7eg0x48ypttexeyppnu80rtqcvhf8slu9yy5v34vj597akxjs30l44wtaysnqzmfn5nxqfw7k7m0t5ymrzyzq",
+      "destination": "0x695e31c2666898eab1b7fdfde58184d873910dd2",
+      "correlation_id": "1dd84c4c-4936-4afa-9d66-a86161bcd8a2",
+      "deadline": "2026-10-06T18:58:57.000Z"
+    }
+  ],
+  "residual_zat": 0
+}

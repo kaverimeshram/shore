@@ -27,6 +27,18 @@ impl Wallet {
         Ok(Self { seed })
     }
 
+    /// Next never-used index from `<dir>/ua-index`, persisted so no UA is ever handed out twice.
+    pub fn fresh_ua(&self, dir: &Path) -> Result<String> {
+        let p = dir.join("ua-index");
+        let i: u32 = match std::fs::read_to_string(&p) {
+            Ok(s) => s.trim().parse().context("ua-index is not a number")?,
+            Err(_) => 0,
+        };
+        let ua = self.orchard_ua(i)?;
+        std::fs::write(&p, (i + 1).to_string())?;
+        Ok(ua)
+    }
+
     /// Orchard-only mainnet UA at diversifier index `i`. Each index is a distinct address
     /// that shares no receiver with any other index.
     pub fn orchard_ua(&self, i: u32) -> Result<String> {

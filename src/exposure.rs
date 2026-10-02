@@ -98,6 +98,14 @@ mod tests {
     }
 
     #[test]
+    fn leaves_flag_any_field_even_outside_the_allow_list() {
+        let (mut a, mut b) = (part("d1", "r1", "x1"), part("d2", "r2", "x2"));
+        a["swapDetails"]["somethingNew"] = "same".into();
+        b["swapDetails"]["somethingNew"] = "same".into();
+        assert!(shared_leaves(&[a, b]).iter().any(|(p, v, _)| p.ends_with("somethingNew") && v == "same"));
+    }
+
+    #[test]
     fn tx_hash_objects_and_strings_both_read() {
         let mut a = part("d1", "r1", "x1");
         let mut b = part("d2", "r2", "x2");
@@ -107,4 +115,33 @@ mod tests {
         assert_eq!(s.len(), 1);
         assert_eq!(s[0].field, "destination_tx");
     }
+}
+
+/// Every scalar leaf (path, value) in `v`, for the unfiltered cross-part comparison.
+fn leaves(v: &Value, path: String, out: &mut Vec<(String, String)>) {
+    match v {
+        Value::Object(m) => m.iter().for_each(|(k, x)| leaves(x, format!("{path}.{k}"), out)),
+        Value::Array(a) => a.iter().for_each(|x| leaves(x, format!("{path}[]"), out)),
+        Value::Null => {}
+        x => out.push((path, x.to_string().trim_matches('"').to_string())),
+    }
+}
+
+/// Leaf values (any field) identical in two or more parts, as (path, value, parts). Not
+/// every hit is an identifier (asset ids, fee settings, status strings repeat by design);
+/// this is the unfiltered view the receipt prints so no field is hidden by the allow-list
+/// in [`identifiers`].
+pub fn shared_leaves(parts: &[Value]) -> Vec<(String, String, Vec<usize>)> {
+    let mut seen: BTreeMap<(String, String), Vec<usize>> = BTreeMap::new();
+    for (i, p) in parts.iter().enumerate() {
+        let mut l = Vec::new();
+        leaves(p, String::new(), &mut l);
+        for k in l {
+            let e = seen.entry(k).or_default();
+            if !e.contains(&i) {
+                e.push(i);
+            }
+        }
+    }
+    seen.into_iter().filter(|(_, v)| v.len() > 1).map(|((p, v), i)| (p, v, i)).collect()
 }

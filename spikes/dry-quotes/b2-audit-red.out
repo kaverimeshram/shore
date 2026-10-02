@@ -1,0 +1,51 @@
+AIRLOCK exposure receipt, swap 460d6608ac09
+parts 2 residual 0 zat (stays shielded, never crosses)
+
+part 0: 50000000 zat, status PendingDeposit
+  chain observer (Zcash): one-time t-address t1XoAkSegdfCgRMJNMHe8ZPkfi9mmCpEQyx and the amount. Not the refund UA, not the destination.
+  /v0/status, no key, anyone holding the t-address, returns:
+    deposit_address = t1XoAkSegdfCgRMJNMHe8ZPkfi9mmCpEQyx
+    refund_to = u1czvdsp3r74gcarwsvelxjgxg0wp2rcyhv6cmvp7zxn6eyy98wu0tf5a436xdddtqytd658elf23fn97k5txtd3azs3f07xzk35jxhwnx
+    recipient = 0x4c91cac59aed2f17bd7952d9d508d3e544fbccfd
+  solver / 1Click: the full quote request above; network source is a per-part Tor circuit.
+
+part 1: 50000000 zat, status PendingDeposit
+  chain observer (Zcash): one-time t-address t1ZCyPtyS1zryPSoceibUFNysaB2L2XAC2R and the amount. Not the refund UA, not the destination.
+  /v0/status, no key, anyone holding the t-address, returns:
+    deposit_address = t1ZCyPtyS1zryPSoceibUFNysaB2L2XAC2R
+    refund_to = u1czvdsp3r74gcarwsvelxjgxg0wp2rcyhv6cmvp7zxn6eyy98wu0tf5a436xdddtqytd658elf23fn97k5txtd3azs3f07xzk35jxhwnx
+    recipient = 0xb15b6460348137f78a3b9db0e74c99bfc5a38139
+  solver / 1Click: the full quote request above; network source is a per-part Tor circuit.
+
+shared identifiers across parts: 1
+  SHARED refund_to = u1czvdsp3r74gcarwsvelxjgxg0wp2rcyhv6cmvp7zxn6eyy98wu0tf5a436xdddtqytd658elf23fn97k5txtd3azs3f07xzk35jxhwnx in parts [0, 1]
+
+unfiltered: leaf values identical across parts (asset ids and route constants repeat by design)
+  .quoteResponse.quote.amountIn = 50000000 in parts [0, 1]
+  .quoteResponse.quote.amountInFormatted = 0.5 in parts [0, 1]
+  .quoteResponse.quote.amountInUsd = 650.050000000000 in parts [0, 1]
+  .quoteResponse.quote.minAmountIn = 50000000 in parts [0, 1]
+  .quoteResponse.quote.refundFee = 32000 in parts [0, 1]
+  .quoteResponse.quote.timeEstimate = 457 in parts [0, 1]
+  .quoteResponse.quote.withdrawFee = 2400 in parts [0, 1]
+  .quoteResponse.quoteRequest.amount = 50000000 in parts [0, 1]
+  .quoteResponse.quoteRequest.appFees[].fee = 20 in parts [0, 1]
+  .quoteResponse.quoteRequest.appFees[].recipient = 5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd in parts [0, 1]
+  .quoteResponse.quoteRequest.confidentiality = public in parts [0, 1]
+  .quoteResponse.quoteRequest.depositMode = SIMPLE in parts [0, 1]
+  .quoteResponse.quoteRequest.depositType = ORIGIN_CHAIN in parts [0, 1]
+  .quoteResponse.quoteRequest.destinationAsset = nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near in parts [0, 1]
+  .quoteResponse.quoteRequest.dry = false in parts [0, 1]
+  .quoteResponse.quoteRequest.originAsset = nep141:zec.omft.near in parts [0, 1]
+  .quoteResponse.quoteRequest.recipientType = DESTINATION_CHAIN in parts [0, 1]
+  .quoteResponse.quoteRequest.refundTo = u1czvdsp3r74gcarwsvelxjgxg0wp2rcyhv6cmvp7zxn6eyy98wu0tf5a436xdddtqytd658elf23fn97k5txtd3azs3f07xzk35jxhwnx in parts [0, 1]
+  .quoteResponse.quoteRequest.refundType = ORIGIN_CHAIN in parts [0, 1]
+  .quoteResponse.quoteRequest.slippageTolerance = 100 in parts [0, 1]
+  .quoteResponse.quoteRequest.swapType = EXACT_INPUT in parts [0, 1]
+  .status = PENDING_DEPOSIT in parts [0, 1]
+  .swapDetails.refundFee = 32000 in parts [0, 1]
+  .swapDetails.refundedAmount = 0 in parts [0, 1]
+  .swapDetails.refundedAmountFormatted = 0 in parts [0, 1]
+  .swapDetails.refundedAmountUsd = 0 in parts [0, 1]
+  .swapDetails.withdrawFee = 2400 in parts [0, 1]
+not hidden: the sum is still recoverable by amount and timing correlation.
