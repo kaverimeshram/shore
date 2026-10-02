@@ -1,4 +1,5 @@
-use airlock::swap::{quote_outbound, read_parts, receipt, shared_count, Swap};
+use airlock::swap::{quote_outbound, read_parts, receipt, shared_count, watch, Swap};
+use airlock::watchdog::{Config, Outcome};
 use airlock::transport::Transport;
 use airlock::oneclick::{deadline_in, Client, QuoteRequest, SwapType, ZEC_ASSET};
 use airlock::wallet::{receivers, Wallet};
@@ -91,6 +92,19 @@ async fn main() -> Result<()> {
                 println!("handle {i}: {body}");
             }
         }
+        Some("watch") => {
+            // airlock watch <swap-id> [interval-secs] [hold-timeout-secs]
+            let Some(id) = args.get(1) else { bail!("usage: airlock watch <swap-id> [interval-secs] [hold-timeout-secs]") };
+            let interval: u64 = args.get(2).map_or(Ok(30), |s| s.parse())?;
+            let hold_timeout: u64 = args.get(3).map_or(Ok(1800), |s| s.parse())?;
+            let swap = Swap::load(dir, id)?;
+            let tor = Transport::bootstrap_tor(&tor_dir()).await?;
+            let outcomes = watch(&tor, &swap, Config { hold_timeout }, std::time::Duration::from_secs(interval), |a| println!("{a:?}")).await?;
+            println!("outcomes {outcomes:?}");
+            if outcomes.iter().any(|o| *o != Some(Outcome::Success)) {
+                std::process::exit(1);
+            }
+        }
         Some("audit") => {
             // airlock audit <swap-id>   live /v0/status reads over isolated circuits, receipt, shared count
             let Some(id) = args.get(1) else { bail!("usage: airlock audit <swap-id>") };
@@ -102,7 +116,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | audit <swap-id>"),
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }

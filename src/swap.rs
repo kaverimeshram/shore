@@ -1,8 +1,9 @@
 //! Outbound swap: split, then one non-dry quote per part, each part with its own Tor
 //! circuit, one-time deposit address (from the quote), fresh refund UA and destination.
 use crate::{
+    watchdog::{Action, Config, Outcome, Tracker},
     exposure::shared_identifiers,
-    oneclick::{deadline_in, Client, QuoteRequest, StatusResponse, SwapType, ZEC_ASSET},
+    oneclick::{deadline_in, parse_rfc3339, Client, QuoteRequest, StatusResponse, SwapType, ZEC_ASSET},
     splitter::{split, Split},
     transport::Transport,
     wallet::Wallet,
@@ -141,4 +142,37 @@ pub fn receipt(swap: &Swap, reads: &[StatusResponse]) -> String {
     }
     let _ = writeln!(s, "not hidden: the sum is still recoverable by amount and timing correlation.");
     s
+}
+
+/// Polls every part, each read on its own isolated circuit, until every part is terminal.
+/// Returns the per-part outcomes. `on_event` receives each watchdog action as it happens.
+pub async fn watch(
+    tor: &tor::Client,
+    swap: &Swap,
+    cfg: Config,
+    interval: std::time::Duration,
+    mut on_event: impl FnMut(&Action),
+) -> Result<Vec<Option<Outcome>>> {
+    let deadlines: Vec<(u64, u64)> = swap
+        .parts
+        .iter()
+        .map(|p| Ok((p.amount_zat, parse_rfc3339(&p.deadline).ok_or_else(|| anyhow::anyhow!("bad deadline {}", p.deadline))?)))
+        .collect::<Result<_>>()?;
+    let mut tracker = Tracker::new(cfg, &deadlines);
+    while !tracker.all_done() {
+        for (i, p) in swap.parts.iter().enumerate() {
+            if tracker.outcomes()[i].is_some() {
+                continue;
+            }
+            let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs();
+            match Client::with_transport(Transport::isolated(tor)).status(&p.deposit_address).await {
+                Ok(r) => tracker.observe(i, r.status, now).iter().for_each(&mut on_event),
+                Err(e) => eprintln!("part {i}: status read failed, will retry: {e}"),
+            }
+        }
+        if !tracker.all_done() {
+            tokio::time::sleep(interval).await;
+        }
+    }
+    Ok(tracker.outcomes())
 }

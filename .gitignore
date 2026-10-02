@@ -2,3 +2,7 @@ target/
 work/
 *.db
 .env
+spikes/leak-scan/blocks.jsonl
+spikes/leak-scan/taddrs.json
+spikes/leak-scan/hits*.json
+spikes/leak-scan/err.txt

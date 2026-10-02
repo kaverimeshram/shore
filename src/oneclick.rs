@@ -145,6 +145,18 @@ pub fn deadline_in(secs: u64) -> String {
     format!("{y:04}-{m:02}-{dd:02}T{:02}:{:02}:{:02}.000Z", rem / 3600, rem % 3600 / 60, rem % 60)
 }
 
+/// Unix seconds from an RFC3339 UTC stamp like `2026-10-06T18:58:48.000Z`.
+pub fn parse_rfc3339(s: &str) -> Option<u64> {
+    let n = |r: std::ops::Range<usize>| s.get(r)?.parse::<i64>().ok();
+    let (y, m, d) = (n(0..4)?, n(5..7)?, n(8..10)?);
+    let (y, mp) = if m <= 2 { (y - 1, m + 9) } else { (y, m - 3) };
+    let era = y.div_euclid(400);
+    let yoe = y.rem_euclid(400);
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let days = era * 146097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719468;
+    u64::try_from(days * 86400 + n(11..13)? * 3600 + n(14..16)? * 60 + n(17..19)?).ok()
+}
+
 fn civil_from_days(z: i64) -> (i64, u32, u32) {
     let z = z + 719468;
     let era = z.div_euclid(146097);
@@ -167,6 +179,13 @@ mod tests {
         let d = deadline_in(0);
         assert_eq!(d.len(), 24);
         assert!(d.starts_with("20") && d.ends_with(".000Z"));
+    }
+
+    #[test]
+    fn rfc3339_roundtrips_with_deadline_in() {
+        assert_eq!(parse_rfc3339("2026-10-03T00:00:00.000Z"), Some(20729 * 86400));
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        assert_eq!(parse_rfc3339(&deadline_in(3600)), Some(now + 3600));
     }
 
     #[test]
