@@ -62,7 +62,7 @@ pub async fn quote_part(tor: &tor::Client, amount_zat: u64, destination_asset: &
             refund_type: "ORIGIN_CHAIN",
             recipient: destination.into(),
             recipient_type: "DESTINATION_CHAIN",
-            deadline: deadline_in(24 * 3600),
+            deadline: deadline_in(crate::oneclick::REQUEST_DEADLINE_SECS),
         })
         .await?;
     Ok(Part {
@@ -251,7 +251,7 @@ pub async fn quote_inbound(
             refund_type: "ORIGIN_CHAIN",
             recipient: recipient.clone(),
             recipient_type: "DESTINATION_CHAIN",
-            deadline: deadline_in(24 * 3600),
+            deadline: deadline_in(crate::oneclick::REQUEST_DEADLINE_SECS),
         })
         .await?;
     let inbound = Inbound {

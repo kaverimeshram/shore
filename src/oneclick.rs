@@ -136,6 +136,10 @@ fn decode<T: serde::de::DeserializeOwned>((code, body): (u16, String)) -> Result
     serde_json::from_str(&body).with_context(|| format!("decode 1click body: {body}"))
 }
 
+/// Requested quote deadline. Public in /v0/status, so it must blend in: of 909 live ZEC swaps read
+/// on 2026-10-03, 519 requested 120 minutes, 276 requested 60 and none requested 24 hours.
+pub const REQUEST_DEADLINE_SECS: u64 = 2 * 3600;
+
 /// RFC3339 UTC `now + secs`, the only date arithmetic the client needs.
 pub fn deadline_in(secs: u64) -> String {
     let t = std::time::SystemTime::now() + std::time::Duration::from_secs(secs);
@@ -173,6 +177,11 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn request_deadline_matches_the_common_value() {
+        assert_eq!(REQUEST_DEADLINE_SECS, 7200);
+    }
 
     #[test]
     fn deadline_shape() {

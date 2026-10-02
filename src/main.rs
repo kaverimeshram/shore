@@ -78,11 +78,17 @@ async fn main() -> Result<()> {
         }
         Some("outbound-quote") => {
             // airlock outbound-quote <zec> <cap-zec> <destAssetId> <dest1,dest2,...>
-            let [_, zec, cap, asset, dests] = &args[..] else { bail!("usage: outbound-quote <zec> <cap-zec> <destAssetId> <dest,dest,...>") };
+            let (Some(zec), Some(cap), Some(asset), Some(dests)) = (args.get(1), args.get(2), args.get(3), args.get(4)) else { bail!("usage: outbound-quote <zec> <cap-zec> <destAssetId> <dest,dest,...> [min-secs max-secs]") };
+            // quote times are public in /v0/status: space them out (default 5 to 45 minutes)
+            let lo: u64 = args.get(5).map_or(Ok(300), |s| s.parse())?;
+            let hi: u64 = args.get(6).map_or(Ok(2700), |s| s.parse())?;
+            if lo > hi {
+                bail!("min-secs must not exceed max-secs");
+            }
             let tor = Transport::bootstrap_tor(&tor_dir()).await?;
             let w = Wallet::open(dir)?;
             let dests: Vec<String> = dests.split(',').map(String::from).collect();
-            let swap = quote_outbound(&tor, || w.fresh_ua(dir), dir, zat(zec)?, zat(cap)?, asset, &dests, (4, 25)).await?;
+            let swap = quote_outbound(&tor, || w.fresh_ua(dir), dir, zat(zec)?, zat(cap)?, asset, &dests, (lo, hi)).await?;
             println!("swap {}", swap.id);
             for p in &swap.parts {
                 println!("  {} zat -> deposit {} deadline {}", p.amount_zat, p.deposit_address, p.deadline);

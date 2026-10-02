@@ -147,7 +147,7 @@ async fn inspect(State(app): S, UrlPath(addr): UrlPath<String>) -> Res {
         "referral": q["referral"],
         "originAsset": q["originAsset"],
         "destinationAsset": q["destinationAsset"],
-        "amountZat": amount,
+        "amountZat": amount.filter(|_| q["originAsset"] == crate::oneclick::ZEC_ASSET),
         "amountCanonical": amount.filter(|_| q["originAsset"] == crate::oneclick::ZEC_ASSET).map(is_canonical),
     })))
 }
