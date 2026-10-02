@@ -48,3 +48,4 @@ opt-level = 3
 [profile.dev.package.blake2b_simd]
 opt-level = 3
 [profile.dev.package.sinsemilla]
+opt-level = 3
