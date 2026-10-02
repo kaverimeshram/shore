@@ -1,6 +1,38 @@
 const API = String(window.AIRLOCK_API || "").replace(/\/+$/, "");
 const TERMINAL = new Set(["SUCCESS", "REFUNDED", "FAILED"]);
-const POLL_MS = 30000;
+const SWAPS_KEY = "airlock.swaps";
+const INBOUND_KEY = "airlock.inbound";
+
+/* browser-held swaps and every random choice: crypto only, never Math.random */
+function readList(key) {
+  try {
+    const a = JSON.parse(localStorage.getItem(key));
+    return Array.isArray(a) ? a : [];
+  } catch {
+    return [];
+  }
+}
+const writeList = (key, list) => localStorage.setItem(key, JSON.stringify(list));
+const removeItem = (key, id) => writeList(key, readList(key).filter((x) => x.id !== id));
+
+function randInt(lo, hi) {
+  const b = new Uint32Array(1);
+  crypto.getRandomValues(b);
+  return lo + Math.floor((b[0] / 2 ** 32) * (hi - lo + 1));
+}
+
+function randHex(bytes) {
+  return [...crypto.getRandomValues(new Uint8Array(bytes))].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+function shuffle(a) {
+  const r = [...a];
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = randInt(0, i);
+    [r[i], r[j]] = [r[j], r[i]];
+  }
+  return r;
+}
 
 /* ---------- helpers ---------- */
 
@@ -156,20 +188,12 @@ function inspectReceipt(d) {
     h("div", { class: "r-sec" }, row("Status", d.status), row("Updated", fmtTime(d.updatedAt))),
     h("div", { class: "r-sec" }, h("p", { class: "label" }, "Readable by anyone"), fields),
     h("div", { class: "r-sec" }, metaRows),
-    h("div", { class: "r-sec" },
-      h("p", { class: "label" }, "Chain observer"),
-      h("p", {}, "Sees the t-address ", hl(d.depositAddress, chainI), " and the ", hl(zec, chainI + 1),
-        " sent to it. Nothing else.")),
-    h("div", { class: "r-sec" },
-      h("p", { class: "label" }, "1Click status endpoint"),
+    observerSecs(
+      h("p", {}, "Sees the t-address ", hl(d.depositAddress, chainI), " and the ", hl(zec, chainI + 1), " sent to it. Nothing else."),
       h("p", {}, "Returns all ", String(nTags), " fields above to anyone who holds the deposit address. No key needed."),
-      h("p", { class: "data" }, "GET /v0/status?depositAddress=")),
-    h("div", { class: "r-sec" },
-      h("p", { class: "label" }, "Solver"),
-      h("p", {}, "Sees the full quote, including both assets, the amount, the recipient and the refund address."),
-      row("From", d.originAsset), row("To", d.destinationAsset)),
+      [row("From", d.originAsset), row("To", d.destinationAsset)]),
     h("div", { class: "r-foot" },
-      h("p", {}, "An AIRLOCK exit gives every part its own deposit address, refund address and destination, so there is nothing to link."),
+      h("p", {}, "Each part carries its own deposit address, refund address and destination, so no field repeats across the parts."),
       h("p", {}, h("a", { class: "link", href: "#/split" }, "Plan an exit →")),
       h("p", { class: "src" }, `GET /api/inspect/${d.depositAddress}`)));
 }
@@ -360,32 +384,78 @@ function pageSplit(main) {
       return;
     }
     const plan = state.plan;
+    const asset = assetSel.value;
+    const dest = state.dest.map((v) => (v || "").trim());
+    const refund = state.refund.map((v) => (v || "").trim());
+    const made = plan.parts.map(() => null);
     submit.disabled = true;
-    const progress = h("div", { class: "note", role: "status" },
-      h("p", { class: "label" }, "Creating the swap"),
-      h("p", {}, "Each part opens its own Tor circuit and asks 1Click for its own quote. The elapsed time counts below."),
-      h("ul", { class: "plan-list" },
-        plan.parts.map((p, i) => h("li", {}, h("span", {}, `Part ${i + 1}, ${formatZec(p.zat)} ZEC`), h("span", {}, "own circuit, own quote")))),
-      waitNote("Elapsed"));
-    put(status, progress);
     createCtl = new AbortController();
+    const signal = createCtl.signal;
+    const cells = plan.parts.map(() => h("span", {}, "queued"));
+    const line = h("p", { class: "wait", role: "status" });
+    put(status, h("div", { class: "note" },
+      h("p", { class: "label" }, "Creating the swap"),
+      h("p", {}, "One part at a time, in a shuffled order, each over its own Tor circuit with a random pause between parts. Keep this tab open."),
+      h("ul", { class: "plan-list" }, plan.parts.map((p, i) => h("li", {}, h("span", {}, `Part ${i + 1}, ${formatZec(p.zat)} ZEC`), cells[i]))),
+      line));
+    const pause = (ms, label) => new Promise((resolve) => {
+      const end = Date.now() + ms;
+      const tick = () => put(line, `${label} ${Math.max(0, Math.ceil((end - Date.now()) / 1000))}s`);
+      tick();
+      const iv = setInterval(tick, 500);
+      const t = setTimeout(done, ms);
+      signal.addEventListener("abort", done);
+      function done() { clearInterval(iv); clearTimeout(t); resolve(); }
+    });
+    const keep = (ev) => { ev.preventDefault(); ev.returnValue = ""; };
+    window.addEventListener("beforeunload", keep);
     try {
-      const res = await api("/api/swaps", {
-        method: "POST", headers: { "content-type": "application/json" }, signal: createCtl.signal,
-        body: JSON.stringify({
-          amountZec: state.amount, capZec: state.cap, destinationAsset: assetSel.value,
-          destinations: state.dest.map((s) => s.trim()), refunds: state.refund.map((s) => s.trim()),
-        }),
-      });
+      const order = shuffle(plan.parts.map((_, i) => i));
+      for (let k = 0; k < order.length; k++) {
+        const i = order[k];
+        if (k > 0) {
+          await pause(randInt(4000, 25000), "Next part in");
+          if (signal.aborted) return;
+        }
+        for (;;) {
+          put(cells[i], "asking 1Click");
+          put(line, `Part ${i + 1} of ${plan.parts.length}: opening its own circuit and quote. Usually 5 to 15 s.`);
+          try {
+            made[i] = await api("/api/quote", {
+              method: "POST", headers: { "content-type": "application/json" }, signal,
+              body: JSON.stringify({ amountZat: plan.parts[i].zat, destinationAsset: asset, destination: dest[i], refund: refund[i] }),
+            });
+            put(cells[i], "quote created");
+            break;
+          } catch (err) {
+            if (err.name === "AbortError") return;
+            await new Promise((resolve) => {
+              put(cells[i], h("span", { role: "alert" }, `failed: ${err.message} `),
+                h("button", { type: "button", class: "btn-text", onclick: resolve }, `Retry part ${i + 1}`));
+              put(line, "This part did not open. Retry it on its own; no other part is sent.");
+              signal.addEventListener("abort", resolve);
+            });
+            if (signal.aborted) return;
+          }
+        }
+      }
+      const swap = {
+        id: randHex(6), createdAt: new Date().toISOString(), destinationAsset: asset,
+        parts: made.map((m) => ({ amountZat: m.amountZat, depositAddress: m.depositAddress, deadline: m.deadline, destination: m.destination, refund: m.refund })),
+      };
       try {
-        sessionStorage.setItem(`airlock.swap.${res.swapId}`, JSON.stringify(res));
-        sessionStorage.setItem("airlock.lastSwap", res.swapId);
-      } catch { /* storage unavailable, the receipt page reads the service */ }
-      location.hash = `#/swap/${res.swapId}`;
-    } catch (err) {
-      if (err.name === "AbortError") return;
-      put(status, errorNote(err));
-      submit.disabled = false;
+        writeList(SWAPS_KEY, [...readList(SWAPS_KEY), swap]);
+      } catch {
+        put(status, h("div", { class: "note", role: "alert" },
+          h("p", { class: "label" }, "Not saved"),
+          h("p", {}, "This browser would not store the swap. Copy each deposit address now."),
+          swap.parts.map((p, i) => h("p", { class: "data" }, `Part ${i + 1}, ${formatZec(p.amountZat)} ZEC: ${p.depositAddress}`))));
+        return;
+      }
+      location.hash = `#/swap/${swap.id}`;
+    } finally {
+      window.removeEventListener("beforeunload", keep);
+      if (!signal.aborted && !location.hash.startsWith("#/swap/")) submit.disabled = false;
     }
   }
 
@@ -410,131 +480,214 @@ function pageSplit(main) {
 
 /* ---------- page: swap receipt ---------- */
 
-function partsList(parts, residual) {
-  return h("div", {},
-    h("ol", { class: "parts" }, parts.map((p, k) => {
-      const n = (p.index ?? k) + 1;
-      return h("li", {},
-        h("span", { class: "n", "aria-hidden": "true" }, String(n)),
-        h("div", {},
-          h("p", { class: "amt" }, `Part ${n}, send ${formatZec(p.amountZat)} ZEC`),
-          h("p", { class: "meta" },
-            h("span", { class: "status" }, p.status || "reading status"),
-            h("span", {}, `deposit before ${fmtTime(p.deadline)}`)),
-          h("div", { class: "addr" }, h("code", {}, p.depositAddress), copyButton(p.depositAddress))));
-    })),
-    residual > 0 ? h("p", { class: "plan-note" }, `${formatZec(residual)} ZEC stays shielded in your wallet.`) : null);
+/* An identifier is whatever a stranger can match on: the fields 1Click serves with no key, plus the
+   deposit address, refund and destination this browser submitted for the part. 0x values compare
+   without case because the status endpoint lowercases them. */
+function identifiersOf(part, d) {
+  const seen = new Map();
+  const add = (field, value) => {
+    if (!value) return;
+    const norm = /^0x/i.test(value) ? value.toLowerCase() : value;
+    seen.set(`${field}\u0000${norm}`, { field, value });
+  };
+  add("deposit_address", part.depositAddress);
+  add("refund_to", part.refund);
+  add("recipient", part.destination);
+  if (d) for (const f of d.publicOnStatus) add(f.field, f.value);
+  return [...seen.entries()].map(([key, v]) => ({ key, ...v }));
 }
 
-function swapReceipt(id, d, readAt) {
+function sharedAcross(swap, reads) {
+  const by = new Map();
+  swap.parts.forEach((p, k) => {
+    for (const id of identifiersOf(p, reads[k].d)) {
+      if (!by.has(id.key)) by.set(id.key, { field: id.field, value: id.value, parts: [] });
+      by.get(id.key).parts.push(k);
+    }
+  });
+  return [...by.values()].filter((s) => s.parts.length > 1);
+}
+
+function observerSecs(chain, statusNote, solverExtra) {
+  return [
+    h("div", { class: "r-sec" }, h("p", { class: "label" }, "Chain observer"), chain),
+    h("div", { class: "r-sec" },
+      h("p", { class: "label" }, "1Click status endpoint"),
+      statusNote,
+      h("p", { class: "data" }, "GET /v0/status?depositAddress=")),
+    h("div", { class: "r-sec" },
+      h("p", { class: "label" }, "Solver"),
+      h("p", {}, "Sees the full quote, including both assets, the amount, the recipient and the refund address."),
+      solverExtra),
+    h("div", { class: "r-sec" },
+      h("p", { class: "label" }, "AIRLOCK service"),
+      h("p", {}, "Sees each request you send it: your network address, the addresses in that request. Stores nothing. Run it yourself with ",
+        h("code", {}, "airlock serve"), " and point ", h("code", {}, "web/config.js"), " at it to remove it from the picture.")),
+  ];
+}
+
+function partsList(swap, reads) {
+  return h("ol", { class: "parts" }, swap.parts.map((p, k) => {
+    const r = reads[k];
+    return h("li", {},
+      h("span", { class: "n", "aria-hidden": "true" }, String(k + 1)),
+      h("div", {},
+        h("p", { class: "amt" }, `Part ${k + 1}, send ${formatZec(p.amountZat)} ZEC`),
+        h("p", { class: "meta" },
+          h("span", { class: "status" }, r.d ? r.d.status : "reading status"),
+          h("span", {}, `deposit before ${fmtTime(p.deadline)}`)),
+        h("div", { class: "addr" }, h("code", {}, p.depositAddress), copyButton(p.depositAddress)),
+        r.err ? h("p", { class: "help", role: "alert" }, `Last read failed: ${r.err.message}`) : null));
+  }));
+}
+
+function swapReceipt(swap, reads, shared, readAt) {
   let i = 0;
-  const shared = d.sharedIdentifiers;
-  const blocks = d.parts.map((p, k) =>
+  const read = reads.filter((r) => r.d).length;
+  const blocks = swap.parts.map((p, k) =>
     h("div", { class: "r-sec part-block" },
-      h("p", { class: "label" }, `Part ${(p.index ?? k) + 1}, ${p.status}`),
-      p.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ }))));
-  const linked = shared.length === 0
-    ? h("div", { class: "r-sec" },
-        h("p", { class: "label" }, "Shared across parts"),
-        h("div", { class: "seal-line" },
-          h("div", { class: "seal", role: "img", "aria-label": "0 shared identifiers" }, h("b", {}, String(shared.length)), h("span", {}, "shared identifiers")),
-          h("p", {}, "No identifier repeats across the parts. A stranger holding one deposit address cannot reach the others.")))
-    : h("div", { class: "r-sec" },
-        h("p", { class: "label" }, `Shared across parts: ${shared.length}`),
-        shared.map((s) => h("div", {},
-          row(s.field, s.value, { hl: true, i: i++ }),
-          h("p", { class: "help" }, `in parts ${s.parts.map((x) => x + 1).join(", ")}`))));
-  const constants = d.sharedConstants.length === 0 ? null :
-    h("details", { class: "constants" },
-      h("summary", {}, `Route constants identical across parts: asset ids, fees, amount (${d.sharedConstants.length})`),
-      d.sharedConstants.map((c) => h("div", { class: "row long" },
-        h("div", { class: "top" }, h("span", { class: "help" }, c.path), h("span", { class: "lead", "aria-hidden": "true" })),
-        h("span", { class: "v" }, String(c.value)),
-        h("span", { class: "help" }, `parts ${c.parts.map((x) => x + 1).join(", ")}`))));
+      h("p", { class: "label" }, `Part ${k + 1}${reads[k].d ? `, ${reads[k].d.status}` : ""}`),
+      reads[k].d
+        ? reads[k].d.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ }))
+        : h("p", { class: "wait" }, "Reading the status for this part.")));
+  let linked;
+  if (shared.length > 0) {
+    linked = h("div", { class: "r-sec" },
+      h("p", { class: "label" }, `Shared across parts: ${shared.length}`),
+      shared.map((s) => h("div", {},
+        row(s.field, s.value, { hl: true, i: i++ }),
+        h("p", { class: "help" }, `in parts ${s.parts.map((x) => x + 1).join(", ")}`))));
+  } else if (read === swap.parts.length) {
+    linked = h("div", { class: "r-sec" },
+      h("p", { class: "label" }, "Shared across parts"),
+      h("div", { class: "seal-line" },
+        h("div", { class: "seal", role: "img", "aria-label": "0 shared identifiers" }, h("b", {}, "0"), h("span", {}, "shared identifiers")),
+        h("p", {}, "No identifier repeats across the parts. A stranger holding one deposit address cannot reach the others.")));
+  } else {
+    linked = h("div", { class: "r-sec" },
+      h("p", { class: "label" }, "Shared across parts"),
+      h("p", { class: "wait" }, `Read ${read} of ${swap.parts.length} parts. The count prints once every part has been read.`));
+  }
   return h("article", { class: "receipt", "aria-labelledby": "r-h" },
     h("p", { class: "label" }, "Exposure receipt"),
     h("h2", { class: "r-title", id: "r-h", tabindex: "-1" }, "What a stranger reads"),
     blocks, linked,
+    observerSecs(
+      h("p", {}, "Sees each part's t-address, the ZEC sent to it, and each payout arriving at its destination."),
+      h("p", {}, "Returns every highlighted field above, for each part, to anyone who holds that part's deposit address. No key needed.")),
     h("div", { class: "r-foot" },
-      constants,
-      h("p", { class: "src" }, `GET /api/swaps/${id}, read ${fmtTime(readAt)}`)));
+      h("p", {}, "Not hidden: the parts' total, and the times they are sent, can still be matched by an observer who watches both ends."),
+      h("p", { class: "src" }, srcLine(readAt))));
+}
+
+const srcLine = (at) => `Each part read with GET /api/inspect/{depositAddress}, one request per part${at ? `, last read ${fmtTime(at)}` : ""}`;
+
+function missingPage(main, title, listKey, prefix, describe) {
+  put(main,
+    h("section", { class: "page", "aria-labelledby": "miss-h" },
+      h("h1", { class: "display", id: "miss-h", tabindex: "-1" }, title),
+      h("p", { class: "lede", style: "margin-top:20px" }, "Swaps live in the browser that created them. This browser holds nothing under that id."),
+      savedList("Saved in this browser", readList(listKey), prefix, describe)));
+}
+
+function savedList(title, items, prefix, describe) {
+  if (!items.length) return null;
+  return h("div", { class: "saved" },
+    h("p", { class: "label" }, title),
+    h("ul", { class: "plan-list" }, items.map((s) =>
+      h("li", {}, h("a", { class: "link", href: `#/${prefix}/${s.id}` }, s.id), h("span", {}, describe(s))))));
+}
+
+const describeSwap = (s) => `${fmtTime(s.createdAt)}, ${s.parts.length} part${s.parts.length === 1 ? "" : "s"}`;
+const describeInbound = (s) => `${s.amountIn}, ${fmtTime(s.deadline)}`;
+
+function deleteButton(key, id, back) {
+  return h("button", { type: "button", class: "btn-text", onclick: () => {
+    try { removeItem(key, id); } catch { /* storage unavailable, nothing was stored */ }
+    location.hash = back;
+  } }, "Delete from this browser");
+}
+
+/* One request per part, each on its own timer: staggered first reads, then every 60 s with jitter,
+   until the part is terminal. */
+function pollEach(order, read, timers, isDead) {
+  let t = 0;
+  for (const k of order) {
+    const go = async () => {
+      if (isDead()) return;
+      const more = await read(k);
+      if (more && !isDead()) timers[k] = setTimeout(go, randInt(45000, 75000));
+    };
+    timers[k] = setTimeout(go, t);
+    t += randInt(1000, 6000);
+  }
 }
 
 function pageSwap(main, id) {
-  if (!id) return pageSwapLookup(main);
-  let cached = null;
-  try { cached = JSON.parse(sessionStorage.getItem(`airlock.swap.${id}`)); } catch { cached = null; }
+  if (!id) {
+    put(main,
+      h("section", { class: "page", "aria-labelledby": "lookup-h" },
+        h("h1", { class: "display", id: "lookup-h", tabindex: "-1" }, "Open a swap."),
+        h("p", { class: "lede", style: "margin-top:20px" }, "Swaps live in the browser that created them. Pick one saved here."),
+        savedList("Saved in this browser", readList(SWAPS_KEY), "swap", describeSwap) ||
+          h("p", { class: "wait", style: "margin-top:24px" }, "No swap is saved in this browser. "),
+        h("p", { style: "margin-top:12px" }, h("a", { class: "link", href: "#/split" }, "Plan an exit →"))));
+    return null;
+  }
+  const swap = readList(SWAPS_KEY).find((s) => s.id === id);
+  if (!swap) { missingPage(main, "Swap not found.", SWAPS_KEY, "swap", describeSwap); return null; }
+
+  const reads = swap.parts.map(() => ({ d: null, err: null }));
   const left = h("div", {});
   const right = h("div", {});
-  let timer = null;
-  let ctl = null;
+  const timers = [];
+  const ctls = [];
   let lastKey = "";
+  let lastAt = null;
   let dead = false;
 
-  put(left, cached ? partsList(cached.parts, cached.residualZat) : "");
-  put(right, h("div", { class: "receipt idle", "aria-live": "polite" },
-    h("p", { class: "label" }, "Exposure receipt"),
-    h("p", { class: "r-title" }, "Reading status"),
-    h("div", { class: "r-sec" }, waitNote(`Reading ${cached ? `${cached.parts.length} part${cached.parts.length === 1 ? "" : "s"}` : "the parts"} over Tor. The elapsed time counts here.`))));
-
-  async function load(first) {
-    ctl = new AbortController();
-    try {
-      const d = await api(`/api/swaps/${encodeURIComponent(id)}`, { signal: ctl.signal });
-      if (dead) return;
-      const key = JSON.stringify(d);
-      if (key !== lastKey) {
-        lastKey = key;
-        put(left, partsList(d.parts, d.residualZat));
-        put(right, swapReceipt(id, d, new Date()));
-      } else {
-        const src = right.querySelector(".src");
-        if (src) src.textContent = `GET /api/swaps/${id}, read ${fmtTime(new Date())}`;
-      }
-      if (d.parts.some((p) => !TERMINAL.has(p.status))) timer = setTimeout(() => load(false), POLL_MS);
-    } catch (e) {
-      if (e.name === "AbortError" || dead) return;
-      if (first && !lastKey) {
-        put(right, errorNote(e));
-      } else {
-        right.prepend(errorNote(e));
-      }
-      timer = setTimeout(() => load(false), POLL_MS);
+  function paint() {
+    const key = JSON.stringify(reads.map((r) => [r.d, r.err && r.err.message]));
+    if (key === lastKey) {
+      const src = right.querySelector(".src");
+      if (src) src.textContent = srcLine(lastAt);
+      return;
     }
+    lastKey = key;
+    put(left, partsList(swap, reads));
+    put(right, swapReceipt(swap, reads, sharedAcross(swap, reads), lastAt));
   }
-  load(true);
 
-  put(main, 
+  async function readPart(k) {
+    ctls[k] = new AbortController();
+    try {
+      reads[k] = { d: await api(`/api/inspect/${encodeURIComponent(swap.parts[k].depositAddress)}`, { signal: ctls[k].signal }), err: null };
+      lastAt = new Date();
+    } catch (e) {
+      if (e.name === "AbortError" || dead) return false;
+      reads[k] = { d: reads[k].d, err: e };
+    }
+    paint();
+    return !reads[k].d || !TERMINAL.has(reads[k].d.status);
+  }
+
+  paint();
+  pollEach(shuffle(swap.parts.map((_, k) => k)), readPart, timers, () => dead);
+
+  put(main,
     h("section", { class: "page", "aria-labelledby": "swap-h" },
       h("h1", { class: "display", id: "swap-h", tabindex: "-1" }, "Swap receipt."),
-      h("p", { class: "data", style: "margin-top:16px;overflow-wrap:anywhere" }, `swap ${id}`),
+      h("p", { class: "data", style: "margin-top:16px;overflow-wrap:anywhere" }, `swap ${id}, ${swap.parts.length} part${swap.parts.length === 1 ? "" : "s"}, created ${fmtTime(swap.createdAt)}`),
       h("div", { class: "page-grid" },
         h("div", {},
           h("div", { class: "steps" },
             h("p", {}, "Send each part from your own wallet to its deposit address."),
-            h("p", {}, "Parts can be funded one at a time, in any order, before each deadline.")),
-          left),
+            h("p", {}, "Parts can be funded one at a time, in any order, before each deadline."),
+            h("p", {}, "This swap is saved only in this browser.")),
+          left,
+          h("div", { class: "form-row" }, deleteButton(SWAPS_KEY, id, "#/swap"))),
         right)));
-  return () => { dead = true; clearTimeout(timer); if (ctl) ctl.abort(); };
-}
-
-function pageSwapLookup(main) {
-  let last = null;
-  try { last = sessionStorage.getItem("airlock.lastSwap"); } catch { last = null; }
-  const input = h("input", { id: "swap-id", name: "swap-id", type: "text", autocomplete: "off", spellcheck: "false", required: true, value: last || "" });
-  put(main, 
-    h("section", { class: "page", "aria-labelledby": "lookup-h" },
-      h("h1", { class: "display", id: "lookup-h", tabindex: "-1" }, "Open a swap."),
-      h("p", { class: "lede", style: "margin-top:20px" }, "Enter the swap id AIRLOCK returned when the swap was created."),
-      h("form", { style: "max-width:640px", novalidate: true, onsubmit: (e) => {
-        e.preventDefault();
-        const v = input.value.trim();
-        if (!v) { input.focus(); return; }
-        location.hash = `#/swap/${encodeURIComponent(v)}`;
-      } },
-        h("label", { class: "field", for: "swap-id" }, h("span", { class: "label" }, "Swap id"), input),
-        h("div", { class: "form-row" }, h("button", { class: "btn", type: "submit" }, "Open receipt ", h("span", { "aria-hidden": "true" }, "→"))))));
-  return null;
+  return () => { dead = true; timers.forEach(clearTimeout); ctls.forEach((c) => c && c.abort()); };
 }
 
 /* ---------- pages: inbound ---------- */
@@ -559,18 +712,25 @@ function pageInboundNew(main) {
       waitNote("Elapsed")));
     ctl = new AbortController();
     try {
-      const res = await api("/api/inbound", {
+      const res = await api("/api/quote-in", {
         method: "POST", headers: { "content-type": "application/json" }, signal: ctl.signal,
         body: JSON.stringify({
           amountZec: amountIn.value.trim(), originAsset: assetSel.value,
           originRefund: refundIn.value.trim(), recipient: recipIn.value.trim(),
         }),
       });
+      const rec = { id: randHex(6), ...res };
       try {
-        sessionStorage.setItem(`airlock.inbound.${res.inboundId}`, JSON.stringify(res));
-        sessionStorage.setItem("airlock.lastInbound", res.inboundId);
-      } catch { /* storage unavailable, the live view reads the service */ }
-      location.hash = `#/inbound/${res.inboundId}`;
+        writeList(INBOUND_KEY, [...readList(INBOUND_KEY), rec]);
+      } catch {
+        put(status, h("div", { class: "note", role: "alert" },
+          h("p", { class: "label" }, "Not saved"),
+          h("p", {}, "This browser would not store the swap. Copy the deposit address now."),
+          h("p", { class: "data" }, res.depositAddress)));
+        submit.disabled = false;
+        return;
+      }
+      location.hash = `#/inbound/${rec.id}`;
     } catch (err) {
       if (err.name === "AbortError") return;
       put(status, errorNote(err));
@@ -589,104 +749,107 @@ function pageInboundNew(main) {
           h("label", { class: "field", for: "in-refund" }, h("span", { class: "label" }, "Refund address on the origin chain"), refundIn),
           h("label", { class: "field", for: "in-recipient" }, h("span", { class: "label" }, "Recipient, Orchard-only unified address from your wallet"), recipIn),
           h("div", { class: "form-row" }, submit),
-          status))));
+          status)),
+      savedList("Saved in this browser", readList(INBOUND_KEY), "inbound", describeInbound)));
   return () => { if (ctl) ctl.abort(); };
 }
 
-function inboundPay(d, tok) {
+function inboundPay(rec, d, tok) {
   const sym = tok ? tok.symbol : "";
-  const fmt = (v) => (tok ? `${formatUnits(v, tok.decimals)} ${sym}` : String(v));
+  const min = tok ? `${formatUnits(rec.minAmountIn, tok.decimals)} ${sym}` : String(rec.minAmountIn);
   return h("div", {},
     h("ol", { class: "parts single" },
       h("li", {},
         h("div", {},
-          h("p", { class: "amt" }, `Send ${d.amountIn}${sym ? " " + sym : ""}`),
+          h("p", { class: "amt" }, `Send ${rec.amountIn}${sym ? " " + sym : ""}`),
           h("p", { class: "meta" },
-            h("span", { class: "status" }, d.status || "reading status"),
-            h("span", {}, `at least ${fmt(d.minAmountIn)}`),
-            h("span", {}, `deposit before ${fmtTime(d.deadline)}`)),
-          h("div", { class: "addr" }, h("code", {}, d.depositAddress), copyButton(d.depositAddress))))),
-    h("p", { class: "plan-note" }, `You receive ${formatZec(d.amountOutZat)} ZEC, shielded.`));
+            h("span", { class: "status" }, d ? d.status : "reading status"),
+            h("span", {}, `at least ${min}`),
+            h("span", {}, `deposit before ${fmtTime(rec.deadline)}`)),
+          h("div", { class: "addr" }, h("code", {}, rec.depositAddress), copyButton(rec.depositAddress))))),
+    h("p", { class: "plan-note" }, `You receive ${formatZec(rec.amountOutZat)} ZEC, shielded.`));
 }
 
-function inboundReceipt(id, d, readAt) {
+function inboundReceipt(rec, d, err, readAt) {
   let i = 0;
-  const fields = d.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ }));
   return h("article", { class: "receipt", "aria-labelledby": "r-h" },
     h("p", { class: "label" }, "Exposure receipt"),
     h("h2", { class: "r-title", id: "r-h", tabindex: "-1" }, "What a stranger reads"),
-    h("div", { class: "r-sec" }, row("Status", d.status), row("Updated", fmtTime(d.updatedAt))),
-    h("div", { class: "r-sec" }, h("p", { class: "label" }, "Readable by anyone"), fields),
+    d ? h("div", { class: "r-sec" }, row("Status", d.status), row("Updated", fmtTime(d.updatedAt))) : null,
     h("div", { class: "r-sec" },
-      row("Receive", `${formatZec(d.amountOutZat)} ZEC`),
-      row("Deadline", fmtTime(d.deadline))),
+      h("p", { class: "label" }, "Readable by anyone"),
+      d ? d.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ })) : h("p", { class: "wait" }, "Reading the status for this address."),
+      err ? h("p", { class: "help", role: "alert" }, `Last read failed: ${err.message}`) : null),
+    h("div", { class: "r-sec" },
+      row("Receive", `${formatZec(rec.amountOutZat)} ZEC`),
+      row("Deadline", fmtTime(rec.deadline))),
+    observerSecs(
+      h("p", {}, "Sees the deposit address ", hl(rec.depositAddress, i), " on the origin chain and the amount sent to it. The ZEC lands in a shielded address, so the recipient does not appear on the Zcash chain."),
+      h("p", {}, "Returns every highlighted field above to anyone who holds the deposit address. No key needed.")),
     h("div", { class: "r-foot" },
+      h("p", {}, "Not hidden: the amount, and the time it is sent, can still be matched by an observer who watches both ends."),
       h("p", {}, "The recipient is a fresh Orchard-only address, so the destination of this swap is a shielded address."),
-      h("p", { class: "src" }, `GET /api/inbound/${id}, read ${fmtTime(readAt)}`)));
+      h("p", { class: "src" }, `GET /api/inspect/${rec.depositAddress}${readAt ? `, read ${fmtTime(readAt)}` : ""}`)));
 }
 
 function pageInbound(main, id) {
-  let cached = null;
-  try { cached = JSON.parse(sessionStorage.getItem(`airlock.inbound.${id}`)); } catch { cached = null; }
+  const rec = readList(INBOUND_KEY).find((s) => s.id === id);
+  if (!rec) { missingPage(main, "Inbound swap not found.", INBOUND_KEY, "inbound", describeInbound); return null; }
   const left = h("div", {});
   const right = h("div", {});
-  let tok = null;
-  let timer = null;
+  const state = { d: null, err: null, at: null, tok: null };
+  const timers = [];
   let ctl = null;
   let lastKey = "";
   let dead = false;
-  let lastData = cached;
 
-  const paint = (d) => put(left, inboundPay(d, tok));
-  if (cached) paint(cached);
-  put(right, h("div", { class: "receipt idle", "aria-live": "polite" },
-    h("p", { class: "label" }, "Exposure receipt"),
-    h("p", { class: "r-title" }, "Reading status"),
-    h("div", { class: "r-sec" }, waitNote("Reading the status over Tor. The elapsed time counts here."))));
+  function paint() {
+    const key = JSON.stringify([state.d, state.err && state.err.message, state.tok && state.tok.assetId]);
+    if (key === lastKey) {
+      const src = right.querySelector(".src");
+      if (src) src.textContent = `GET /api/inspect/${rec.depositAddress}, read ${fmtTime(state.at)}`;
+      return;
+    }
+    lastKey = key;
+    put(left, inboundPay(rec, state.d, state.tok));
+    put(right, inboundReceipt(rec, state.d, state.err, state.at));
+  }
 
-  async function load(first) {
+  async function readIn() {
     ctl = new AbortController();
     try {
-      const d = await api(`/api/inbound/${encodeURIComponent(id)}`, { signal: ctl.signal });
-      if (dead) return;
-      if (!tok) {
-        try { tok = (await getTokens()).find((t) => t.assetId === d.originAsset) || null; } catch { tok = null; }
-      }
-      lastData = d;
-      const key = JSON.stringify(d);
-      if (key !== lastKey) {
-        lastKey = key;
-        paint(d);
-        put(right, inboundReceipt(id, d, new Date()));
-      } else {
-        const src = right.querySelector(".src");
-        if (src) src.textContent = `GET /api/inbound/${id}, read ${fmtTime(new Date())}`;
-      }
-      if (!TERMINAL.has(d.status)) timer = setTimeout(() => load(false), POLL_MS);
+      state.d = await api(`/api/inspect/${encodeURIComponent(rec.depositAddress)}`, { signal: ctl.signal });
+      state.err = null;
+      state.at = new Date();
     } catch (e) {
-      if (e.name === "AbortError" || dead) return;
-      if (first && !lastKey) put(right, errorNote(e));
-      else right.prepend(errorNote(e));
-      timer = setTimeout(() => load(false), POLL_MS);
+      if (e.name === "AbortError" || dead) return false;
+      state.err = e;
     }
+    paint();
+    return !state.d || !TERMINAL.has(state.d.status);
   }
-  load(true);
+
+  paint();
   getTokens().then((t) => {
-    if (cached && !tok) { tok = t.find((x) => x.assetId === cached.originAsset) || null; if (!dead && lastData) paint(lastData); }
+    if (dead) return;
+    state.tok = t.find((x) => x.assetId === rec.originAsset) || null;
+    paint();
   }).catch(() => {});
+  pollEach([0], readIn, timers, () => dead);
 
   main.replaceChildren(
     h("section", { class: "page", "aria-labelledby": "ib-h" },
       h("h1", { class: "display", id: "ib-h", tabindex: "-1" }, "Inbound receipt."),
-      h("p", { class: "data", style: "margin-top:16px;overflow-wrap:anywhere" }, `inbound ${id}`),
+      h("p", { class: "data", style: "margin-top:16px;overflow-wrap:anywhere" }, `inbound ${id}, created in this browser`),
       h("div", { class: "page-grid" },
         h("div", {},
           h("div", { class: "steps" },
             h("p", {}, "Send the amount below from your own wallet to the deposit address."),
             h("p", {}, "Anything under the minimum is refunded to the address you gave.")),
-          left),
+          left,
+          h("div", { class: "form-row" }, deleteButton(INBOUND_KEY, id, "#/inbound"))),
         right)));
-  return () => { dead = true; clearTimeout(timer); if (ctl) ctl.abort(); };
+  return () => { dead = true; timers.forEach(clearTimeout); if (ctl) ctl.abort(); };
 }
 
 /* ---------- router ---------- */
