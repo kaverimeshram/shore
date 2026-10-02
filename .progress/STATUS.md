@@ -62,3 +62,12 @@
 - Red: `fund ... 40000 1` refuses with FeeTooHigh (max fee 1).
 - Judge runs (zecathon-judge: DISQUALIFY as shipped; cwf-judge-zcash: 32/60). Top finding shared by both: the service linked all parts and the copy said "nothing to link". Fixed: the service is stateless (POST /api/quote per part, GET /api/inspect over Tor, no swap storage), the browser holds the swap and spaces part quotes 4 to 25 s apart, the receipt lists the AIRLOCK service as an observer plus the timing caveat. CLI part quotes are also jittered (4 to 25 s).
 - Pending: purge probe_full.out from history (filter-branch blocked by the web agent's unstaged edits), web rework verification.
+
+## Judge pass 3 (zecathon-judge) and fingerprint work
+- Verdict history: pass 1 DISQUALIFY (service linked all parts, copy "nothing to link"); pass 2 flipped, privacy 5, finding: 24 h requested deadline (0 of 909 live swaps use it) plus back-to-back quote timestamps; pass 3 not disqualified, privacy 6, finding: the full quote profile (referral none, default appFee, slippage 200, deadline 120, Orchard-only refund UA 106 chars) matches 0 of 909 sampled swaps.
+- Done: requested deadline 120 min and slippage 200 bps constants (measured), browser spreads part quotes 5 to 45 min (default), CLI spacing default 5 to 45 min, amountZat only for ZEC origin.
+- New measure: `Profile` + `Reference` (src/profile.rs) count how many sampled swaps share a quote profile. /api/inspect returns quoteProfile and profileCrowd; `airlock audit` and the Check, Swap receipts print "Quote profile: shared by N of 909 sampled swaps". Our parts: 0 of 909. Checked live: a swapkit swap shows 162 of 909.
+- Cannot fix by copying a wallet profile: the referral tag would impersonate Zodl or another wallet. The honest position is to measure and print k. Best attainable null-referral shielded-refund profile found in the data has k of 6 to 10 of 909, so the crowd is small by nature.
+- data/quote-profiles.json is gitignored (aggregate counts by referral tag): commit it with the disclosure OK. Without it the crowd rows do not print.
+- NEAR disclosure draft is private at .progress/NEAR-DISCLOSURE.md. History purge of third-party probe output done (`git log --all -- spikes/leak-scan/probe_full.out` empty).
+- Unverified: funded 1Click swap either direction, inbound delivery, public deploy, docker build, on-chain shape comparison of the funding txs.

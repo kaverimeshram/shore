@@ -139,7 +139,16 @@ async fn inspect(State(app): S, UrlPath(addr): UrlPath<String>) -> Res {
     };
     let q = &r.raw["quoteResponse"]["quoteRequest"];
     let amount = q["amount"].as_str().and_then(|a| a.parse::<u64>().ok());
+    let profile = crate::profile::Profile::from_status(&r.raw);
+    let crowd = profile.as_ref().and_then(|p| {
+        let r = crate::profile::Reference::load(std::path::Path::new("data/quote-profiles.json")).ok()?;
+        Some(json!({ "matches": r.matches(p), "sample": r.sample_size() }))
+    });
     Ok(Json(json!({
+        "quoteProfile": profile.map(|p| json!({
+            "referral": p.referral, "fees": p.fees, "slippageBps": p.slippage_bps, "deadlineMin": p.deadline_min, "refund": p.refund,
+        })),
+        "profileCrowd": crowd,
         "depositAddress": addr,
         "status": r.raw["status"],
         "updatedAt": r.raw["updatedAt"],

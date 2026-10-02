@@ -185,14 +185,23 @@ function idleReceipt() {
       h("p", {}, "What the chain, the status endpoint and the solver each see.")));
 }
 
+/* The quote profile is public in /v0/status: this row says how many sampled swaps share it. */
+function crowdRow(d) {
+  if (!d.profileCrowd) return null;
+  const { matches, sample } = d.profileCrowd;
+  return row("Quote profile", `shared by ${matches} of ${sample} sampled swaps`);
+}
+
 function inspectReceipt(d) {
   let i = 0;
-  const zec = `${formatZec(d.amountZat)} ZEC`;
+  const zec = d.amountZat == null ? null : `${formatZec(d.amountZat)} ZEC`;
   const fields = d.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ }));
-  const metaRows = [
+  const metaRows = zec == null ? [] : [
     row("Amount", zec),
     row("Denomination", d.amountCanonical ? "ZIP 318 canonical" : "not a ZIP 318 canonical amount"),
   ];
+  const crowd = crowdRow(d);
+  if (crowd) metaRows.push(crowd);
   if (d.referral) metaRows.push(row("Referral", d.referral));
   const chainI = i;
   const nTags = d.publicOnStatus.length;
@@ -203,7 +212,9 @@ function inspectReceipt(d) {
     h("div", { class: "r-sec" }, h("p", { class: "label" }, "Readable by anyone"), fields),
     h("div", { class: "r-sec" }, metaRows),
     observerSecs(
-      h("p", {}, "Sees the t-address ", hl(d.depositAddress, chainI), " and the ", hl(zec, chainI + 1), " sent to it. Nothing else."),
+      zec == null
+        ? h("p", {}, "Sees the deposit address ", hl(d.depositAddress, chainI), " and what is sent to it. Nothing else.")
+        : h("p", {}, "Sees the t-address ", hl(d.depositAddress, chainI), " and the ", hl(zec, chainI + 1), " sent to it. Nothing else."),
       h("p", {}, "Returns all ", String(nTags), " fields above to anyone who holds the deposit address. No key needed."),
       [row("From", d.originAsset), row("To", d.destinationAsset)]),
     h("div", { class: "r-foot" },
@@ -574,7 +585,7 @@ function swapReceipt(swap, reads, shared, readAt) {
       p.pending
         ? h("p", { class: "wait" }, `Quote opens at ${clock(p.quoteAt)} local. Nothing is public for this part yet.`)
         : reads[k].d
-          ? reads[k].d.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ }))
+          ? [reads[k].d.publicOnStatus.map((f) => row(f.field, f.value, { hl: true, i: i++ })), crowdRow(reads[k].d)]
           : h("p", { class: "wait" }, "Reading the status for this part.")));
   const count = pending ? h("p", { class: "plan-note" }, `${quoted} of ${total} parts quoted`) : null;
   let linked;
@@ -590,7 +601,7 @@ function swapReceipt(swap, reads, shared, readAt) {
       h("p", { class: "label" }, "Shared across parts"),
       h("div", { class: "seal-line" },
         h("div", { class: "seal", role: "img", "aria-label": "0 shared identifiers" }, h("b", {}, "0"), h("span", {}, "shared identifiers")),
-        h("p", {}, `No identifier repeats across the ${quoted} parts. A stranger holding one deposit address cannot reach the others.`)),
+        h("p", {}, `No identifier repeats across the ${quoted} parts. A stranger holding one deposit address finds no field that leads to the others; the quote profile rows above show how many other swaps look the same.`)),
       count);
   } else {
     linked = h("div", { class: "r-sec" },

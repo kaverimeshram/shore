@@ -146,6 +146,14 @@ pub fn receipt(swap: &Swap, reads: &[StatusResponse]) -> String {
     for (path, v, parts) in crate::exposure::shared_leaves(&raws) {
         let _ = writeln!(s, "  {path} = {v} in parts {parts:?}");
     }
+    if let Ok(reference) = crate::profile::Reference::load(Path::new("data/quote-profiles.json")) {
+        let _ = writeln!(s, "\nquote profile (public in /v0/status, an observer can group swaps by it):");
+        for (i, r) in reads.iter().enumerate() {
+            if let Some(p) = crate::profile::Profile::from_status(&r.raw) {
+                let _ = writeln!(s, "  part {i}: referral {:?}, fees {:?}, slippage {} bps, deadline {} min, refund {}: shared by {} of {} sampled swaps", p.referral, p.fees, p.slippage_bps, p.deadline_min, p.refund, reference.matches(&p), reference.sample_size());
+            }
+        }
+    }
     let _ = writeln!(s, "not hidden: the sum is still recoverable by amount and timing correlation.");
     s
 }
