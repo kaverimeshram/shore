@@ -58,7 +58,7 @@
 - Static web app committed: Check, Split, Inbound, Swap pages; `uicraft gate` 0 high; zero console errors at 375 and 1440; fixed a doubled-decimal bug in the inbound amount.
 
 ## Proven (shielded to transparent deposit hop, testnet)
-- `airlock fund tmHx6PGY... 40000`: COUNTERSIGN `Intent::to_transparent_once` (zc-countersign f8b9ab5), signed by the policy check, proved, broadcast. Testnet tx 49046be46d4ef114b3497897eefdb20290186f19c7c838fb6483f805576aabdf mined at height 4,435,995. This is exactly the hop a 1Click deposit address needs.
+- `airlock fund tmHx6PGY... 40000`: COUNTERSIGN `Intent::to_transparent_once` (zc-countersign 6e68a53), signed by the policy check, proved, broadcast. Testnet tx 49046be46d4ef114b3497897eefdb20290186f19c7c838fb6483f805576aabdf mined at height 4,435,995. This is exactly the hop a 1Click deposit address needs.
 - Red: `fund ... 40000 1` refuses with FeeTooHigh (max fee 1).
 - Judge runs (zecathon-judge: DISQUALIFY as shipped; cwf-judge-zcash: 32/60). Top finding shared by both: the service linked all parts and the copy said "nothing to link". Fixed: the service is stateless (POST /api/quote per part, GET /api/inspect over Tor, no swap storage), the browser holds the swap and spaces part quotes 4 to 25 s apart, the receipt lists the AIRLOCK service as an observer plus the timing caveat. CLI part quotes are also jittered (4 to 25 s).
 - Pending: purge probe_full.out from history (filter-branch blocked by the web agent's unstaged edits), web rework verification.
