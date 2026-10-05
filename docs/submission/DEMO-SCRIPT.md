@@ -38,11 +38,11 @@ page stops with "Two parts share one refund address, which links them." Then fre
 create, and the receipt table prints "Shared identifiers across parts: 0". Terminal:
 
 ```
-airlock audit <swap-id>      # live reads over isolated Tor circuits, shared identifiers: 0, exit 0
+airlock audit e89ed92b43d6   # three parts, live reads over isolated Tor circuits, shared identifiers: 0, exit 0
 ```
 
 > One reused refund address links the parts, so the form refuses it.
-> With fresh ones the audit recomputes the receipt from live reads and prints zero.
+> With fresh ones the audit recomputes the receipt from live reads and prints zero, here across three parts.
 
 ## 1:55 to 2:25, shielded ZEC reaches a transparent deposit address, on chain
 
@@ -52,6 +52,15 @@ Terminal: `airlock fund test tmN6ESmKKcDkzm7bwn4wWc1rJ2vRvPhHfRU 40000`, then
 > This is the shielded to transparent hop a deposit address needs. Built from a view-only wallet,
 > approved by the policy check, signed, proved, broadcast.
 > Mined on Zcash testnet after the NU7 activation at height 4,466,716, read back through lightwalletd.
+
+## MAINNET SLOT, 20 seconds, filled only from real transactions
+
+Recorded after the capped mainnet round trip. The slot shows, in this order, each from a
+command read at the time of recording:
+
+1. `airlock note main` printing the inbound note: txid, mined height, value in zatoshi.
+2. `airlock watch <swap-id>` printing both outbound parts at SUCCESS.
+3. The destination balance change on Base for each part.
 
 ## 2:25 to 2:50, inbound and the close
 

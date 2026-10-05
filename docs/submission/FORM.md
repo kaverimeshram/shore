@@ -13,12 +13,24 @@ and 4,466,716 (deposit hop), 4,435,638 (note read-back).
 
 **Prior work disclosure.** AIRLOCK is a clean repository whose first commit is dated 2026-10-03,
 inside the event window. No code from an earlier project. Third-party libraries: librustzcash crates
-(NU7 generation pins), arti (Tor), axum, tokio. The signing step uses the COUNTERSIGN crate, also
-built during the window, as a path dependency.
+(NU7 generation pins), arti (Tor), axum, tokio. Shielded sends are signed through the COUNTERSIGN
+signing crate, written during the window by a separate team member under the same event; it is a path
+dependency today and the form lists it so a reader can follow it.
 
-**Evidence.** `cargo test` (floor and no failures), live audit of a three-part swap with 0 shared
-identifiers, red and green runs recorded under `spikes/dry-quotes/`, leak dataset under
-`spikes/leak-scan/`.
+**Evidence, with results.**
+- `cargo test`: 33 library tests and 1 binary test pass; each acceptance was shown red with the guarded
+  code broken, then green.
+- Live three-part outbound swap `e89ed92b43d6`: `airlock audit` prints 0 shared identifiers over fresh
+  Tor circuits and exits 0 (`spikes/dry-quotes/b2-audit-green.out`). A run with one refund address
+  reused printed `SHARED refund_to` and exited 2 (`b2-audit-red.out`). The web form now refuses the reuse.
+- Testnet transactions read back through lightwalletd: deposit hop `a2f1c432...ea266` at 4,466,716
+  (after NU7 activation), `49046be4...abdf` at 4,435,995, funding `540762b0...594c` at 4,435,827,
+  inbound note read-back `a37a3dbc...cd39` at 4,435,638.
+- Leak dataset (`spikes/leak-scan/FINDINGS.md`): 909 live 1Click deposit addresses in 1,501 mainnet
+  blocks, 558 showing a shielded refund address, 120 recipients tying 306 swaps together.
+- Live: https://airlock-zec.vercel.app against https://airlock-zec.fly.dev. A real quote from the page for
+  0.02 ZEC inbound returned a Base deposit address and 27.52 USDC.
+- Mainnet round trip: MAINNET SLOT, filled from txids once it has run.
 
 **Business.** Buyers are wallets and apps that route ZEC through NEAR Intents (Zodl in-wallet swaps,
 Zwap, Vizor) and the holders who exit through them. Named users and what they said, verbatim sources:
