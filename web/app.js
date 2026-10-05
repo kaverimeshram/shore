@@ -456,7 +456,7 @@ function pageSplit(main) {
       }
       let at = Date.now();
       const parts = plan.parts.map((p, i) => ({ amountZat: p.zat, destination: dest[i], refund: refund[i], pending: true, quoteAt: 0 }));
-      parts[first] = { amountZat: made.amountZat, depositAddress: made.depositAddress, deadline: made.deadline, destination: made.destination, refund: made.refund };
+      parts[first] = { amountZat: made.amountZat, depositAddress: made.depositAddress, deadline: made.deadline, amountOut: made.amountOutFormatted, destination: made.destination, refund: made.refund };
       for (const i of order.slice(1)) {
         at += randInt(spacing.lo, spacing.hi);
         parts[i].quoteAt = at;
@@ -542,7 +542,7 @@ function observerSecs(chain, statusNote, solverExtra) {
       solverExtra),
     h("div", { class: "r-sec" },
       h("p", { class: "label" }, "AIRLOCK service"),
-      h("p", {}, "Sees each request you send it: your network address, the addresses in that request. Stores nothing. Run it yourself with ",
+      h("p", {}, "Sees each request you send it: your network address and the addresses in that request, so it and its host can tell that the parts of one swap came from the same browser. Stores nothing. Run it yourself with ",
         h("code", {}, "airlock serve"), " and point ", h("code", {}, "web/config.js"), " at it to remove it from the picture.")),
   ];
 }
@@ -567,7 +567,8 @@ function partsList(swap, reads, q) {
         h("p", { class: "amt" }, `Part ${k + 1}, send ${formatZec(p.amountZat)} ZEC`),
         h("p", { class: "meta" },
           h("span", { class: "status" }, r.d ? r.d.status : "reading status"),
-          h("span", {}, `deposit before ${fmtTime(p.deadline)}`)),
+          h("span", {}, `deposit before ${fmtTime(p.deadline)}`),
+          p.amountOut ? h("span", {}, `1Click expects to deliver about ${p.amountOut}`) : null),
         h("div", { class: "addr" }, h("code", {}, p.depositAddress), copyButton(p.depositAddress)),
         r.err ? h("p", { class: "help", role: "alert" }, `Last read failed: ${r.err.message}`) : null));
   }));
@@ -747,7 +748,7 @@ function pageSwap(main, id) {
         body: JSON.stringify({ amountZat: p.amountZat, destinationAsset: swap.destinationAsset, destination: p.destination, refund: p.refund }),
       });
       if (dead) return;
-      swap.parts[k] = { amountZat: made.amountZat, depositAddress: made.depositAddress, deadline: made.deadline, destination: made.destination, refund: made.refund };
+      swap.parts[k] = { amountZat: made.amountZat, depositAddress: made.depositAddress, deadline: made.deadline, amountOut: made.amountOutFormatted, destination: made.destination, refund: made.refund };
       delete q.errs[k];
       q.nextOk = Date.now() + randInt(4000, 25000);
       try {

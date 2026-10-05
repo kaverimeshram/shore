@@ -71,3 +71,10 @@
 - data/quote-profiles.json is gitignored (aggregate counts by referral tag): commit it with the disclosure OK. Without it the crowd rows do not print.
 - NEAR disclosure draft is private at .progress/NEAR-DISCLOSURE.md. History purge of third-party probe output done (`git log --all -- spikes/leak-scan/probe_full.out` empty).
 - Unverified: funded 1Click swap either direction, inbound delivery, public deploy, docker build, on-chain shape comparison of the funding txs.
+
+## Resume (2026-10-05)
+- Post-NU7 shielded leg: `airlock fund test tmN6ESmKKcDkzm7bwn4wWc1rJ2vRvPhHfRU 40000` mined a2f1c4325d9f066f7f6464fe146c84662aa2c01e36f60bbe50d845bf40dea266 at 4,466,716 (handoff-tx agrees, 80 s end to end). Criterion C-post-nu7-deposit-tx, red on a bogus txid, green on this one.
+- Launch caps in the service (src/server.rs MAX_INBOUND_ZAT 2,000,000, MAX_PART_ZAT 1,000,000, MAX_OUTBOUND_ZAT 2,000,000; ZIP 318 floor is 0.01 ZEC so the smallest outbound is 1 part). Live on fly: plan 1.3/0.5 returns 400, 0.02/0.01 returns 2 canonical parts. Red: cap raised to u64::MAX, launch_caps test FAILED, restored green. AIRLOCK_PAUSED stops quotes.
+- Mainnet `fund` exists behind AIRLOCK_MAINNET_FUND and the same part cap (fund::check_launch, test red then green). Not run on mainnet.
+- Fly deploy reproducible: scripts/deploy.sh (remote build, stages the signing crate). Vercel static: https://airlock-zec.vercel.app (account kamal2, 10 files, no functions). Click-through from the Vercel origin: Check on t1UH6mFsvCCzTYvKgTgNCbNBW9t8Vd1NCoq shows refund_to, recipient, profile 0 of 909; Inbound 0.02 ZEC USDC Base returned a real quote (27.521769 USDC, Base deposit address), zero console errors. Blind spot: unfunded, no funds sent.
+- Unverified: funded 1Click swap either direction, inbound delivery, on-chain shape of the funding txs vs migration crossings.

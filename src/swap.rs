@@ -20,6 +20,9 @@ pub struct Part {
     pub destination: String,
     pub correlation_id: String,
     pub deadline: String,
+    /// What 1Click expects to deliver, in the destination asset (informational; the minimum is lower by the slippage).
+    #[serde(default)]
+    pub amount_out_formatted: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,8 +51,13 @@ impl Swap {
 
 /// One part: a non-dry quote over its own isolated Tor circuit. Stateless, nothing is written.
 pub async fn quote_part(tor: &tor::Client, amount_zat: u64, destination_asset: &str, destination: &str, refund_ua: &str) -> Result<Part> {
-    let q = Client::with_transport(Transport::isolated(tor))
-        .quote(&QuoteRequest {
+    if amount_zat > crate::server::MAX_PART_ZAT {
+        bail!("launch cap: a part is at most {} zat", crate::server::MAX_PART_ZAT);
+    }
+    if destination_asset == ZEC_ASSET {
+        bail!("the destination asset must not be ZEC");
+    }
+    let req = QuoteRequest {
             dry: false,
             deposit_mode: "SIMPLE",
             swap_type: SwapType::ExactInput,
@@ -63,10 +71,12 @@ pub async fn quote_part(tor: &tor::Client, amount_zat: u64, destination_asset: &
             recipient: destination.into(),
             recipient_type: "DESTINATION_CHAIN",
             deadline: deadline_in(crate::oneclick::REQUEST_DEADLINE_SECS),
-        })
-        .await?;
+    };
+    let q = Client::with_transport(Transport::isolated(tor)).quote(&req).await?;
+    q.verify_echo(&req)?;
     Ok(Part {
         amount_zat,
+        amount_out_formatted: q.quote.amount_out_formatted.clone(),
         deposit_address: q.quote.deposit_address.ok_or_else(|| anyhow::anyhow!("non-dry quote returned no depositAddress"))?,
         refund_ua: refund_ua.into(),
         destination: destination.into(),
@@ -241,12 +251,14 @@ pub async fn quote_inbound(
     origin_refund: &str,
     recipient: &str,
 ) -> Result<Inbound> {
+    if amount_out_zat > crate::server::MAX_INBOUND_ZAT {
+        bail!("launch cap: an inbound swap is at most {} zat", crate::server::MAX_INBOUND_ZAT);
+    }
     let recipient = crate::wallet::to_revision_1(recipient)?;
     if crate::wallet::receivers(&recipient)? != ["orchard"] {
         bail!("recipient must be an Orchard-only unified address");
     }
-    let q = Client::with_transport(Transport::isolated(tor))
-        .quote(&QuoteRequest {
+    let req = QuoteRequest {
             dry: false,
             deposit_mode: "SIMPLE",
             swap_type: SwapType::ExactOutput,
@@ -260,8 +272,9 @@ pub async fn quote_inbound(
             recipient: recipient.clone(),
             recipient_type: "DESTINATION_CHAIN",
             deadline: deadline_in(crate::oneclick::REQUEST_DEADLINE_SECS),
-        })
-        .await?;
+    };
+    let q = Client::with_transport(Transport::isolated(tor)).quote(&req).await?;
+    q.verify_echo(&req)?;
     let inbound = Inbound {
         id: hex::encode(crate::wallet::random_bytes::<6>()?),
         origin_asset: origin_asset.into(),

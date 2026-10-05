@@ -42,8 +42,9 @@ fn paused() -> Result<()> {
 pub struct App {
     tor: tor::Client,
     direct: Client,
-    /// Bounds concurrent Tor work so one caller cannot saturate the circuit pool.
-    tor_slots: Semaphore,
+    /// Bound concurrent Tor work, one pool per kind so status lookups cannot starve quotes.
+    quote_slots: Semaphore,
+    inspect_slots: Semaphore,
     cache: Mutex<HashMap<String, (Instant, Value)>>,
 }
 
@@ -56,7 +57,7 @@ fn bad(code: StatusCode, e: impl std::fmt::Display) -> (StatusCode, Json<Value>)
 
 pub async fn serve(addr: &str, dir: PathBuf) -> Result<()> {
     let tor = Transport::bootstrap_tor(&dir.join("tor")).await?;
-    let app = Arc::new(App { tor, direct: Client::new()?, tor_slots: Semaphore::new(4), cache: Mutex::new(HashMap::new()) });
+    let app = Arc::new(App { tor, direct: Client::new()?, quote_slots: Semaphore::new(4), inspect_slots: Semaphore::new(4), cache: Mutex::new(HashMap::new()) });
     let router = Router::new()
         .route("/api/health", get(|| async { Json(json!({ "ok": true })) }))
         .route("/api/tokens", get(tokens))
@@ -64,12 +65,30 @@ pub async fn serve(addr: &str, dir: PathBuf) -> Result<()> {
         .route("/api/inspect/{addr}", get(inspect))
         .route("/api/quote", post(quote))
         .route("/api/quote-in", post(quote_in))
-        .layer(tower_http::cors::CorsLayer::permissive())
+        .layer(cors())
         .with_state(app);
     let l = tokio::net::TcpListener::bind(addr).await?;
     println!("airlock service on {}", l.local_addr()?);
     axum::serve(l, router).await?;
     Ok(())
+}
+
+/// Browsers on the static site (and local development) may call the service; other origins get no CORS header.
+fn cors() -> tower_http::cors::CorsLayer {
+    use axum::http::{header::CONTENT_TYPE, HeaderValue, Method};
+    let allowed = |o: &HeaderValue, _: &axum::http::request::Parts| {
+        let o = o.to_str().unwrap_or("");
+        o == "https://airlock-zec.vercel.app" || o.starts_with("http://127.0.0.1:") || o.starts_with("http://localhost:")
+    };
+    tower_http::cors::CorsLayer::new()
+        .allow_origin(tower_http::cors::AllowOrigin::predicate(allowed))
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([CONTENT_TYPE])
+}
+
+/// A permit, or an error after 20 s: a flood of one kind cannot queue the others without bound.
+async fn slot(pool: &Semaphore) -> Result<tokio::sync::SemaphorePermit<'_>> {
+    tokio::time::timeout(Duration::from_secs(20), pool.acquire()).await.map_err(|_| anyhow!("busy, try again"))?.map_err(|e| anyhow!("{e}"))
 }
 
 async fn cached<F, Fut>(app: &App, key: String, ttl: Duration, f: F) -> Result<Value>
@@ -149,7 +168,7 @@ async fn inspect(State(app): S, UrlPath(addr): UrlPath<String>) -> Res {
         return Err(bad(StatusCode::BAD_REQUEST, "not a deposit address"));
     }
     // Over Tor, one circuit per call: the caller's lookup does not hand 1Click a client address.
-    let _slot = app.tor_slots.acquire().await.map_err(|e| bad(StatusCode::SERVICE_UNAVAILABLE, e))?;
+    let _slot = slot(&app.inspect_slots).await.map_err(|e| bad(StatusCode::SERVICE_UNAVAILABLE, e))?;
     let r = match Client::with_transport(Transport::isolated(&app.tor)).status(&addr).await {
         Ok(r) => r,
         Err(e) if e.to_string().contains("HTTP 404") => return Err(bad(StatusCode::NOT_FOUND, "no 1Click swap uses this address")),
@@ -204,11 +223,11 @@ async fn quote(State(app): S, Json(r): Json<QuoteReq>) -> Res {
         if receivers(&u1)? != ["orchard"] {
             bail!("refund address must be an Orchard-only unified address");
         }
-        let _slot = app.tor_slots.acquire().await?;
+        let _slot = slot(&app.quote_slots).await?;
         let p = quote_part(&app.tor, r.amount_zat, &r.destination_asset, r.destination.trim(), &u1).await?;
         Ok::<_, anyhow::Error>(json!({
             "amountZat": p.amount_zat, "depositAddress": p.deposit_address, "deadline": p.deadline,
-            "destination": p.destination, "refund": p.refund_ua,
+            "destination": p.destination, "refund": p.refund_ua, "amountOutFormatted": p.amount_out_formatted,
         }))
     };
     go.await.map(Json).map_err(|e| bad(StatusCode::BAD_REQUEST, e))
@@ -234,7 +253,7 @@ async fn quote_in(State(app): S, Json(r): Json<InboundReq>) -> Res {
         if amount > MAX_INBOUND_ZAT {
             bail!("launch cap: an inbound swap is at most {} zat", MAX_INBOUND_ZAT);
         }
-        let _slot = app.tor_slots.acquire().await?;
+        let _slot = slot(&app.quote_slots).await?;
         let ib = quote_inbound(&app.tor, amount, &r.origin_asset, &r.origin_refund, &r.recipient).await?;
         Ok::<_, anyhow::Error>(json!({
             "originAsset": ib.origin_asset, "depositAddress": ib.deposit_address, "recipient": ib.recipient,
@@ -254,6 +273,15 @@ mod tests {
         let z: Vec<u64> = p["parts"].as_array().unwrap().iter().map(|x| x["zat"].as_u64().unwrap()).collect();
         assert_eq!(z, vec![1_000_000, 1_000_000]);
         assert!(p["parts"].as_array().unwrap().iter().all(|x| x["canonical"] == true));
+    }
+
+    #[test]
+    fn pause_switch_stops_quotes() {
+        std::env::remove_var("AIRLOCK_PAUSED");
+        assert!(paused().is_ok());
+        std::env::set_var("AIRLOCK_PAUSED", "1");
+        assert!(paused().is_err());
+        std::env::remove_var("AIRLOCK_PAUSED");
     }
 
     #[test]

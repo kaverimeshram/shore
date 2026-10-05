@@ -65,6 +65,30 @@ pub struct Quote {
 pub struct QuoteResponse {
     pub quote: Quote,
     pub correlation_id: String,
+    /// 1Click's copy of the request it recorded. A deposit address is only used when this copy
+    /// equals what the caller asked for.
+    #[serde(default)]
+    pub quote_request: Value,
+}
+
+impl QuoteResponse {
+    /// Refuses a quote whose recorded recipient, refund, amount or assets differ from the request.
+    pub fn verify_echo(&self, q: &QuoteRequest) -> Result<()> {
+        let want = [
+            ("recipient", &q.recipient),
+            ("refundTo", &q.refund_to),
+            ("amount", &q.amount),
+            ("originAsset", &q.origin_asset),
+            ("destinationAsset", &q.destination_asset),
+        ];
+        for (k, v) in want {
+            let got = self.quote_request.get(k).and_then(Value::as_str);
+            if got != Some(v.as_str()) {
+                anyhow::bail!("1Click recorded {k} {got:?}, not the {v:?} that was requested");
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
@@ -205,5 +229,38 @@ mod tests {
     fn civil_known_date() {
         // 2026-10-03 is day 20729 since the epoch
         assert_eq!(civil_from_days(20729), (2026, 10, 3));
+    }
+}
+
+#[cfg(test)]
+mod echo_tests {
+    use super::*;
+
+    fn req() -> QuoteRequest {
+        QuoteRequest {
+            dry: false, deposit_mode: "SIMPLE", swap_type: SwapType::ExactInput, slippage_tolerance: 200,
+            origin_asset: ZEC_ASSET.into(), deposit_type: "ORIGIN_CHAIN", destination_asset: "nep141:base".into(),
+            amount: "1000000".into(), refund_to: "u1refund".into(), refund_type: "ORIGIN_CHAIN",
+            recipient: "0xabc".into(), recipient_type: "DESTINATION_CHAIN", deadline: "2026-10-05T10:00:00.000Z".into(),
+        }
+    }
+
+    fn resp(echo: Value) -> QuoteResponse {
+        serde_json::from_value(serde_json::json!({
+            "quote": { "amountIn": "1", "amountInFormatted": "1", "minAmountIn": "1", "amountOut": "1", "amountOutFormatted": "1", "minAmountOut": "1", "timeEstimate": 1 },
+            "correlationId": "c", "quoteRequest": echo,
+        })).unwrap()
+    }
+
+    #[test]
+    fn echo_must_equal_the_request() {
+        let ok = serde_json::json!({ "recipient": "0xabc", "refundTo": "u1refund", "amount": "1000000", "originAsset": ZEC_ASSET, "destinationAsset": "nep141:base" });
+        assert!(resp(ok.clone()).verify_echo(&req()).is_ok());
+        for (k, v) in [("recipient", "0xevil"), ("refundTo", "t1evil"), ("amount", "9000000"), ("destinationAsset", "nep141:zec.omft.near")] {
+            let mut bad = ok.clone();
+            bad[k] = v.into();
+            assert!(resp(bad).verify_echo(&req()).is_err(), "{k} swap must be refused");
+        }
+        assert!(resp(serde_json::json!({})).verify_echo(&req()).is_err(), "missing echo must be refused");
     }
 }
