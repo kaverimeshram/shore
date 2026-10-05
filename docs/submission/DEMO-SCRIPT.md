@@ -12,7 +12,7 @@ two Base addresses to use as destinations, and the Split spacing set to "Back to
 Click path: Check page, click "Try a settled swap". The receipt prints for `t1e5f3Gbrjd1nq6SLXNAmsTq5uQPsNpZ8nG`
 (status SUCCESS, 0.234 ZEC out to Tron). The highlighter marks DEPOSIT_ADDRESS, REFUND_TO and RECIPIENT.
 
-> This swap finished two days ago. I did not ask anyone for a key.
+> This swap settled days ago. I did not ask anyone for a key.
 > The status endpoint hands me the shielded refund address and the recipient. Anyone can.
 > The line under the form is what I measured across fifteen hundred mainnet blocks: 909 live deposit
 > addresses, 558 showing a shielded refund address, 120 recipients tying 306 swaps together.
@@ -31,17 +31,18 @@ two. Press "Create swap".
 Screen: two part cards with different t-addresses, each showing what 1Click expects to deliver and
 the least it will deliver. Receipt row "Shared identifiers across parts: 0".
 
-## 1:15 to 1:55, the audit goes red, then green
+## 1:15 to 1:55, one reused address goes red, fresh ones go green
 
-Terminal:
+Click path: back on Split, type the same refund address into both parts and press "Create swap". The
+page stops with "Two parts share one refund address, which links them." Then fresh refund addresses,
+create, and the receipt table prints "Shared identifiers across parts: 0". Terminal:
 
 ```
-airlock audit <swap-id-with-a-reused-refund>   # prints SHARED refund_to, exit 2
-airlock audit <swap-id>                        # prints shared identifiers: 0, exit 0
+airlock audit <swap-id>      # live reads over isolated Tor circuits, shared identifiers: 0, exit 0
 ```
 
-> The audit recomputes the receipt from live reads and counts what two parts share.
-> Reuse one refund address and it fails. Use fresh ones and it prints zero.
+> One reused refund address links the parts, so the form refuses it.
+> With fresh ones the audit recomputes the receipt from live reads and prints zero.
 
 ## 1:55 to 2:25, shielded ZEC reaches a transparent deposit address, on chain
 

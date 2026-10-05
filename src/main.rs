@@ -202,7 +202,11 @@ async fn main() -> Result<()> {
                 }
                 raws.push(s.raw);
             }
-            println!("shared identifiers across addresses: {}", airlock::exposure::shared_identifiers(&raws).len());
+            let shared = airlock::exposure::shared_identifiers(&raws).len();
+            println!("shared identifiers across addresses: {shared}");
+            if shared > 0 {
+                std::process::exit(2);
+            }
         }
         Some("audit") => {
             // airlock audit <swap-id>   live /v0/status reads over isolated circuits, receipt, shared count

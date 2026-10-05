@@ -32,6 +32,6 @@ are committed. Disclosure to NEAR waits for the orchestrator's OK.
 - One refund UA and one destination per part: the shared-identifier count is 0 by construction
   and measured by `airlock audit` (B1, B2).
 - The exposed shielded refund UA is fresh per part, so the public readout never joins two swaps.
-- Canonical amounts put each crossing in the same set as ZIP 318 migration crossings.
+- Canonical amounts draw each part's amount from the ZIP 318 denomination set instead of an arbitrary value (141 of 909 live swaps already use one). Whether that set is shared with other transparent outputs on chain is not measured.
 - Not changed: the t-address and amount are public on chain, and the sum is recoverable by
   amount and timing correlation.

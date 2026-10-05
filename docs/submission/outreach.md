@@ -23,10 +23,10 @@ The 1Click disclosure to NEAR goes first; none of these carries the dataset numb
 
 ## brayo1st (r/zec)
 
-> Your partial swap post stuck with me. If the deposit address of that swap is still around, paste it
+> Your post about a swap that only partly went through stayed with me. If you still have the deposit address, paste it
 > into https://airlock-zec.vercel.app and it will show the status 1Click returns for it, including
-> whether a refund address is recorded. It reads one public endpoint and stores nothing. If it helps
-> narrow down where the swap sits, I am glad to look at it with you.
+> whether a refund address is recorded. It reads one public endpoint and stores nothing. If it helps you
+> see where the swap stands, I am glad to look at it with you.
 
 ## Notes for the sender
 

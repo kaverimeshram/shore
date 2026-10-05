@@ -6,7 +6,7 @@ Spoken, one idea per breath. Slides are the product itself: three screens and on
 can read where the money is going and where it comes back to. No key. I checked."
 
 **What we measured (0:20).** Over 1,501 mainnet blocks we found 909 live 1Click deposit
-addresses, all ZEC-origin, 896 settled. 558 expose a shielded refund address on the unauthenticated
+addresses (every one a ZEC deposit, since the scan reads the Zcash chain), 896 settled. 558 expose a shielded refund address on the unauthenticated
 status endpoint. 120 recipients link 306 swaps. Source: `spikes/leak-scan/FINDINGS.md`, read-only,
 no funds touched.
 
@@ -21,8 +21,9 @@ Orchard-only address with no unshield step.
 transparent hop is built from a view-only wallet, approved by COUNTERSIGN's policy check, and mined
 on Zcash testnet after the NU7 activation at height 4,466,716.
 
-**Who uses it Monday (1:55).** ZEC holders exiting to stables: the forum case with 1,120 ZEC frozen
-for 50 days, operators moving many wallets through the same rail. Wallets that route ZEC through
+**Who uses it Monday (1:55).** ZEC holders exiting to stables. timtech, 1,120 ZEC held 50 days in one
+exit (forum.zcashcommunity.com/t/57497/1). @Zpartan, "5 figs" frozen
+(x.com/Zpartan/status/2105623264865157577). Operators moving many wallets through the same rail. Wallets that route ZEC through
 NEAR Intents can link their exit flow to the receipt.
 
 **Close (2:20).** "Swap in and out of shielded ZEC, and read your own receipt first."

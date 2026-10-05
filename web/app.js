@@ -430,7 +430,12 @@ function pageSplit(main) {
     const asset = assetSel.value;
     const dest = state.dest.map((v) => (v || "").trim());
     const refund = state.refund.map((v) => (v || "").trim());
-    const spacing = SPACINGS.find((o) => o.key === spacingSel.value) || SPACINGS[0];
+    const reused = [["refund", refund], ["destination", dest]].find(([, list]) => new Set(list.map((v) => v.toLowerCase())).size < list.length);
+    if (reused) {
+      put(status, errorNote(new ApiError(400, `Two parts share one ${reused[0]} address, which links them. Give every part its own.`)));
+      return;
+    }
+    const spacing =SPACINGS.find((o) => o.key === spacingSel.value) || SPACINGS[0];
     submit.disabled = true;
     createCtl = new AbortController();
     const signal = createCtl.signal;
@@ -502,6 +507,7 @@ function pageSplit(main) {
           h("label", { class: "field", for: "spacing" }, h("span", { class: "label" }, "Spacing between part quotes"), h("div", { class: "select-wrap" }, spacingSel)),
           h("div", { class: "field" }, h("span", { class: "label" }, "Parts"), preview),
           partsBox,
+          h("p", { class: "help", style: "margin-top:12px" }, "The AIRLOCK service sees the addresses you submit, from your network address. Run airlock serve on your own machine and point config.js at it to take the service out of the path."),
           h("div", { class: "form-row" }, submit),
           status))));
   return () => { clearTimeout(debounce); if (planCtl) planCtl.abort(); if (createCtl) createCtl.abort(); };
@@ -859,6 +865,7 @@ function pageInboundNew(main) {
           h("label", { class: "field", for: "in-asset" }, h("span", { class: "label" }, "Origin asset"), h("div", { class: "select-wrap" }, assetSel)),
           h("label", { class: "field", for: "in-refund" }, h("span", { class: "label" }, "Refund address on the origin chain"), refundIn),
           h("label", { class: "field", for: "in-recipient" }, h("span", { class: "label" }, "Recipient, Orchard-only unified address from your wallet"), recipIn),
+          h("p", { class: "help", style: "margin-top:12px" }, "The AIRLOCK service sees the addresses you submit, from your network address. Run airlock serve on your own machine and point config.js at it to take the service out of the path."),
           h("div", { class: "form-row" }, submit),
           status)),
       savedList("Saved in this browser", readList(INBOUND_KEY), "inbound", describeInbound)));

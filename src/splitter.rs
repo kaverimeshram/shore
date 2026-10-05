@@ -1,6 +1,6 @@
 //! Splits an outbound ZEC amount into ZIP 318 canonical denominations (`{1,2,5} x 10^k`
-//! zatoshi in `[0.01 ZEC, 10000 ZEC]`) so each crossing joins the same anonymity set as a
-//! pool-migration transfer, and no single hold exceeds `max_part`.
+//! zatoshi in `[0.01 ZEC, 10000 ZEC]`) so each part's amount comes from a small published set
+//! instead of an arbitrary value, and no single hold exceeds `max_part`.
 use anyhow::{bail, Result};
 use zcash_protocol::{value::Zatoshis, zip318::{is_canonical_denomination, largest_one_two_five}};
 
@@ -38,7 +38,7 @@ pub fn split(total: u64, max_part: u64, max_parts: usize) -> Result<Split> {
 
 /// Send offsets in blocks from now, one per part, cumulative. Each gap is exponential with the
 /// ZIP 318 transfer delay mean (66 blocks) capped at the ZIP 318 transfer delay cap (576), so
-/// part timing follows the same distribution as migration crossings and carries no pattern.
+/// part timing follows that published distribution and carries no fixed pattern.
 pub fn schedule(n: usize, rng: &mut impl rand::Rng) -> Vec<u32> {
     use rand::RngExt;
     use zcash_protocol::zip318::{TRANSFER_DELAY_CAP, TRANSFER_DELAY_MEAN};
