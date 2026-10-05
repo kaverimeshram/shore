@@ -1,6 +1,7 @@
 //! Funds a deposit: proposes with the view-only wallet, has COUNTERSIGN's policy check and sign
 //! the signer view, proves, extracts, broadcasts and polls to a mined height. Testnet only: the
-//! operator rule keeps mainnet read-only.
+//! operator rule keeps mainnet read-only unless AIRLOCK_MAINNET_FUND is set, and then every send is
+//! held to the launch cap.
 use crate::{notewatch::NoteWatch, wallet::Wallet};
 use anyhow::{anyhow, bail, Result};
 use pczt::roles::{prover::Prover, signer::Signer};
@@ -26,15 +27,27 @@ fn os_rng() -> Result<ChaCha20Rng> {
     ChaCha20Rng::try_from_rng(&mut SysRng).map_err(|e| anyhow!("os rng: {e:?}"))
 }
 
+/// Mainnet sends need the operator's switch and stay under the part cap of the service (the same
+/// constant, so the two cannot drift apart). Testnet is unrestricted.
+fn check_launch(net: Network, zats: u64, mainnet_enabled: bool) -> Result<()> {
+    if net == Network::MainNetwork {
+        if !mainnet_enabled {
+            bail!("mainnet funding is off: the operator sets AIRLOCK_MAINNET_FUND");
+        }
+        if zats > crate::server::MAX_PART_ZAT {
+            bail!("launch cap: a mainnet send is at most {} zat", crate::server::MAX_PART_ZAT);
+        }
+    }
+    Ok(())
+}
+
 impl NoteWatch {
     /// Sends `zats` to `dest` and returns (txid, mined height). `max_fee` is the most the signer
     /// will approve. The transaction keeps the library's default expiry.
     pub async fn fund(&mut self, wallet: &Wallet, dest: &str, zats: u64, max_fee: u64, timeout_s: u64) -> Result<(String, u64)> {
-        if self.network != Network::TestNetwork {
-            bail!("funding is testnet only: mainnet is read-only");
-        }
+        check_launch(self.network, zats, std::env::var_os("AIRLOCK_MAINNET_FUND").is_some())?;
         self.sync().await?;
-        let net = Network::TestNetwork;
+        let net = self.network;
         let id = *self.db.get_account_ids().map_err(|e| anyhow!("{e}"))?.first().ok_or_else(|| anyhow!("no account"))?;
         let recipient: zcash_address::ZcashAddress = dest.parse().map_err(|e| anyhow!("dest: {e}"))?;
         let amount = Zatoshis::from_u64(zats).map_err(|e| anyhow!("{e:?}"))?;
@@ -59,7 +72,7 @@ impl NoteWatch {
             countersign_core::Intent::from_unified_address(dest, zats, None, max_fee)
         }
         .map_err(|e| anyhow!(e))?;
-        let sigs = wallet.approve_and_sign(&view, &intent, countersign_core::Network::Test)?;
+        let sigs = wallet.approve_and_sign(&view, &intent, if net == Network::MainNetwork { countersign_core::Network::Main } else { countersign_core::Network::Test })?;
 
         let mut signer = Signer::new(full).map_err(|e| anyhow!("Signer::new: {e:?}"))?;
         for s in sigs {
@@ -104,5 +117,19 @@ impl NoteWatch {
             }
             tokio::time::sleep(std::time::Duration::from_secs(10)).await;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mainnet_needs_the_switch_and_the_cap() {
+        let m = Network::MainNetwork;
+        assert!(check_launch(m, 1_000_000, false).is_err());
+        assert!(check_launch(m, 1_000_001, true).is_err());
+        assert!(check_launch(m, 1_000_000, true).is_ok());
+        assert!(check_launch(Network::TestNetwork, 50_000_000, false).is_ok());
     }
 }

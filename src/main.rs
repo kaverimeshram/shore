@@ -113,15 +113,19 @@ async fn main() -> Result<()> {
             println!("inbound {}\n  send {} (min {}) of {}\n  to {}\n  lands in {}\n  deadline {}", ib.id, ib.amount_in, ib.min_amount_in, ib.origin_asset, ib.deposit_address, ib.recipient, ib.deadline);
         }
         Some("fund") => {
-            // airlock fund <dest-unified-address> <zats> [max-fee]   testnet only: signed through COUNTERSIGN, mined read-back
+            // airlock fund <test|main> <dest> <zats> [max-fee]   signed through COUNTERSIGN, mined read-back; main needs AIRLOCK_MAINNET_FUND and the launch cap
             use airlock::notewatch::{tip, NoteWatch};
             use zcash_protocol::consensus::Network;
-            let (Some(dest), Some(z)) = (args.get(1), args.get(2)) else { bail!("usage: fund <dest> <zats> [max-fee]") };
-            let max_fee: u64 = args.get(3).map_or(Ok(20_000), |s| s.parse())?;
+            let (Some(which), Some(dest), Some(z)) = (args.get(1), args.get(2), args.get(3)) else { bail!("usage: fund <test|main> <dest> <zats> [max-fee]") };
+            let (net, db) = match which.as_str() {
+                "main" => (Network::MainNetwork, "notes-main.db"),
+                "test" => (Network::TestNetwork, "notes-test.db"),
+                _ => bail!("usage: fund <test|main> <dest> <zats> [max-fee]"),
+            };
+            let max_fee: u64 = args.get(4).map_or(Ok(20_000), |s| s.parse())?;
             let w = Wallet::open(dir)?;
-            let net = Network::TestNetwork;
             let birthday = tip(net).await?.saturating_sub(10);
-            let mut nw = NoteWatch::open(&dir.join("notes-test.db"), net, &w.ufvk(&net)?, birthday).await?;
+            let mut nw = NoteWatch::open(&dir.join(db), net, &w.ufvk(&net)?, birthday).await?;
             let (txid, h) = nw.fund(&w, dest, z.parse()?, max_fee, 900).await?;
             println!("MINED {txid} at height {h}");
         }
@@ -200,7 +204,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | fund <dest> <zats> | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | fund <test|main> <dest> <zats> [max-fee] | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }
