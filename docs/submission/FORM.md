@@ -20,7 +20,7 @@ dependency today and the form lists it so a reader can follow it.
 **Evidence, with results.**
 - `cargo test`: 33 library tests and 1 binary test pass; each acceptance was shown red with the guarded
   code broken, then green.
-- Live three-part outbound swap `e89ed92b43d6`: `airlock audit` prints 0 shared identifiers over fresh
+- Three-part outbound swap `e89ed92b43d6`, quoted on 1Click: `airlock audit` prints 0 shared identifiers over fresh
   Tor circuits and exits 0 (`spikes/dry-quotes/b2-audit-green.out`). A run with one refund address
   reused printed `SHARED refund_to` and exited 2 (`b2-audit-red.out`). The web form now refuses the reuse.
 - Testnet transactions read back through lightwalletd: deposit hop `a2f1c432...ea266` at 4,466,716
@@ -30,7 +30,6 @@ dependency today and the form lists it so a reader can follow it.
   blocks, 558 showing a shielded refund address, 120 recipients tying 306 swaps together.
 - Live: https://airlock-zec.vercel.app against https://airlock-zec.fly.dev. A real quote from the page for
   0.02 ZEC inbound returned a Base deposit address and 27.52 USDC.
-- Mainnet round trip: MAINNET SLOT, filled from txids once it has run.
 
 **Business.** Buyers are wallets and apps that route ZEC through NEAR Intents (Zodl in-wallet swaps,
 Zwap, Vizor) and the holders who exit through them. Named users and what they said, verbatim sources:
