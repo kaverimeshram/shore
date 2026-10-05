@@ -23,6 +23,9 @@ pub struct Part {
     /// What 1Click expects to deliver, in the destination asset (informational; the minimum is lower by the slippage).
     #[serde(default)]
     pub amount_out_formatted: String,
+    /// The least 1Click will deliver, in base units of the destination asset.
+    #[serde(default)]
+    pub min_amount_out: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +80,7 @@ pub async fn quote_part(tor: &tor::Client, amount_zat: u64, destination_asset: &
     Ok(Part {
         amount_zat,
         amount_out_formatted: q.quote.amount_out_formatted.clone(),
+        min_amount_out: q.quote.min_amount_out.clone(),
         deposit_address: q.quote.deposit_address.ok_or_else(|| anyhow::anyhow!("non-dry quote returned no depositAddress"))?,
         refund_ua: refund_ua.into(),
         destination: destination.into(),

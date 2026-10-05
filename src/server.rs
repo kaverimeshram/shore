@@ -106,8 +106,21 @@ where
     Ok(v)
 }
 
-async fn tokens(State(app): S) -> Res {
-    let v = cached(&app, "tokens".into(), Duration::from_secs(600), || async {
+/// Base units to a decimal string: ("12971142", 6) is "12.971142".
+fn units(raw: &str, decimals: u32) -> Option<String> {
+    if raw.is_empty() || !raw.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    let padded = format!("{raw:0>width$}", width = decimals as usize + 1);
+    let (i, f) = padded.split_at(padded.len() - decimals as usize);
+    let i = i.trim_start_matches('0');
+    let i = if i.is_empty() { "0" } else { i };
+    let f = f.trim_end_matches('0');
+    Some(if f.is_empty() { i.to_string() } else { format!("{i}.{f}") })
+}
+
+async fn token_list(app: &App) -> Result<Value> {
+    cached(app, "tokens".into(), Duration::from_secs(600), || async {
         let t = app.direct.tokens().await?;
         Ok(Value::Array(
             t.into_iter()
@@ -117,8 +130,10 @@ async fn tokens(State(app): S) -> Res {
         ))
     })
     .await
-    .map_err(|e| bad(StatusCode::BAD_GATEWAY, e))?;
-    Ok(Json(v))
+}
+
+async fn tokens(State(app): S) -> Res {
+    token_list(&app).await.map(Json).map_err(|e| bad(StatusCode::BAD_GATEWAY, e))
 }
 
 fn zat(zec: &str) -> Result<u64> {
@@ -225,7 +240,10 @@ async fn quote(State(app): S, Json(r): Json<QuoteReq>) -> Res {
         }
         let _slot = slot(&app.quote_slots).await?;
         let p = quote_part(&app.tor, r.amount_zat, &r.destination_asset, r.destination.trim(), &u1).await?;
+        let decimals = token_list(&app).await.ok().and_then(|t| t.as_array()?.iter().find(|x| x["assetId"] == r.destination_asset.as_str())?["decimals"].as_u64());
+        let min_out = decimals.and_then(|d| units(&p.min_amount_out, d as u32));
         Ok::<_, anyhow::Error>(json!({
+            "minAmountOutFormatted": min_out,
             "amountZat": p.amount_zat, "depositAddress": p.deposit_address, "deadline": p.deadline,
             "destination": p.destination, "refund": p.refund_ua, "amountOutFormatted": p.amount_out_formatted,
         }))
@@ -273,6 +291,15 @@ mod tests {
         let z: Vec<u64> = p["parts"].as_array().unwrap().iter().map(|x| x["zat"].as_u64().unwrap()).collect();
         assert_eq!(z, vec![1_000_000, 1_000_000]);
         assert!(p["parts"].as_array().unwrap().iter().all(|x| x["canonical"] == true));
+    }
+
+    #[test]
+    fn units_format_base_units() {
+        assert_eq!(units("12971142", 6).unwrap(), "12.971142");
+        assert_eq!(units("12000000", 6).unwrap(), "12");
+        assert_eq!(units("500", 6).unwrap(), "0.0005");
+        assert_eq!(units("0", 6).unwrap(), "0");
+        assert!(units("1e5", 6).is_none());
     }
 
     #[test]
