@@ -52,6 +52,18 @@ pub async fn tip(n: Network) -> Result<u32> {
     Ok(client(n).await?.get_latest_block(ChainSpec {}).await?.into_inner().height as u32)
 }
 
+/// Height at which `txid_hex` was mined, read through lightwalletd `GetTransaction`.
+pub async fn mined_height(n: Network, txid_hex: &str) -> Result<u64> {
+    use zcash_client_backend::proto::service::TxFilter;
+    let mut wire = hex::decode(txid_hex).context("txid is not hex")?;
+    wire.reverse();
+    let tx = client(n).await?.get_transaction(TxFilter { block: None, index: 0, hash: wire }).await?.into_inner();
+    if tx.height == 0 || tx.height == u64::MAX {
+        anyhow::bail!("{txid_hex} is not mined (mempool or unknown)");
+    }
+    Ok(tx.height)
+}
+
 impl NoteWatch {
     /// Opens (creating on first use) the watcher db at `path`. `birthday` is the first height to
     /// scan; a fresh db starts there so only notes at or after it are seen.

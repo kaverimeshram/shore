@@ -129,6 +129,17 @@ async fn main() -> Result<()> {
             let (txid, h) = nw.fund(&w, dest, z.parse()?, max_fee, 900).await?;
             println!("MINED {txid} at height {h}");
         }
+        Some("tx") => {
+            // airlock tx <test|main> <txid>   mined height read through lightwalletd
+            use zcash_protocol::consensus::Network;
+            let net = match args.get(1).map(String::as_str) {
+                Some("main") => Network::MainNetwork,
+                Some("test") => Network::TestNetwork,
+                _ => bail!("usage: airlock tx <test|main> <txid>"),
+            };
+            let txid = args.get(2).ok_or_else(|| anyhow::anyhow!("usage: airlock tx <test|main> <txid>"))?;
+            println!("{txid} mined at height {}", airlock::notewatch::mined_height(net, txid).await?);
+        }
         Some("note") => {
             // airlock note <test|main> [min-zat] [timeout-secs]   wait until a note of at least min-zat lands in the wallet (view-only scan)
             use airlock::notewatch::{endpoint, tip, NoteWatch};
@@ -204,7 +215,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | fund <test|main> <dest> <zats> [max-fee] | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
+        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | fund <test|main> <dest> <zats> [max-fee] | tx <test|main> <txid> | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }

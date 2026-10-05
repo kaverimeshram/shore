@@ -1,0 +1,10 @@
+{
+  "source": "spikes/leak-scan/FINDINGS.md, read-only scan of Zcash mainnet blocks 3,502,581 to 3,504,081 and the unauthenticated 1Click status endpoint, 2026-10-03",
+  "blocks": 1501,
+  "depositAddresses": 909,
+  "settled": 896,
+  "shieldedRefundExposed": 558,
+  "recipientsBehindManySwaps": 120,
+  "swapsLinkedByRecipient": 306,
+  "settledSample": "t1e5f3Gbrjd1nq6SLXNAmsTq5uQPsNpZ8nG"
+}

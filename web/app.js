@@ -227,6 +227,12 @@ function pageCheck(main) {
   const out = h("div", { class: "hero-out" }, idleReceipt());
   const input = h("input", { id: "addr", name: "addr", type: "text", autocomplete: "off", spellcheck: "false", autocapitalize: "off", "aria-describedby": "addr-help" });
   const btn = h("button", { class: "btn", type: "submit" }, "Print the receipt ", h("span", { "aria-hidden": "true" }, "→"));
+  const stats = h("p", { class: "help", style: "margin-top:12px" });
+  let sample = "";
+  fetch("dataset.json").then((r) => r.json()).then((d) => {
+    sample = d.settledSample;
+    stats.textContent = `Read from ${d.blocks.toLocaleString("en-US")} mainnet blocks: ${d.depositAddresses} live 1Click deposit addresses, ${d.shieldedRefundExposed} show a shielded refund address, ${d.recipientsBehindManySwaps} recipients tie ${d.swapsLinkedByRecipient} swaps together.`;
+  }).catch(() => {});
   let ctl = null;
 
   async function run(raw) {
@@ -260,7 +266,8 @@ function pageCheck(main) {
         h("form", { novalidate: true, onsubmit: (e) => { e.preventDefault(); run(input.value); } },
           h("label", { class: "field", for: "addr" }, h("span", { class: "label" }, "Paste a one-time deposit address"), input),
           h("p", { class: "help", id: "addr-help", style: "margin-top:8px" }, "Reads the same unauthenticated 1Click status call a stranger would make."),
-          h("div", { class: "form-row" }, btn))),
+          h("div", { class: "form-row" }, btn, h("button", { class: "btn-text", type: "button", onclick: () => { if (sample) { input.value = sample; run(sample); } } }, "Try a settled swap")),
+          stats)),
       out),
     h("section", { class: "how", "aria-labelledby": "how-h" },
       h("h2", { class: "heading", id: "how-h" }, "How the receipt is made"),
@@ -273,9 +280,11 @@ function pageCheck(main) {
 
 /* ---------- page: split and create ---------- */
 
+const LISTED = new Set(["USDC", "USDT", "ETH", "BTC", "SOL", "NEAR", "DAI"]);
+
 function groupTokens(tokens) {
   const by = new Map();
-  for (const t of tokens) {
+  for (const t of tokens.filter((t) => LISTED.has(t.symbol))) {
     if (!by.has(t.blockchain)) by.set(t.blockchain, []);
     by.get(t.blockchain).push(t);
   }
@@ -330,7 +339,7 @@ function chambers(plan) {
 const SPACINGS = [
   { key: "hours", label: "Spread over hours (recommended)", lo: 5 * 60e3, hi: 45 * 60e3 },
   { key: "hour", label: "Within the hour", lo: 2 * 60e3, hi: 10 * 60e3 },
-  { key: "seconds", label: "Seconds (testing)", lo: 4e3, hi: 25e3 },
+  { key: "seconds", label: "Back to back, 4 to 25 seconds (parts close in time)", lo: 4e3, hi: 25e3 },
 ];
 
 function pageSplit(main) {
@@ -487,7 +496,7 @@ function pageSplit(main) {
       h("form", { class: "page-grid single", novalidate: true, onsubmit: create },
         h("div", {},
           h("div", { class: "two" },
-            h("label", { class: "field", for: "amount" }, h("span", { class: "label" }, "Amount in ZEC, at most 0.02"), amountIn),
+            h("label", { class: "field", for: "amount" }, h("span", { class: "label" }, "Amount in ZEC, cap 0.02 per swap"), amountIn),
             h("label", { class: "field", for: "cap" }, h("span", { class: "label" }, "Per-part cap in ZEC, 0.01 (the ZIP 318 floor)"), capIn)),
           h("label", { class: "field", for: "asset" }, h("span", { class: "label" }, "Destination asset"), h("div", { class: "select-wrap" }, assetSel)),
           h("label", { class: "field", for: "spacing" }, h("span", { class: "label" }, "Spacing between part quotes"), h("div", { class: "select-wrap" }, spacingSel)),
@@ -846,7 +855,7 @@ function pageInboundNew(main) {
       h("p", { class: "lede", style: "margin-top:20px" }, "Pay from any chain. The ZEC lands in a fresh Orchard-only address of your wallet, with no unshield step."),
       h("form", { class: "page-grid single", novalidate: true, onsubmit: create },
         h("div", {},
-          h("label", { class: "field", for: "in-amount" }, h("span", { class: "label" }, "ZEC to receive, at most 0.02"), amountIn),
+          h("label", { class: "field", for: "in-amount" }, h("span", { class: "label" }, "ZEC to receive, cap 0.02 per swap"), amountIn),
           h("label", { class: "field", for: "in-asset" }, h("span", { class: "label" }, "Origin asset"), h("div", { class: "select-wrap" }, assetSel)),
           h("label", { class: "field", for: "in-refund" }, h("span", { class: "label" }, "Refund address on the origin chain"), refundIn),
           h("label", { class: "field", for: "in-recipient" }, h("span", { class: "label" }, "Recipient, Orchard-only unified address from your wallet"), recipIn),
