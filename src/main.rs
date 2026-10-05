@@ -25,7 +25,7 @@ fn zat(zec: &str) -> Result<u64> {
     if f.len() > 8 {
         bail!("{zec} has more than 8 decimals");
     }
-    Ok(i.parse::<u64>()? * 100_000_000 + format!("{f:0<8}").parse::<u64>()?)
+    i.parse::<u64>()?.checked_mul(100_000_000).and_then(|w| w.checked_add(format!("{f:0<8}").parse::<u64>().ok()?)).ok_or_else(|| anyhow::anyhow!("{zec} is too large"))
 }
 
 #[tokio::main]
@@ -214,6 +214,7 @@ mod tests {
     #[test]
     fn zat_parses_decimals() {
         assert_eq!(super::zat("1.3").unwrap(), 130_000_000);
+        assert!(super::zat("184467440738").is_err());
         assert_eq!(super::zat("0.00000001").unwrap(), 1);
         assert_eq!(super::zat("2").unwrap(), 200_000_000);
         assert!(super::zat("0.123456789").is_err());
