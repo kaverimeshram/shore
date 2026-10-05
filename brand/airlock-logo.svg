@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#EFEBE1"/>
+  <!-- till-roll receipt strip with a serrated tear edge at the bottom -->
+  <path d="M312 120 H712 V610 L682 640 L652 610 L622 640 L592 610 L562 640 L532 610 L502 640 L472 610 L442 640 L412 610 L382 640 L352 610 L312 640 Z" fill="#E4DFD1" stroke="#14120F" stroke-width="10" stroke-linejoin="round"/>
+  <!-- row 1: a line a stranger can read, struck with the hazard highlighter -->
+  <rect x="352" y="188" width="320" height="52" fill="#E4501B"/>
+  <rect x="368" y="204" width="168" height="20" fill="#14120F"/>
+  <!-- row 2: dotted leader to a value -->
+  <line x1="368" y1="326" x2="656" y2="326" stroke="#14120F" stroke-width="10" stroke-dasharray="2 18" stroke-linecap="round"/>
+  <!-- row 3: dotted leader -->
+  <line x1="368" y1="404" x2="656" y2="404" stroke="#14120F" stroke-width="10" stroke-dasharray="2 18" stroke-linecap="round"/>
+  <!-- seal stamp: nothing left to link -->
+  <circle cx="512" cy="508" r="52" fill="none" stroke="#1F6B4F" stroke-width="10"/>
+  <circle cx="512" cy="508" r="36" fill="#1F6B4F"/>
+  <path d="M494 508 L508 522 L532 494" fill="none" stroke="#EFEBE1" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- wordmark -->
+  <text x="512" y="866" text-anchor="middle" font-family="Instrument Serif" font-size="168" letter-spacing="-3" fill="#14120F">AIRLOCK</text>
+</svg>
