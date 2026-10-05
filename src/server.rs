@@ -24,6 +24,20 @@ use tokio::sync::{Mutex, Semaphore};
 use zcash_client_backend::tor;
 
 const MAX_PARTS: usize = 16;
+/// Launch caps, enforced before any quote is requested. One inbound swap and one outbound swap each
+/// move at most 0.02 ZEC, and no outbound part exceeds 0.01 ZEC (the ZIP 318 floor), so the value on any one deposit
+/// address is bounded. The service holds no funds and cannot raise these at runtime.
+pub const MAX_INBOUND_ZAT: u64 = 2_000_000;
+pub const MAX_PART_ZAT: u64 = 1_000_000;
+pub const MAX_OUTBOUND_ZAT: u64 = 2_000_000;
+
+/// Quotes stop at once when AIRLOCK_PAUSED is set on the machine. Health, tokens, plan and inspect keep working.
+fn paused() -> Result<()> {
+    if std::env::var_os("AIRLOCK_PAUSED").is_some() {
+        bail!("quotes are paused");
+    }
+    Ok(())
+}
 
 pub struct App {
     tor: tor::Client,
@@ -107,7 +121,11 @@ struct PlanReq {
 }
 
 fn plan_json(amount: &str, cap: &str) -> Result<Value> {
-    let s = split(zat(amount)?, zat(cap)?, MAX_PARTS)?;
+    let (total, cap) = (zat(amount)?, zat(cap)?);
+    if total > MAX_OUTBOUND_ZAT || cap > MAX_PART_ZAT {
+        bail!("launch caps: at most {} ZEC per swap and {} ZEC per part", MAX_OUTBOUND_ZAT as f64 / 1e8, MAX_PART_ZAT as f64 / 1e8);
+    }
+    let s = split(total, cap, MAX_PARTS)?;
     let mut rng = rand_chacha::ChaCha20Rng::try_from_rng(&mut rand::rngs::SysRng).map_err(|e| anyhow!("os rng: {e:?}"))?;
     let at = schedule(s.parts.len(), &mut rng);
     Ok(json!({
@@ -175,8 +193,12 @@ struct QuoteReq {
 /// One part. Stateless: the service never sees two parts of a swap in one request and writes nothing.
 async fn quote(State(app): S, Json(r): Json<QuoteReq>) -> Res {
     let go = async {
+        paused()?;
         if !is_canonical(r.amount_zat) {
             bail!("{} zat is not a ZIP 318 canonical denomination", r.amount_zat);
+        }
+        if r.amount_zat > MAX_PART_ZAT {
+            bail!("launch cap: a part is at most {} zat", MAX_PART_ZAT);
         }
         let u1 = to_revision_1(r.refund.trim()).map_err(|_| anyhow!("refund address is not a unified address"))?;
         if receivers(&u1)? != ["orchard"] {
@@ -207,8 +229,13 @@ struct InboundReq {
 
 async fn quote_in(State(app): S, Json(r): Json<InboundReq>) -> Res {
     let go = async {
+        paused()?;
+        let amount = zat(&r.amount_zec)?;
+        if amount > MAX_INBOUND_ZAT {
+            bail!("launch cap: an inbound swap is at most {} zat", MAX_INBOUND_ZAT);
+        }
         let _slot = app.tor_slots.acquire().await?;
-        let ib = quote_inbound(&app.tor, zat(&r.amount_zec)?, &r.origin_asset, &r.origin_refund, &r.recipient).await?;
+        let ib = quote_inbound(&app.tor, amount, &r.origin_asset, &r.origin_refund, &r.recipient).await?;
         Ok::<_, anyhow::Error>(json!({
             "originAsset": ib.origin_asset, "depositAddress": ib.deposit_address, "recipient": ib.recipient,
             "amountOutZat": ib.amount_out_zat, "amountIn": ib.amount_in, "minAmountIn": ib.min_amount_in, "deadline": ib.deadline,
@@ -223,10 +250,18 @@ mod tests {
 
     #[test]
     fn plan_matches_the_splitter() {
-        let p = plan_json("1.3", "0.5").unwrap();
+        let p = plan_json("0.02", "0.01").unwrap();
         let z: Vec<u64> = p["parts"].as_array().unwrap().iter().map(|x| x["zat"].as_u64().unwrap()).collect();
-        assert_eq!(z, vec![50_000_000, 50_000_000, 20_000_000, 10_000_000]);
+        assert_eq!(z, vec![1_000_000, 1_000_000]);
         assert!(p["parts"].as_array().unwrap().iter().all(|x| x["canonical"] == true));
+    }
+
+    #[test]
+    fn plan_refuses_over_the_launch_caps() {
+        assert!(plan_json("0.02", "0.01").is_ok());
+        assert!(plan_json("0.0200001", "0.01").is_err());
+        assert!(plan_json("0.02", "0.0100001").is_err());
+        assert!(plan_json("1.3", "0.5").is_err());
     }
 
     #[test]
