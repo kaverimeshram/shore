@@ -44,6 +44,7 @@ airlock inspect <depositAddress>  # what /v0/status reveals for any deposit t-ad
 airlock watch <swap-id>           # watchdog until every part is terminal
 airlock inbound 0.01 <originAssetId> <originRefundAddress>
 airlock note test|main <min-zat>  # view-only note read-back from lightwalletd
+airlock fund <test|main> <dest> <zats>  # signed through COUNTERSIGN, mined read-back
 airlock serve                     # HTTP service for the web app
 ```
 
@@ -62,6 +63,16 @@ service named in `web/config.js`.
 - A 200,000 zat Ironwood note sent to a fresh Orchard-only UA on testnet is found by the view-only
   watcher at txid `a37a3dbc29b5093aee3f016278321e8ab999d0f1be223d6fbf8abd511c24cd39`, mined at height
   4,435,638 and confirmed by an independent `GetTransaction`.
+- Shielded ZEC to a 1Click-style transparent deposit address, signed through COUNTERSIGN's
+  transparent-exit intent, proved and broadcast by `airlock fund`: testnet txids
+  `49046be46d4ef114b3497897eefdb20290186f19c7c838fb6483f805576aabdf` (height 4,435,995) and, after
+  NU7 activation, `a2f1c4325d9f066f7f6464fe146c84662aa2c01e36f60bbe50d845bf40dea266` (height
+  4,466,716), each read back through lightwalletd.
+- Every swap the service quotes is capped in code at 0.02 ZEC, and no part exceeds 0.01 ZEC, so the
+  value on any one deposit address stays bounded (`src/server.rs`, `MAX_*_ZAT`); mainnet sends from
+  `airlock fund` sit behind an operator switch and the same part cap.
+- The web app is live at https://airlock-zec.vercel.app on a static export with no serverless
+  functions; its service runs at https://airlock-zec.fly.dev.
 - Dry quotes for USDC on Solana, Base, Arbitrum and Ethereum, and BTC, all resolve into one
   Orchard-only unified address.
 
