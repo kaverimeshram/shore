@@ -1,0 +1,297 @@
+import * as api from "./api.js";
+
+const MODE = api.MODE;
+const LIVE = MODE === "live";
+const MINT = "A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS";
+const RPC = window.SHORE_RPC || "https://api.mainnet-beta.solana.com";
+const USED_KEY = "shore.usedRecipients";
+const EXPL = {
+  sol: (s) => `https://solscan.io/tx/${s}`,
+  solAcct: (a) => `https://solscan.io/account/${a}`,
+  near: (h) => `https://nearblocks.io/txns/${h}`,
+  zec: (t) => `https://mainnet.zcashexplorer.app/transactions/${t}`,
+  zecBlock: (h) => `https://mainnet.zcashexplorer.app/blocks/${h}`,
+  status: (d) => `https://1click.chaindefuser.com/v0/status?depositAddress=${d}`,
+};
+
+const S = { wallet: null, balance: null, session: null, quote: null, sig: null, status: null, rb: null, exposure: null };
+
+// ---------- tiny DOM helpers ----------
+function h(tag, attrs = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) el.append(k instanceof Node ? k : String(k));
+  return el;
+}
+const $ = (id) => document.getElementById(id);
+const body = (id) => $(id).querySelector("[data-body]");
+function setStep(id, state, tag = "") {
+  const li = $(id); li.dataset.state = state; li.querySelector("[data-tag]").textContent = tag;
+}
+function put(el, ...kids) { el.replaceChildren(...kids.flat().filter(Boolean)); }
+const zec = (zat) => { const n = BigInt(zat); const s = (n < 0n ? -n : n).toString().padStart(9, "0"); return `${n < 0n ? "-" : ""}${s.slice(0, -8)}.${s.slice(-8).replace(/0+$/, "") || "0"}`; };
+const short = (s, n = 6) => (s && s.length > 2 * n + 3 ? `${s.slice(0, n)}…${s.slice(-n)}` : s);
+const link = (href, text) => h("a", { href, target: "_blank", rel: "noopener" }, text);
+const err = (e) => h("p", { class: "err", role: "alert" }, e.message || String(e), e.code ? ` (${e.code})` : "");
+function kv(rows) { return h("dl", { class: "kv" }, rows.filter(Boolean).flatMap(([k, v, cls]) => [h("dt", {}, k), h("dd", { class: cls }, v)])); }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const used = () => { try { return JSON.parse(localStorage.getItem(USED_KEY)) || []; } catch { return []; } };
+const markUsed = (a) => localStorage.setItem(USED_KEY, JSON.stringify([...new Set([...used(), a])]));
+
+// ---------- address rules (server enforces the same, plus server-side reuse) ----------
+export function checkRecipient(raw) {
+  const a = (raw || "").trim();
+  if (!a) return "Paste a shielded address, or let SHORE make a fresh one.";
+  if (/^t[13m]/.test(a)) return "That is a transparent address. SHORE only delivers to shielded receivers.";
+  if (/^zs1/.test(a)) return "That is a Sapling address. Paste a unified address (u1…) with an Orchard receiver.";
+  if (!/^(u1|zu1)[02-9ac-hj-np-z]{100,}$/.test(a)) return "That does not look like a unified address (u1…).";
+  if (used().includes(a)) return "This address was used for an earlier shield. 1Click status ties it to that deposit forever, so use a fresh one.";
+  return null;
+}
+
+// ---------- wallet ----------
+async function solBalance(owner) {
+  const r = await fetch(RPC, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+    jsonrpc: "2.0", id: 1, method: "getTokenAccountsByOwner", params: [owner, { mint: MINT }, { encoding: "jsonParsed" }] }) });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message);
+  return j.result.value.reduce((t, a) => t + BigInt(a.account.data.parsed.info.tokenAmount.amount), 0n);
+}
+
+async function connect() {
+  const b = body("s-connect");
+  try {
+    if (LIVE) {
+      const p = window.phantom?.solana || (window.solana?.isPhantom ? window.solana : null);
+      if (!p) { put(b, h("p", {}, "Phantom is not installed in this browser. "), link("https://phantom.app/download", "Get Phantom"), h("p", { class: "help" }, "Or open the replay of the recorded run.")); return; }
+      const r = await p.connect();
+      S.wallet = { provider: p, address: r.publicKey.toString() };
+      S.balance = await solBalance(S.wallet.address);
+    } else {
+      const rec = await api.loadReplay();
+      S.wallet = { provider: null, address: rec.sender };
+      S.balance = BigInt(rec.quote.amountIn);
+    }
+    renderConnected();
+  } catch (e) { b.append(err(e)); }
+}
+
+function renderConnected() {
+  put(body("s-connect"),
+    h("p", { class: "balance", "data-testid": "balance" }, zec(S.balance), h("small", {}, "ZEC on Solana")),
+    h("p", { class: "help" }, "Phantom ", link(EXPL.solAcct(S.wallet.address), short(S.wallet.address, 8)), MODE !== "live" ? " · recorded wallet, read-only" : ""),
+    S.balance === 0n ? h("p", { class: "err" }, "No ZEC (SPL mint A7bd…XaS) in this wallet.") : null);
+  setStep("s-connect", "done", short(S.wallet.address, 4));
+  setStep("s-address", "active");
+  renderAddress();
+}
+
+// ---------- step 2 ----------
+function renderAddress() {
+  const b = body("s-address");
+  const input = h("input", { type: "text", id: "own", placeholder: "u1… (your own wallet, never used before)", autocomplete: "off", spellcheck: "false", "aria-describedby": "own-help" });
+  const msg = h("p", { class: "help", id: "own-help" }, "Each shield gets its own address. Reuse would let anyone link this Phantom wallet to every shield sent there.");
+  const fresh = h("button", { class: "btn", type: "button", "data-testid": "fresh", onclick: () => make({ mode: "fresh" }) }, "Make a fresh u1");
+  const own = h("button", { class: "btn ghost", type: "button", onclick: () => {
+    const why = checkRecipient(input.value);
+    if (why) { put(msg, why); msg.className = "err"; return; }
+    make({ mode: "own", address: input.value.trim() });
+  } }, "Use this address");
+  async function make(req) {
+    fresh.disabled = own.disabled = true;
+    try { S.session = await api.shieldAddress(req); renderAddressDone(); }
+    catch (e) { put(msg, e.message); msg.className = "err"; fresh.disabled = own.disabled = false; }
+  }
+  put(b, h("div", { class: "row" }, fresh), h("p", { class: "label" }, "or paste your own"), h("label", { class: "f" }, input), msg, h("div", { class: "row" }, own));
+}
+
+function renderAddressDone() {
+  const s = S.session;
+  put(body("s-address"),
+    h("p", { class: "help", "data-testid": "recipient" }, s.recipient),
+    h("div", { class: "row" }, h("span", { class: "pill" }, (s.receivers || []).join(" + ") || "shielded"),
+      h("span", { class: "pill" }, s.source === "fresh" ? `fresh · index ${s.uaIndex ?? "?"}` : "your wallet"),
+      s.readbackAvailable ? null : h("span", { class: "pill warn" }, "no read-back: SHORE has no view key for this address")));
+  setStep("s-address", "done", s.source === "fresh" ? "fresh" : "yours");
+  setStep("s-quote", "active");
+  renderQuoteForm();
+}
+
+// ---------- step 3 ----------
+function renderQuoteForm() {
+  const fixed = MODE === "replay";
+  const amt = h("input", { type: "text", inputmode: "decimal", id: "amt", value: fixed ? "0.0014" : "", placeholder: "0.0014", readonly: fixed });
+  const out = h("div", { "data-testid": "quote" });
+  const go = h("button", { class: "btn", type: "button", onclick: run }, "Get quote");
+  async function run() {
+    const m = /^\s*(\d*)(?:\.(\d{0,8}))?\s*$/.exec(amt.value);
+    if (!m || (!m[1] && !m[2])) { put(out, err(new Error("Enter an amount in ZEC, up to 8 decimals."))); return; }
+    const base = BigInt((m[1] || "0") + (m[2] || "").padEnd(8, "0"));
+    if (S.balance != null && base > S.balance) { put(out, err(new Error("More than this wallet holds."))); return; }
+    go.disabled = true; put(out, h("p", { class: "help" }, "Asking 1Click…"));
+    try { S.quote = await api.quote({ id: S.session.id, amount: String(base), sender: S.wallet.address, dry: false }); renderQuote(out); }
+    catch (e) { put(out, err(e)); }
+    go.disabled = false;
+  }
+  put(body("s-quote"), h("label", { class: "f" }, h("span", { class: "label" }, "Amount (ZEC on Solana)"), amt),
+    h("p", { class: "help" }, "Minimum 0.00133334 ZEC (1Click floor) · launch cap 0.02 ZEC"), h("div", { class: "row" }, go), out);
+}
+
+function renderQuote(out) {
+  const q = S.quote;
+  const bps = q.fees?.totalFeeBps ?? Number(((BigInt(q.amountIn) - BigInt(q.amountOut)) * 10000n) / BigInt(q.amountIn));
+  const pct = (bps / 100).toFixed(1);
+  if (q.recipient && q.recipient !== S.session.recipient) { put(out, err(new Error("Quote recipient differs from your address. Not continuing."))); return; }
+  put(out,
+    kv([["You send", `${zec(q.amountIn)} ZEC`], ["You get, quoted", `${zec(q.amountOut)} ZEC`, "big"], ["Worst case after slippage", `${zec(q.minAmountOut)} ZEC`],
+      ["Zcash withdraw fee", `${zec(q.fees.withdrawFee)} ZEC`], ["Refund fee if it fails", `${zec(q.fees.refundFee)} ZEC`],
+      ["Total cost", `${pct}% of what you send`], ["1Click minimum", `${zec(q.minAmount)} ZEC`],
+      ["Estimated time", `${q.timeEstimateSecs} s`], ["Quote valid until", new Date(q.deadline).toLocaleString()]]),
+    h("div", { class: "feebar", "aria-hidden": "true" }, h("i", { style: `width:${Math.min(100, bps / 100)}%` })),
+    bps > 1000 ? h("p", { class: "help", "data-testid": "fee-honest" }, `Honest note: at this size the fixed Zcash withdraw fee is most of the cost. ${pct}% is a lot; it falls quickly as the amount grows.`) : null,
+    MODE === "replay" ? h("p", { class: "help" }, "Recorded quote, correlation 9136ee09…, from shore-funded-quote-v2.json.") : null);
+  setStep("s-quote", "done", `${pct}% fee`);
+  setStep("s-approve", "active");
+  renderApprove();
+}
+
+// ---------- step 4 ----------
+function renderApprove() {
+  const q = S.quote;
+  const ack = h("input", { type: "checkbox", id: "ack" });
+  const btn = h("button", { class: "btn big", type: "button", "data-testid": "approve", disabled: LIVE }, LIVE ? `Approve ${zec(q.amountIn)} ZEC in Phantom` : `Approve in Phantom (${MODE})`);
+  ack.addEventListener("change", () => { btn.disabled = !ack.checked; });
+  const msg = h("div");
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    try {
+      if (LIVE) S.sig = await sendTransfer(q);
+      else { put(msg, h("p", { class: "help" }, "Phantom: approved (simulated, nothing is sent).")); await sleep(600); S.sig = (await api.loadReplay()).solana_tx; }
+      if (S.session.source === "own") markUsed(S.session.recipient);
+      api.notifyTx(S.session.id, S.sig);
+      api.startClock();
+      setStep("s-approve", "done", "signed");
+      setStep("s-land", "active");
+      land();
+    } catch (e) { put(msg, err(e)); btn.disabled = !(ack.checked || !LIVE); }
+  });
+  put(body("s-approve"),
+    h("p", {}, "One SPL transfer of ", h("b", {}, `${zec(q.amountIn)} ZEC`), " to the 1Click deposit address. That is the only signature."),
+    kv([["Deposit address", link(EXPL.solAcct(q.depositAddress), short(q.depositAddress, 8))], ["Token", short(q.mint, 6)], ["Refunds go to", short(S.wallet.address, 8)]]),
+    LIVE ? h("label", { class: "check" }, ack, h("span", {}, "This is mainnet. Real ZEC leaves this wallet, and the hop is public (see the panel).")) : null,
+    h("div", { class: "row" }, btn), msg);
+}
+
+async function sendTransfer(q) {
+  const sol = await import("./vendor/sol.js");
+  const conn = new sol.Connection(RPC, "confirmed");
+  const owner = new sol.PublicKey(S.wallet.address), mint = new sol.PublicKey(q.mint), dest = new sol.PublicKey(q.depositAddress);
+  const from = sol.getAssociatedTokenAddressSync(mint, owner), to = sol.getAssociatedTokenAddressSync(mint, dest, true);
+  const tx = new sol.Transaction().add(
+    sol.createAssociatedTokenAccountIdempotentInstruction(owner, to, dest, mint),
+    sol.createTransferCheckedInstruction(from, mint, to, owner, BigInt(q.amountIn), q.decimals));
+  tx.feePayer = owner;
+  tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
+  const { signature } = await S.wallet.provider.signAndSendTransaction(tx);
+  return signature;
+}
+
+// ---------- step 5 ----------
+const PHASES = [["PENDING_DEPOSIT", "Waiting for deposit"], ["KNOWN_DEPOSIT_TX", "Deposit seen"], ["PROCESSING", "Solver swapping"], ["SUCCESS", "Landed in Zcash"]];
+async function land() {
+  const b = body("s-land");
+  const clock = h("p", { class: "clock", "data-testid": "clock" }, "0 s");
+  const track = h("ol", { class: "track" }, PHASES.map(([, t]) => h("li", {}, t)));
+  const links = h("div", { class: "help" });
+  const note = h("div");
+  put(b, track, clock, links, note);
+  const start = performance.now();
+  const tick = setInterval(() => { clock.textContent = `${Math.round(((performance.now() - start) / 1000) * api.SPEED)} s${MODE === "replay" ? " (recorded time)" : ""}`; }, 250);
+  for (;;) {
+    try {
+      const s = (S.status = await api.status(S.quote.depositAddress));
+      const i = PHASES.findIndex(([k]) => k === s.status);
+      track.querySelectorAll("li").forEach((li, j) => { li.className = j < i || (j === i && s.terminal) ? "on" : j === i ? "now" : ""; });
+      put(links, ...[
+        s.solanaTx && [h("span", {}, "Solana "), link(EXPL.sol(s.solanaTx), short(s.solanaTx, 6)), " · "],
+        s.nearTx && [h("span", {}, "NEAR "), link(EXPL.near(s.nearTx), short(s.nearTx, 6)), " · "],
+        s.zcashTx && [h("span", {}, "Zcash "), link(EXPL.zec(s.zcashTx), short(s.zcashTx, 6)), " · "],
+        [link(EXPL.status(S.quote.depositAddress), "1Click status (public)")],
+      ].filter(Boolean).flat());
+      if (s.terminal) {
+        clearInterval(tick);
+        if (s.status !== "SUCCESS") { put(note, err(new Error(`1Click reports ${s.status}${s.refundReason ? `: ${s.refundReason}` : ""}. Refunds return to your Phantom wallet.`))); return; }
+        if (MODE === "replay") clock.textContent = `${(await api.loadReplay()).seconds} s, send to land (recorded)`;
+        setStep("s-land", "done", clock.textContent);
+        readbackLoop(); exposureLoad(); return;
+      }
+    } catch (e) { put(note, err(e)); }
+    await sleep(LIVE ? 5000 : 1000);
+  }
+}
+
+async function readbackLoop() {
+  const card = $("readback");
+  for (let n = 0; n < 120; n++) {
+    try {
+      const r = (S.rb = await api.readback(S.session.id));
+      if (r.state === "UNAVAILABLE") { put(card, h("p", { class: "label" }, "Ironwood read-back"), h("p", { class: "empty" }, "This went to your own wallet, so SHORE has no viewing key for it. Open your wallet to see the note. Landed at height ", String(S.status.landed?.height ?? "?"), ".")); return; }
+      if (r.state === "LANDED") { renderReadback(r); return; }
+    } catch (e) { /* keep polling */ }
+    await sleep(LIVE ? 5000 : 800);
+  }
+}
+
+function renderReadback(r) {
+  const card = $("readback");
+  put(card,
+    h("p", { class: "label" }, `${r.pool || "shielded"} read-back · view key only`),
+    h("p", { class: "amount", "data-testid": "rb-amount" }, zec(r.valueZat), h("small", {}, "ZEC")),
+    h("p", { class: "seal" }, "Decrypted from the note, not the quote"),
+    kv([["Pool", r.pool], ["Mined at height", link(EXPL.zecBlock(r.height), r.height.toLocaleString("en-US"))],
+      ["Zcash txid", link(EXPL.zec(r.txid), short(r.txid, 8))],
+      S.status?.solanaTx && ["Solana tx", link(EXPL.sol(S.status.solanaTx), short(S.status.solanaTx, 8))],
+      S.status?.nearTx && ["NEAR tx", link(EXPL.near(S.status.nearTx), short(S.status.nearTx, 8))],
+      ["Quoted", `${zec(r.quotedOutZat)} ZEC`], ["Difference", `${r.deltaZat >= 0 ? "+" : ""}${zec(r.deltaZat)} ZEC`]]),
+    r.deltaZat ? h("p", { class: "note" }, `The note holds ${r.deltaZat} zat ${r.deltaZat > 0 ? "more" : "less"} than 1Click's status amountOut. SHORE shows the decrypted value; the solver's figure is a quote.`) : null,
+    MODE === "replay" ? h("p", { class: "note" }, "Replay of the recorded mainnet run, 2026-10-10 09:22 IST. Every value comes from shore-live-run.json.") : null);
+}
+
+// ---------- what's still public ----------
+const DEFAULT_EXPOSED = [
+  ["The hop in is public.", "Your Phantom address, the deposit address, the amount and the time are on Solana for anyone to read."],
+  ["1Click status links your Phantom address to your u1.", "Anyone holding the deposit address can call the unauthenticated /v0/status and read the recipient. That is why every shield gets a fresh u1."],
+  ["NEAR can decrypt the payout.", "The NEAR Intents solver builds the Zcash transaction, so it holds the outgoing view key for that note. The amount entering the pool is also visible, because the delivery has transparent inputs."],
+  ["What is private afterwards:", "spends you make later from the note. Nobody outside your wallet can see those."],
+];
+function renderExposureDefault() {
+  put($("exposed"), DEFAULT_EXPOSED.map(([b, t], i) => h("li", {}, i < 3 ? h("b", {}, b) : h("strong", {}, b), " ", t)));
+}
+async function exposureLoad() {
+  try {
+    const x = (S.exposure = await api.exposure(S.session.id, { sender: S.wallet.address, deposit: S.quote.depositAddress, recipient: S.session.recipient }));
+    put($("exposed"), x.rows.map((r) => h("li", { "data-exposed": String(r.exposed) },
+      r.exposed ? h("b", {}, r.what) : h("strong", {}, r.what), r.value ? h("span", { class: "help" }, /^\d+$/.test(r.value) ? `${zec(r.value)} ZEC` : short(r.value, 10)) : null,
+      h("span", { class: "help" }, `${r.exposed ? "Readable by" : "Visible to"}: ${r.whoCanSee}`))),
+      x.addressReused ? h("li", {}, h("b", {}, "This u1 was used before."), " Earlier shields are now linkable to this one.") : null);
+  } catch { /* keep default text */ }
+}
+
+// ---------- boot ----------
+function boot() {
+  const m = $("mode");
+  m.dataset.mode = MODE;
+  m.textContent = MODE === "replay" ? "Replay · recorded mainnet run" : MODE === "mock" ? "Mock data · not real" : "Live · mainnet";
+  renderExposureDefault();
+  put(body("s-connect"),
+    h("p", {}, "SHORE reads your ZEC balance on Solana. It never asks for a seed phrase and never holds funds."),
+    h("div", { class: "row" }, h("button", { class: "btn", type: "button", "data-testid": "connect", onclick: connect }, MODE === "live" ? "Connect Phantom" : "Connect recorded wallet"),
+      MODE === "live" ? h("a", { class: "btn ghost", href: "?replay=1" }, "Watch the recorded run") : h("a", { class: "btn ghost", href: "./" }, "Exit replay")));
+}
+boot();

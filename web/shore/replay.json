@@ -1,0 +1,37 @@
+{
+ "source": "runs/worldsfair/zcash/evidence/shore-live-run.json + shore-funded-quote-v2.json (recorded mainnet run, 2026-10-10)",
+ "sender": "ia3MLukFMa6zci4nyahxsKVT14yLkFzUkZs3EL5Vsa5",
+ "recipient": "u1uufrl3tucq9vjgvssws978y0nm6d6cncqk75qs62htzctwytgpqqsdwlpe5jvl83xqyn2vtkptk4cw535n575yf3nrwpcrydpgrkpgmk",
+ "deposit": "DMDdCzumrZBaPPjKBP33o1RgDhW2F2BZPzyYZEk9SjbM",
+ "quote": {
+  "amountIn": "140000",
+  "amountOut": "108000",
+  "minAmountOut": "106920",
+  "minAmountIn": "140000",
+  "withdrawFee": "32000",
+  "refundFee": "844",
+  "timeEstimate": 135,
+  "deadline": "2026-10-13T06:47:48.000Z",
+  "depositAddress": "DMDdCzumrZBaPPjKBP33o1RgDhW2F2BZPzyYZEk9SjbM",
+  "amountInUsd": "1.697402000000",
+  "amountOutUsd": "1.309424400000"
+ },
+ "solana_tx": "2LLVDBnVAqnG99PSbUVqapKqZFHjPPET9HsJhV2tqS29BHR4wNmUzYZbQzLf2BXjpFKMrRJCYxbVZq6ZJNQQ86au",
+ "near_tx": "BARJAuxGT1tXY8XAK9LsUCroQsA3V1AgErm9DhtkqC53",
+ "zcash_txid": "fa8d4d6bd210c6150e98142ec1ae9a25706ec19bd591a775823f6616f95fa408",
+ "zcash_height": 3512504,
+ "solana_block_time": "2026-10-10T09:22:15+05:30",
+ "zcash_block_time": "2026-10-10T09:23:39+05:30",
+ "seconds": 84,
+ "received_zat": 115000,
+ "pool": "ironwood",
+ "shape": {
+  "version": 6,
+  "transparent_inputs": 2,
+  "transparent_outputs": 1,
+  "orchard_actions": 0,
+  "ironwood_actions": 1
+ },
+ "readback": "airlock note main 100000 540 -> LANDED pool=ironwood value_zat=115000 mined_height=3512504 (view-only UFVK scan, zec.rocks)",
+ "discrepancy": "1Click status amountOut 108000; on-chain Ironwood valueBalance and view-only read-back both 115000 zat (7000 more than quoted)"
+}

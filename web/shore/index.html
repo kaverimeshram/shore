@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHORE: bring Solana ZEC ashore, shielded</title>
+<meta name="description" content="Move ZEC held on Solana into a fresh shielded Zcash address with one Phantom approval, and read back exactly what landed and what stayed public.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:,">
+<link rel="preload" href="../fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="shore.css">
+</head>
+<body>
+<a class="skip" href="#flow">Skip to the flow</a>
+<header class="top">
+  <a class="mark" href="./" aria-label="SHORE home"><span class="mark-wave" aria-hidden="true"></span>SHORE</a>
+  <p class="mode" id="mode" role="status"></p>
+</header>
+
+<section class="hero">
+  <p class="eyebrow">Solana ZEC &rarr; shielded Zcash &middot; one approval</p>
+  <h1 class="display">Bring your ZEC <em>ashore.</em></h1>
+  <p class="lede">ZEC sitting on Solana is a public balance. SHORE sends it to a fresh shielded address of yours through NEAR Intents 1Click, then reads the note back from the chain so you can see what landed, and tells you plainly what is still public.</p>
+  <div class="tide" aria-hidden="true"><span></span><span></span><span></span></div>
+</section>
+
+<main id="flow" tabindex="-1">
+  <ol class="steps">
+    <li class="step" id="s-connect" data-state="active">
+      <header><span class="num">01</span><h2>Connect Phantom</h2><span class="tag" data-tag></span></header>
+      <div class="body" data-body></div>
+    </li>
+    <li class="step" id="s-address" data-state="locked">
+      <header><span class="num">02</span><h2>Fresh shielded address</h2><span class="tag" data-tag></span></header>
+      <div class="body" data-body></div>
+    </li>
+    <li class="step" id="s-quote" data-state="locked">
+      <header><span class="num">03</span><h2>Live 1Click quote</h2><span class="tag" data-tag></span></header>
+      <div class="body" data-body></div>
+    </li>
+    <li class="step" id="s-approve" data-state="locked">
+      <header><span class="num">04</span><h2>One approval</h2><span class="tag" data-tag></span></header>
+      <div class="body" data-body></div>
+    </li>
+    <li class="step" id="s-land" data-state="locked">
+      <header><span class="num">05</span><h2>Landing</h2><span class="tag" data-tag></span></header>
+      <div class="body" data-body></div>
+    </li>
+  </ol>
+
+  <aside class="side">
+    <section class="card readback" id="readback" aria-live="polite">
+      <p class="label">Ironwood read-back</p>
+      <p class="empty">The note appears here once it is mined and your viewing key decrypts it. Nothing on this card is typed in by hand.</p>
+    </section>
+    <section class="card public" id="public">
+      <p class="label">What&rsquo;s still public</p>
+      <ul class="exposed" id="exposed"></ul>
+      <p class="label risk-h">Counterparty risk</p>
+      <p class="risk">The hop runs through NEAR Intents 1Click, a solver network with an operator. While your ZEC is in flight it can be delayed, refunded or frozen by that service. SHORE never holds your funds, but it cannot overrule 1Click.</p>
+    </section>
+  </aside>
+</main>
+
+<footer class="foot">
+  <p>SHORE is part of AIRLOCK. No custody, no account. <a href="?replay=1">Replay the recorded mainnet run</a> &middot; <a href="../">AIRLOCK receipts</a></p>
+</footer>
+<noscript><p class="noscript">SHORE runs in the browser and needs JavaScript.</p></noscript>
+<script src="../config.js"></script>
+<script type="module" src="shore.js"></script>
+</body>
+</html>
