@@ -1,0 +1,7 @@
+{
+  "name": "shore-web",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "playwright test", "shots": "SHOTS=1 playwright test shots" },
+  "devDependencies": { "@playwright/test": "^1.48.0" }
+}
