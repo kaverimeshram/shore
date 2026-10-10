@@ -39,6 +39,10 @@ async fn main() -> Result<()> {
             let i: u32 = args.get(1).map_or(Ok(0), |s| s.parse())?;
             println!("{}", Wallet::open(dir)?.orchard_ua_on(&zcash_protocol::consensus::Network::TestNetwork, i)?);
         }
+        Some("ufvk") => {
+            // airlock ufvk   the mainnet unified FULL VIEWING key (view-only, cannot spend), for SHORE_UFVK
+            println!("{}", Wallet::open(dir)?.ufvk(&zcash_protocol::consensus::MainNetwork)?);
+        }
         Some("ua") => {
             let ua = Wallet::open(dir)?.fresh_ua(dir)?;
             println!("{ua}\nreceivers: {:?}", receivers(&ua)?);
@@ -219,7 +223,7 @@ async fn main() -> Result<()> {
                 std::process::exit(2);
             }
         }
-        _ => bail!("usage: airlock ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | fund <test|main> <dest> <zats> [max-fee] | tx <test|main> <txid> | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
+        _ => bail!("usage: airlock ufvk | ua | dry [zatoshi] | circuits [n] | outbound-quote ... | inspect <depositAddress>... | inbound <zec> <asset> <refund> | fund <test|main> <dest> <zats> [max-fee] | tx <test|main> <txid> | note <test|main> [min-zat] [timeout] | serve [addr] | watch <swap-id> | audit <swap-id>"),
     }
     Ok(())
 }

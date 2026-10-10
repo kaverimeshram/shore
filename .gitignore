@@ -17,3 +17,6 @@ design-research/negative/
 data/quote-profiles.json
 .progress/SECURITY-REVIEW.md
 .progress/LAUNCH-REQUEST.md
+deploy/pages/dist/
+deploy/pages/functions/
+.wrangler/

@@ -18,7 +18,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::{collections::HashSet, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 use tokio::sync::Mutex;
 
 /// ZEC on Solana, the SPL mint 1Click lists as `1cs_v1:sol:spl:<mint>`.
@@ -115,95 +115,190 @@ pub struct Session {
 }
 
 pub struct Shore {
-    /// The gitignored work directory: `ua-index` (shared with the CLI) and `shore/`.
+    /// The gitignored work directory (the file store and the read-back db live here).
     pub dir: PathBuf,
     pub oneclick: Arc<dyn OneClickApi>,
     pub zcash: Arc<dyn ZcashApi>,
     pub addrs: Arc<dyn AddressSource>,
-    lock: Mutex<()>,
+    pub store: Arc<dyn Store>,
 }
 
 fn now() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs())
 }
 
-impl Shore {
-    pub fn new(dir: PathBuf, oneclick: Arc<dyn OneClickApi>, zcash: Arc<dyn ZcashApi>, addrs: Arc<dyn AddressSource>) -> Result<Self> {
+/// Where shields, the address index and the used-address set persist. Both operations that guard
+/// privacy are atomic in every implementation: `next_index` never returns a value twice and `claim`
+/// succeeds for an address at most once, even with several API machines.
+#[async_trait]
+pub trait Store: Send + Sync {
+    async fn next_index(&self, start: u32) -> Result<u32>;
+    /// True when `u1` was not claimed before (and is claimed now).
+    async fn claim(&self, u1: &str) -> Result<bool>;
+    async fn put(&self, s: &Session) -> Result<()>;
+    async fn get(&self, id: &str) -> Result<Option<Session>>;
+    async fn by_deposit(&self, deposit: &str) -> Result<Option<Session>>;
+    async fn recipient_count(&self, u1: &str) -> Result<usize>;
+}
+
+/// Files under the work directory, one process. `ua-index` is the file the CLI also advances.
+pub struct FileStore {
+    dir: PathBuf,
+    lock: Mutex<()>,
+}
+
+impl FileStore {
+    pub fn new(dir: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(dir.join("shore/sessions"))?;
-        Ok(Self { dir, oneclick, zcash, addrs, lock: Mutex::new(()) })
+        Ok(Self { dir, lock: Mutex::new(()) })
     }
-
-    fn session_path(&self, id: &str) -> PathBuf {
-        self.dir.join("shore/sessions").join(format!("{id}.json"))
+    fn sessions(&self) -> Vec<Session> {
+        std::fs::read_dir(self.dir.join("shore/sessions")).into_iter().flatten().flatten().filter_map(|e| serde_json::from_slice(&std::fs::read(e.path()).ok()?).ok()).collect()
     }
+}
 
-    pub fn save(&self, s: &Session) -> Result<()> {
-        std::fs::write(self.session_path(&s.id), serde_json::to_vec_pretty(s)?)?;
-        Ok(())
-    }
-
-    pub fn load(&self, id: &str) -> Result<Session, ApiErr> {
-        if id.len() != 12 || !id.chars().all(|c| c.is_ascii_hexdigit()) {
-            return Err(bad("BAD_ID", "not a shield id"));
-        }
-        let b = std::fs::read(self.session_path(id)).map_err(|_| ApiErr(StatusCode::NOT_FOUND, "NOT_FOUND", "no such shield".into()))?;
-        serde_json::from_slice(&b).map_err(|e| internal(e.into()))
-    }
-
-    pub fn by_deposit(&self, deposit: &str) -> Option<Session> {
-        std::fs::read_dir(self.dir.join("shore/sessions")).ok()?.flatten().find_map(|e| {
-            let s: Session = serde_json::from_slice(&std::fs::read(e.path()).ok()?).ok()?;
-            (s.deposit_address.as_deref() == Some(deposit)).then_some(s)
-        })
-    }
-
-    fn used_path(&self) -> PathBuf {
-        self.dir.join("shore/used-addresses.txt")
-    }
-
-    /// Every recipient any shield on this server has used.
-    pub fn used(&self) -> HashSet<String> {
-        std::fs::read_to_string(self.used_path()).unwrap_or_default().lines().map(str::to_string).collect()
-    }
-
-    fn mark_used(&self, u1: &str) -> Result<()> {
-        use std::io::Write;
-        let mut f = std::fs::OpenOptions::new().create(true).append(true).open(self.used_path())?;
-        writeln!(f, "{u1}")?;
-        Ok(())
-    }
-
-    /// Next never-used index. The index file is advanced before the address is returned, so a crash
-    /// can skip an index but never hand one out twice.
-    async fn fresh(&self) -> Result<Session> {
+#[async_trait]
+impl Store for FileStore {
+    async fn next_index(&self, start: u32) -> Result<u32> {
         let _g = self.lock.lock().await;
         let p = self.dir.join("ua-index");
         let i: u32 = match std::fs::read_to_string(&p) {
             Ok(s) => s.trim().parse().map_err(|_| anyhow!("ua-index is not a number"))?,
-            // A new disk (a deploy) starts in its own index range so it never repeats a local address.
-            Err(_) => std::env::var("SHORE_INDEX_START").ok().and_then(|x| x.parse().ok()).unwrap_or(0),
+            Err(_) => start,
         };
+        // advanced before the address is used: a crash can skip an index, never repeat one
         std::fs::write(&p, (i + 1).to_string())?;
+        Ok(i)
+    }
+    async fn claim(&self, u1: &str) -> Result<bool> {
+        use std::io::Write;
+        let _g = self.lock.lock().await;
+        let p = self.dir.join("shore/used-addresses.txt");
+        if std::fs::read_to_string(&p).unwrap_or_default().lines().any(|l| l == u1) {
+            return Ok(false);
+        }
+        writeln!(std::fs::OpenOptions::new().create(true).append(true).open(p)?, "{u1}")?;
+        Ok(true)
+    }
+    async fn put(&self, s: &Session) -> Result<()> {
+        std::fs::write(self.dir.join("shore/sessions").join(format!("{}.json", s.id)), serde_json::to_vec_pretty(s)?)?;
+        Ok(())
+    }
+    async fn get(&self, id: &str) -> Result<Option<Session>> {
+        match std::fs::read(self.dir.join("shore/sessions").join(format!("{id}.json"))) {
+            Ok(b) => Ok(Some(serde_json::from_slice(&b)?)),
+            Err(_) => Ok(None),
+        }
+    }
+    async fn by_deposit(&self, d: &str) -> Result<Option<Session>> {
+        Ok(self.sessions().into_iter().find(|s| s.deposit_address.as_deref() == Some(d)))
+    }
+    async fn recipient_count(&self, u1: &str) -> Result<usize> {
+        Ok(self.sessions().iter().filter(|s| s.recipient == u1).count())
+    }
+}
+
+/// A Cloudflare Worker over D1 (deploy/shore-store): atomic `UPDATE .. RETURNING` for the index and a
+/// primary key on the used-address table. Free tier; the bearer token is a Fly secret.
+pub struct HttpStore {
+    base: String,
+    token: String,
+    http: reqwest::Client,
+}
+
+impl HttpStore {
+    pub fn new(base: String, token: String) -> Self {
+        Self { base: base.trim_end_matches('/').into(), token, http: reqwest::Client::new() }
+    }
+    async fn call(&self, method: reqwest::Method, path: &str, body: Option<Value>) -> Result<Value> {
+        let mut r = self.http.request(method, format!("{}{path}", self.base)).bearer_auth(&self.token).timeout(std::time::Duration::from_secs(10));
+        if let Some(b) = body {
+            r = r.json(&b);
+        }
+        let r = r.send().await.map_err(|e| anyhow!("store: {}", e.without_url()))?;
+        let code = r.status();
+        let v: Value = r.json().await.unwrap_or(Value::Null);
+        if !code.is_success() {
+            anyhow::bail!("store HTTP {code}: {v}");
+        }
+        Ok(v)
+    }
+}
+
+#[async_trait]
+impl Store for HttpStore {
+    async fn next_index(&self, start: u32) -> Result<u32> {
+        let v = self.call(reqwest::Method::POST, "/index", Some(json!({ "start": start }))).await?;
+        v["index"].as_u64().and_then(|i| u32::try_from(i).ok()).ok_or_else(|| anyhow!("store returned no index"))
+    }
+    async fn claim(&self, u1: &str) -> Result<bool> {
+        Ok(self.call(reqwest::Method::POST, "/claim", Some(json!({ "u1": u1 }))).await?["claimed"] == true)
+    }
+    async fn put(&self, s: &Session) -> Result<()> {
+        self.call(reqwest::Method::PUT, &format!("/session/{}", s.id), Some(serde_json::to_value(s)?)).await.map(|_| ())
+    }
+    async fn get(&self, id: &str) -> Result<Option<Session>> {
+        let v = self.call(reqwest::Method::GET, &format!("/session/{id}"), None).await?;
+        Ok(if v["session"].is_null() { None } else { Some(serde_json::from_value(v["session"].clone())?) })
+    }
+    async fn by_deposit(&self, d: &str) -> Result<Option<Session>> {
+        let v = self.call(reqwest::Method::GET, &format!("/deposit/{d}"), None).await?;
+        Ok(if v["session"].is_null() { None } else { Some(serde_json::from_value(v["session"].clone())?) })
+    }
+    async fn recipient_count(&self, u1: &str) -> Result<usize> {
+        Ok(self.call(reqwest::Method::GET, &format!("/recipient/{u1}"), None).await?["count"].as_u64().unwrap_or(0) as usize)
+    }
+}
+
+const REUSED: &str = "this address already received a shield; reuse links the two deposits on the public 1Click status page. Use a fresh address";
+
+impl Shore {
+    pub fn new(dir: PathBuf, oneclick: Arc<dyn OneClickApi>, zcash: Arc<dyn ZcashApi>, addrs: Arc<dyn AddressSource>) -> Result<Self> {
+        let store = Arc::new(FileStore::new(dir.clone())?);
+        Ok(Self { dir, oneclick, zcash, addrs, store })
+    }
+
+    pub fn with_store(mut self, store: Arc<dyn Store>) -> Self {
+        self.store = store;
+        self
+    }
+
+    pub async fn save(&self, s: &Session) -> Result<()> {
+        self.store.put(s).await
+    }
+
+    pub async fn load(&self, id: &str) -> Result<Session, ApiErr> {
+        if id.len() != 12 || !id.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(bad("BAD_ID", "not a shield id"));
+        }
+        self.store.get(id).await.map_err(upstream)?.ok_or_else(|| ApiErr(StatusCode::NOT_FOUND, "NOT_FOUND", "no such shield".into()))
+    }
+
+    pub async fn by_deposit(&self, deposit: &str) -> Option<Session> {
+        self.store.by_deposit(deposit).await.ok().flatten()
+    }
+
+    async fn fresh(&self) -> Result<Session> {
+        // A new store (a deploy) starts in its own index range so it never repeats a local address.
+        let start = std::env::var("SHORE_INDEX_START").ok().and_then(|x| x.parse().ok()).unwrap_or(0);
+        let i = self.store.next_index(start).await?;
         let u1 = self.addrs.at(i)?;
-        if self.used().contains(&u1) {
+        if !self.store.claim(&u1).await? {
             anyhow::bail!("index {i} produced an address already used");
         }
-        self.mark_used(&u1)?;
         let s = Session { id: hex::encode(crate::wallet::random_bytes::<6>()?), recipient: u1, source: "fresh".into(), ua_index: Some(i), ours: true, created_at: now(), deposit_address: None, sender: None, amount_in: None, quoted_out: None, deadline: None, solana_tx: None };
-        self.save(&s)?;
+        self.save(&s).await?;
         Ok(s)
     }
 
     async fn own(&self, addr: &str) -> Result<Session, ApiErr> {
         let (u1, _) = check_own_address(addr)?;
-        let _g = self.lock.lock().await;
-        if self.used().contains(&u1) {
-            return Err(ApiErr(StatusCode::CONFLICT, "ADDRESS_REUSED", "this address already received a shield; reuse links the two deposits on the public 1Click status page. Use a fresh address".into()));
+        if !self.store.claim(&u1).await.map_err(upstream)? {
+            return Err(ApiErr(StatusCode::CONFLICT, "ADDRESS_REUSED", REUSED.into()));
         }
-        self.mark_used(&u1).map_err(internal)?;
         let ours = self.addrs.owns(&u1);
         let s = Session { id: hex::encode(crate::wallet::random_bytes::<6>().map_err(internal)?), recipient: u1, source: "own".into(), ua_index: None, ours, created_at: now(), deposit_address: None, sender: None, amount_in: None, quoted_out: None, deadline: None, solana_tx: None };
-        self.save(&s).map_err(internal)?;
+        self.save(&s).await.map_err(internal)?;
         Ok(s)
     }
 }
@@ -343,7 +438,7 @@ pub async fn quote(State(s): St, Json(r): Json<QuoteReq>) -> R {
     if std::env::var_os("AIRLOCK_PAUSED").is_some() {
         return Err(ApiErr(StatusCode::SERVICE_UNAVAILABLE, "PAUSED", "quotes are paused".into()));
     }
-    let mut sess = s.load(&r.id)?;
+    let mut sess = s.load(&r.id).await?;
     let amount = check_amount(&r.amount)?;
     let sender = r.sender.trim();
     if !valid_solana(sender) {
@@ -364,7 +459,7 @@ pub async fn quote(State(s): St, Json(r): Json<QuoteReq>) -> R {
         sess.amount_in = Some(qq.amount_in.clone());
         sess.quoted_out = Some(qq.amount_out.clone());
         sess.deadline = qq.deadline.clone();
-        s.save(&sess).map_err(internal)?;
+        s.save(&sess).await.map_err(internal)?;
     }
     Ok(Json(json!({
         "id": sess.id, "dry": r.dry, "depositAddress": qq.deposit_address, "mint": SOL_ZEC_MINT, "decimals": DECIMALS,
@@ -383,14 +478,14 @@ struct TxReq {
 }
 
 async fn submit_tx(State(s): St, UrlPath(id): UrlPath<String>, Json(r): Json<TxReq>) -> R {
-    let mut sess = s.load(&id)?;
+    let mut sess = s.load(&id).await?;
     let dep = sess.deposit_address.clone().ok_or_else(|| bad("NO_QUOTE", "quote first"))?;
     if !(64..=90).contains(&r.tx_hash.len()) || !r.tx_hash.chars().all(|c| c.is_ascii_alphanumeric()) {
         return Err(bad("BAD_TX", "not a Solana signature"));
     }
     let v = s.oneclick.submit(&r.tx_hash, &dep).await.map_err(upstream)?;
     sess.solana_tx = Some(r.tx_hash);
-    s.save(&sess).map_err(internal)?;
+    s.save(&sess).await.map_err(internal)?;
     Ok(Json(json!({ "ok": true, "status": v["status"] })))
 }
 
@@ -430,7 +525,7 @@ async fn status(State(s): St, UrlPath(deposit): UrlPath<String>) -> R {
 }
 
 async fn readback(State(s): St, UrlPath(id): UrlPath<String>) -> R {
-    let sess = s.load(&id)?;
+    let sess = s.load(&id).await?;
     let base = json!({ "id": sess.id, "recipient": sess.recipient });
     if !sess.ours {
         return Ok(Json(merge(base, json!({ "state": "UNAVAILABLE", "reason": "the address is not the demo wallet's; read the note in your own wallet" }))));
@@ -487,7 +582,7 @@ pub fn exposure_json(sess: &Session, raw: &Value, shape: Option<&TxShape>, reuse
 }
 
 async fn exposure(State(s): St, UrlPath(id): UrlPath<String>) -> R {
-    let sess = s.load(&id)?;
+    let sess = s.load(&id).await?;
     let dep = sess.deposit_address.clone().ok_or_else(|| bad("NO_QUOTE", "quote first"))?;
     let r = read_status(&s, &dep).await?;
     let shape = match first_hash(&r.raw, "destinationChainTxHashes") {
@@ -495,7 +590,7 @@ async fn exposure(State(s): St, UrlPath(id): UrlPath<String>) -> R {
         None => None,
     };
     // Reuse across shields: another session with the same recipient.
-    let reused = std::fs::read_dir(s.dir.join("shore/sessions")).map_err(|e| internal(e.into()))?.flatten().filter_map(|e| serde_json::from_slice::<Session>(&std::fs::read(e.path()).ok()?).ok()).filter(|x| x.recipient == sess.recipient).count() > 1;
+    let reused = s.store.recipient_count(&sess.recipient).await.map_err(upstream)? > 1;
     Ok(Json(exposure_json(&sess, &r.raw, shape.as_ref(), reused)))
 }
 

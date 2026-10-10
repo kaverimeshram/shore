@@ -1,0 +1,9 @@
+name = "shore-store"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "shore-store"
+database_id = "5b2dc698-129d-4a23-95e6-9ef1cbd4ab24"

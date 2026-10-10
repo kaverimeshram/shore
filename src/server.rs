@@ -85,12 +85,18 @@ fn shore_state(dir: &std::path::Path, tor: tor::Client) -> Result<Arc<crate::sho
         Err(_) => crate::wallet::Wallet::open(dir)?.ufvk(&zcash_protocol::consensus::MainNetwork)?,
     };
     let birthday = std::env::var("SHORE_BIRTHDAY").ok().and_then(|b| b.parse().ok()).unwrap_or(3_512_400);
-    Ok(Arc::new(Shore::new(
+    let shore = Shore::new(
         dir.to_path_buf(),
         Arc::new(LiveOneClick { tor }),
         Arc::new(LiveZcash::new(ufvk.clone(), dir.join("shore/notes-main.db"), birthday)),
         Arc::new(UfvkAddresses::new(&ufvk)?),
-    )?))
+    )?;
+    // Deploys keep sessions, the index and used addresses in the D1-backed store (deploy/shore-store),
+    // so every machine shares them and a redeploy loses nothing.
+    Ok(Arc::new(match (std::env::var("SHORE_STORE_URL"), std::env::var("SHORE_STORE_TOKEN")) {
+        (Ok(u), Ok(t)) => shore.with_store(Arc::new(HttpStore::new(u, t))),
+        _ => shore,
+    }))
 }
 
 /// Browsers on the static site (and local development) may call the service; other origins get no CORS header.
