@@ -1,0 +1,97 @@
+{
+ "url": "https://wise.com/us/send-money/",
+ "body": {
+  "text": "You're on the United States website.\nSwitch to see what we o",
+  "font": "Inter, Helvetica, Arial, sans-serif",
+  "size": "18px",
+  "weight": "400",
+  "tracking": "-0.108px",
+  "leading": "26px",
+  "color": "rgb(69, 71, 69)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "Money Transfer Service from the US",
+  "font": "\"Wise Sans\", Inter, sans-serif",
+  "size": "40.9092px",
+  "weight": "900",
+  "tracking": "normal",
+  "leading": "34.7728px",
+  "color": "rgb(159, 232, 112)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": {
+  "text": "Compare International Money Transfer Services & Fees",
+  "font": "\"Wise Sans\", Inter, sans-serif",
+  "size": "40.9092px",
+  "weight": "900",
+  "tracking": "normal",
+  "leading": "34.7728px",
+  "color": "rgb(14, 15, 12)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": {
+  "text": "Enter amount to send in USD",
+  "font": "Inter, Helvetica, Arial, sans-serif",
+  "size": "22.9092px",
+  "weight": "600",
+  "tracking": "-0.343637px",
+  "leading": "34px",
+  "color": "rgb(14, 15, 12)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "p": {
+  "text": "Wise Account",
+  "font": "\"Wise Sans\", Inter, sans-serif",
+  "size": "37.0908px",
+  "weight": "900",
+  "tracking": "normal",
+  "leading": "31.5272px",
+  "color": "rgb(159, 232, 112)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "Skip to content",
+  "font": "Inter, Helvetica, Arial, sans-serif",
+  "size": "20px",
+  "weight": "600",
+  "tracking": "-0.22px",
+  "leading": "32px",
+  "color": "rgb(22, 51, 0)",
+  "background": "rgb(159, 232, 112)",
+  "radius": "9999px"
+ },
+ "button": {
+  "text": "Switch to see what we offer on the India website.",
+  "font": "Inter, Helvetica, Arial, sans-serif",
+  "size": "14px",
+  "weight": "600",
+  "tracking": "0.175px",
+  "leading": "22px",
+  "color": "rgb(159, 232, 112)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "9999px"
+ },
+ "input": {
+  "text": "",
+  "font": "\"Wise Sans\", Inter, sans-serif",
+  "size": "34px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "51px",
+  "color": "rgb(22, 51, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "fonts": [
+  "Inter 100 900",
+  "Averta 400",
+  "Averta 600",
+  "Wise Sans normal"
+ ]
+}

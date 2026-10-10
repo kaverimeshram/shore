@@ -1,0 +1,57 @@
+{
+ "url": "https://relay.link/bridge",
+ "body": {
+  "text": "Relay Vaults are being retired\nWithdraw Relay Vaults funds a",
+  "font": "ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgb(247, 248, 255)",
+  "radius": "0px"
+ },
+ "h1": null,
+ "h2": null,
+ "h3": null,
+ "p": null,
+ "a": {
+  "text": "",
+  "font": "ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "4px"
+ },
+ "button": {
+  "text": "Withdrawal instructions",
+  "font": "ui-sans-serif, system-ui, -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+  "size": "14px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "21px",
+  "color": "rgb(90, 69, 223)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "input": {
+  "text": "",
+  "font": "Inter, \"Inter Fallback\", sans-serif",
+  "size": "14px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "17px",
+  "color": "rgb(17, 24, 28)",
+  "background": "rgb(255, 255, 255)",
+  "radius": "8px"
+ },
+ "fonts": [
+  "Chivo 700",
+  "Inter 400",
+  "Inter 500",
+  "Inter 700"
+ ]
+}

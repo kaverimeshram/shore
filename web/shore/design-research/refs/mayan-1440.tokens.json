@@ -1,0 +1,56 @@
+{
+ "url": "https://swap.mayan.finance/",
+ "body": {
+  "text": "Swap\nExplorer\nConnect Wallet\nMore\nFrom\nETH\nEthereum\n \nTo\nSOL",
+  "font": "Roboto, Helvetica, Arial, sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "0.15008px",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgb(37, 37, 43)",
+  "radius": "0px"
+ },
+ "h1": null,
+ "h2": null,
+ "h3": null,
+ "p": null,
+ "a": {
+  "text": "",
+  "font": "Roboto, Helvetica, Arial, sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "0.15008px",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "button": {
+  "text": "Connect Wallet",
+  "font": "\"Space Grotesk\"",
+  "size": "14px",
+  "weight": "400",
+  "tracking": "0.39998px",
+  "leading": "normal",
+  "color": "rgb(13, 13, 13)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "20px"
+ },
+ "input": {
+  "text": "",
+  "font": "\"Space Mono\"",
+  "size": "20px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "fonts": [
+  "Space Mono 400",
+  "Space Grotesk 400",
+  "Space Grotesk 500"
+ ]
+}

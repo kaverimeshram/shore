@@ -1,0 +1,65 @@
+{
+ "url": "https://checkout.stripe.dev/",
+ "body": {
+  "text": "Start building\nEmbed your prebuilt form\n\nFollow our Quicksta",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "18px",
+  "weight": "600",
+  "tracking": "normal",
+  "leading": "28px",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": {
+  "text": "Embed your prebuilt form",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "16px",
+  "weight": "600",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(53, 58, 68)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": null,
+ "p": {
+  "text": "Follow our Quickstart guide to add a checkout to your websit",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "14px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "20px",
+  "color": "rgb(89, 97, 113)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": null,
+ "button": {
+  "text": "Start building",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "14px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgb(103, 93, 255)",
+  "radius": "6px"
+ },
+ "input": null,
+ "fonts": [
+  "__Inter_f367f3 100 900",
+  "M PLUS 1 Code 400"
+ ]
+}

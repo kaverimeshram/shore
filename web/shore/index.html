@@ -5,21 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SHORE: bring Solana ZEC ashore, shielded</title>
 <meta name="description" content="Move ZEC held on Solana into a fresh shielded Zcash address with one Phantom approval, and read back exactly what landed and what stayed public.">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
 <link rel="icon" href="data:,">
-<link rel="preload" href="../fonts/satoshi-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="../fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<meta name="theme-color" content="#0B1F2A">
+<link rel="preload" href="../fonts/manrope-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="../fonts/newsreader-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#EEF1EC">
 <link rel="stylesheet" href="shore.css">
 </head>
 <body>
 <a class="skip" href="#flow">Skip to the flow</a>
-<div class="col">
+<div class="page">
 <header class="top">
   <a class="mark" href="./" aria-label="SHORE, start over">SHORE</a>
   <p class="mode" id="mode" role="status"></p>
 </header>
 
+<div class="side">
 <h1 class="display">Move your Solana ZEC into the shielded pool.</h1>
 <p class="lede">One Phantom approval. A fresh shielded address each time. The note is read back from Zcash, not taken on trust.</p>
 
@@ -31,37 +32,43 @@
   </ol>
   <p class="elapsed"><span class="clock" data-testid="clock" id="clock">84s</span> <span class="cap" id="clock-cap">last mainnet crossing, 10 Oct 2026, 115,000 zat landed</span></p>
 </section>
+</div>
 
 <main id="flow" tabindex="-1">
   <ol class="steps">
     <li class="step" id="s-connect" data-state="active">
       <header><h2>Connect Phantom</h2><span class="tag" data-tag></span></header>
+      <p class="hint">Phantom shares your Solana address and ZEC balance. Nothing is signed yet.</p>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-address" data-state="locked">
       <header><h2>Fresh shielded address</h2><span class="tag" data-tag></span></header>
+      <p class="hint">A new Orchard-only u1 address is derived for this transfer, or paste your own.</p>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-quote" data-state="locked">
       <header><h2>Quote from 1Click</h2><span class="tag" data-tag></span></header>
+      <p class="hint">NEAR Intents 1Click prices the hop: what you send, what lands, every fee.</p>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-approve" data-state="locked">
       <header><h2>Review and approve</h2><span class="tag" data-tag></span></header>
+      <p class="hint">One Phantom approval sends ZEC to the 1Click deposit address.</p>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-land" data-state="locked">
       <header><h2>Crossing</h2><span class="tag" data-tag></span></header>
+      <p class="hint">The note is found in the shielded pool and decrypted with a viewing key.</p>
       <div class="body" data-body></div>
     </li>
   </ol>
 
-  <section class="card readback" id="readback" aria-live="polite">
+  <section class="sect readback" id="readback" aria-live="polite">
     <h2 class="ch">Read-back</h2>
     <p class="empty">After the note is mined, the viewing key decrypts it and the amount shows here. It is read from the chain, never typed in.</p>
   </section>
 
-  <section class="card public" id="public">
+  <section class="sect public" id="public">
     <h2 class="ch">What&rsquo;s still public</h2>
     <ul class="exposed" id="exposed"></ul>
     <h3 class="sub">Counterparty risk</h3>

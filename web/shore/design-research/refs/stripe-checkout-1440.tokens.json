@@ -1,0 +1,64 @@
+{
+ "url": "https://checkout.stripe.dev/",
+ "body": {
+  "text": "Want to use embedded components?Change demo\n\nStart building\n",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "18px",
+  "weight": "600",
+  "tracking": "normal",
+  "leading": "28px",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": {
+  "text": "Embed your prebuilt form",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "16px",
+  "weight": "600",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(53, 58, 68)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": null,
+ "p": {
+  "text": "Want to use embedded components?Change demo",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(89, 97, 113)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": null,
+ "button": {
+  "text": "Change demo",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Ubuntu",
+  "size": "16px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(103, 93, 255)",
+  "background": "rgb(255, 255, 255)",
+  "radius": "0px"
+ },
+ "input": null,
+ "fonts": [
+  "__Inter_f367f3 100 900"
+ ]
+}

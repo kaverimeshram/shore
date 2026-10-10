@@ -1,0 +1,1 @@
+shore-r0-harbor-*.png: SHORE before this redesign (scored 5.0/10 by kamal). Tells present: cards inside cards (steps box, readback card, public card, crossing card in a 440px column), low-contrast #7C8D96 body on #0B1F2A, locked steps grey and collapsed, monospace hacker vibe for every figure, default dark template, status pills.

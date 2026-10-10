@@ -1,0 +1,74 @@
+{
+ "url": "https://near-intents.org/",
+ "body": {
+  "text": "Sign in\nNEAR Intents has moved\n\nNEAR Intents has moved to ne",
+  "font": "CircularXXSub, system-ui, sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h1": null,
+ "h2": {
+  "text": "NEAR Intents has moved",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI (Custom)\", Roboto, \"Helvetica Neue\", \"Open Sans (Custom)\", system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+  "size": "20px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "28px",
+  "color": "rgb(33, 32, 28)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": {
+  "text": "How do I switch?",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI (Custom)\", Roboto, \"Helvetica Neue\", \"Open Sans (Custom)\", system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+  "size": "18px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(33, 32, 28)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "p": {
+  "text": "NEAR Intents has moved to near.com. Same technology by the s",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI (Custom)\", Roboto, \"Helvetica Neue\", \"Open Sans (Custom)\", system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+  "size": "16px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(99, 99, 94)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI (Custom)\", Roboto, \"Helvetica Neue\", \"Open Sans (Custom)\", system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(33, 32, 28)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "button": {
+  "text": "Sign in",
+  "font": "-apple-system, \"system-ui\", \"Segoe UI (Custom)\", Roboto, \"Helvetica Neue\", \"Open Sans (Custom)\", system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+  "size": "14px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "20px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgb(247, 107, 21)",
+  "radius": "9999px"
+ },
+ "input": null,
+ "fonts": [
+  "CircularXXSub 400"
+ ]
+}

@@ -1,0 +1,103 @@
+{
+ "url": "https://z.cash/",
+ "body": {
+  "text": "Skip to content\nLEARN\nLEARN\n\nLearn the basics of the Zcash p",
+  "font": "Inter, sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgb(243, 241, 239)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "Zcash is encrypted electronic cash.",
+  "font": "\"DM Serif Display\", sans-serif",
+  "size": "90px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "99px",
+  "color": "rgb(39, 18, 25)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": {
+  "text": "LEARN",
+  "font": "Inter, sans-serif",
+  "size": "21px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "26.25px",
+  "color": "rgb(39, 18, 25)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": {
+  "text": "ZCASH 101",
+  "font": "Inter, sans-serif",
+  "size": "16px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "21.6px",
+  "color": "rgb(39, 18, 25)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "p": {
+  "text": "Learn the basics of the Zcash protocol, privacy, blockchain ",
+  "font": "Inter, sans-serif",
+  "size": "16px",
+  "weight": "300",
+  "tracking": "normal",
+  "leading": "30px",
+  "color": "rgb(39, 18, 25)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "Skip to content",
+  "font": "Inter, sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(243, 183, 36)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "button": {
+  "text": "",
+  "font": "Inter, sans-serif",
+  "size": "14px",
+  "weight": "500",
+  "tracking": "2.8px",
+  "leading": "21px",
+  "color": "rgb(204, 51, 102)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "50%"
+ },
+ "input": {
+  "text": "",
+  "font": "Inter, sans-serif",
+  "size": "50px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "75px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "3px"
+ },
+ "fonts": [
+  "Font Awesome 5 Free 900",
+  "eicons 400",
+  "inter 700",
+  "inter 300",
+  "inter 400",
+  "inter 500",
+  "inter 600",
+  "inter 900",
+  "dm serif display 400",
+  "Font Awesome 5 Brands 400"
+ ]
+}

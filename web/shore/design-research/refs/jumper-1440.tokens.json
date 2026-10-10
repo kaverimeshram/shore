@@ -1,0 +1,75 @@
+{
+ "url": "https://jumper.xyz/",
+ "body": {
+  "text": "Trade\n\nEarn\n\nPortfolio\n\nMissions\n\nConnect\n\nFind the best rou",
+  "font": "Inter, \"Inter Fallback\", Arial, \"Noto Sans\", \"system-ui\", \"Segoe UI\", \"Helvetica Neue\", sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgb(18, 11, 30)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "Find the best route",
+  "font": "Urbanist, \"Urbanist Fallback\"",
+  "size": "64px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "72px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": null,
+ "h3": null,
+ "p": {
+  "text": "Trade",
+  "font": "Inter, \"Inter Fallback\"",
+  "size": "16px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "20px",
+  "color": "rgba(255, 255, 255, 0.92)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "Trade",
+  "font": "Inter, \"Inter Fallback\", Arial, \"Noto Sans\", \"system-ui\", \"Segoe UI\", \"Helvetica Neue\", sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(101, 60, 162)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "button": {
+  "text": "",
+  "font": "Arial",
+  "size": "13.3333px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "input": {
+  "text": "",
+  "font": "Arial",
+  "size": "13.3333px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "fonts": [
+  "Inter 100 900",
+  "Urbanist 100 900"
+ ]
+}

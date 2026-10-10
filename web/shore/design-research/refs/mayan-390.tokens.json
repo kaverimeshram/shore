@@ -1,0 +1,56 @@
+{
+ "url": "https://swap.mayan.finance/",
+ "body": {
+  "text": "Menu\nSwap\nExplorer\nApp theme\nDark\nLight\nSocials\nDocumentatio",
+  "font": "Roboto, Helvetica, Arial, sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "0.15008px",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgb(37, 37, 43)",
+  "radius": "0px"
+ },
+ "h1": null,
+ "h2": null,
+ "h3": null,
+ "p": null,
+ "a": {
+  "text": "",
+  "font": "Roboto, Helvetica, Arial, sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "0.15008px",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "button": {
+  "text": "Dark",
+  "font": "Arial",
+  "size": "13.3333px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgb(64, 64, 64)",
+  "radius": "999px"
+ },
+ "input": {
+  "text": "",
+  "font": "\"Space Mono\"",
+  "size": "20px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "fonts": [
+  "Space Mono 400",
+  "Space Grotesk 400",
+  "Space Grotesk 500"
+ ]
+}

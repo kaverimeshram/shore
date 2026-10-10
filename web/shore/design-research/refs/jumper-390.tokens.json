@@ -1,0 +1,75 @@
+{
+ "url": "https://jumper.xyz/",
+ "body": {
+  "text": "Connect\n\nFind the best route\n\n4x audited multi-chain liquidi",
+  "font": "Inter, \"Inter Fallback\", Arial, \"Noto Sans\", \"system-ui\", \"Segoe UI\", \"Helvetica Neue\", sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgb(18, 11, 30)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "Find the best route",
+  "font": "Urbanist, \"Urbanist Fallback\"",
+  "size": "48px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "64px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": null,
+ "h3": null,
+ "p": {
+  "text": "Connect",
+  "font": "Inter, \"Inter Fallback\"",
+  "size": "12px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "16px",
+  "color": "rgb(252, 250, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "4x audited",
+  "font": "Inter, \"Inter Fallback\"",
+  "size": "18px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(219, 207, 237)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "button": {
+  "text": "",
+  "font": "Arial",
+  "size": "13.3333px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "input": {
+  "text": "",
+  "font": "Arial",
+  "size": "13.3333px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "fonts": [
+  "Inter 100 900",
+  "Urbanist 100 900"
+ ]
+}

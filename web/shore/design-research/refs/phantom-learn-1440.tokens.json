@@ -1,0 +1,95 @@
+{
+ "url": "https://phantom.com/learn",
+ "body": {
+  "text": "Features\nLearn\nExplore\nCompany\nDevelopers\nSupport\nDownload\nP",
+  "font": "Phantom",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "Phantom \n blog",
+  "font": "Phantom",
+  "size": "96px",
+  "weight": "400",
+  "tracking": "-2.4px",
+  "leading": "105.6px",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": {
+  "text": "Crypto \n 101",
+  "font": "Phantom",
+  "size": "96px",
+  "weight": "400",
+  "tracking": "-2.4px",
+  "leading": "105.6px",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": {
+  "text": "Blog",
+  "font": "Phantom",
+  "size": "24px",
+  "weight": "400",
+  "tracking": "-0.6px",
+  "leading": "32.4px",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "p": {
+  "text": "All the latest news, updates, and announcements from Phantom",
+  "font": "Phantom",
+  "size": "24px",
+  "weight": "400",
+  "tracking": "-0.6px",
+  "leading": "32.4px",
+  "color": "rgb(134, 132, 141)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "",
+  "font": "Phantom",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "32px"
+ },
+ "button": {
+  "text": "",
+  "font": "Phantom",
+  "size": "13.3333px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgb(244, 242, 244)",
+  "radius": "32px"
+ },
+ "input": {
+  "text": "",
+  "font": "Phantom",
+  "size": "64px",
+  "weight": "400",
+  "tracking": "-1.6px",
+  "leading": "64px",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "fonts": [
+  "Phantom 400",
+  "Phantom 350"
+ ]
+}

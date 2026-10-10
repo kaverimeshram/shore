@@ -1,0 +1,104 @@
+{
+ "url": "https://flighty.com/",
+ "body": {
+  "text": "NEW! Flighty Airports\n\nView Live \n\nFlighty\n\nGet the app\n\nPri",
+  "font": "sans-serif",
+  "size": "12px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgb(255, 255, 255)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "Get the truth when you travel",
+  "font": "\"system-ui\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Fira Sans\", \"Droid Sans\", \"Helvetica Neue\", sans-serif, \"System Default\", sans-serif",
+  "size": "65px",
+  "weight": "700",
+  "tracking": "-1px",
+  "leading": "71.5px",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": {
+  "text": "Everything you’ve ever wanted to know about your flight—and ",
+  "font": "\"system-ui\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Fira Sans\", \"Droid Sans\", \"Helvetica Neue\", sans-serif, \"System Default\", sans-serif",
+  "size": "32px",
+  "weight": "700",
+  "tracking": "-0.28px",
+  "leading": "41.6px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": {
+  "text": "Import your flights in seconds",
+  "font": "\"system-ui\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Fira Sans\", \"Droid Sans\", \"Helvetica Neue\", sans-serif, \"System Default\", sans-serif",
+  "size": "32px",
+  "weight": "700",
+  "tracking": "normal",
+  "leading": "35.2px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "p": {
+  "text": "NEW! Flighty Airports",
+  "font": "\"system-ui\", -apple-system, \"system-ui\", \"Segoe UI\", Roboto, Oxygen, Ubuntu, Cantarell, \"Fira Sans\", \"Droid Sans\", \"Helvetica Neue\", sans-serif, \"System Default\", sans-serif",
+  "size": "14px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "16.8px",
+  "color": "rgb(255, 255, 255)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "NEW! Flighty Airports\n\nView Live",
+  "font": "sans-serif",
+  "size": "12px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(0, 0, 238)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "button": {
+  "text": "Cookie Settings",
+  "font": "sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(51, 51, 51)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "input": {
+  "text": "",
+  "font": "sans-serif",
+  "size": "14px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "14px",
+  "color": "rgb(68, 68, 68)",
+  "background": "rgb(238, 238, 238)",
+  "radius": "8px"
+ },
+ "fonts": [
+  "EB Garamond 700",
+  "Indie Flower 400",
+  "SF Pro Text Regular normal",
+  "SF Pro Text Semibold normal",
+  "SF Pro Text Regular 400",
+  "Inter 400",
+  "Inter 700",
+  "EB Garamond Placeholder normal",
+  "SF Pro Text Regular Placeholder normal",
+  "SF Pro Text Semibold Placeholder normal",
+  "Inter Placeholder normal"
+ ]
+}
