@@ -113,7 +113,7 @@ impl Srv {
         let shore = Arc::new(Shore::new(dir.clone(), oc, z, a).unwrap());
         let l = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}", l.local_addr().unwrap());
-        tokio::spawn(async move { axum::serve(l, router(shore)).await.unwrap() });
+        tokio::spawn(async move { axum::serve(l, standalone_router(shore)).await.unwrap() });
         Self { base, http: reqwest::Client::new(), dir }
     }
     async fn post(&self, path: &str, body: Value) -> (u16, Value) {

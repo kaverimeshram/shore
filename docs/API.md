@@ -29,6 +29,8 @@ Response 200:
 
 ## POST /api/quote
 
+Shared path with AIRLOCK's outbound part quote: a body with `id` is a SHORE quote, anything else goes to AIRLOCK.
+
 Request: `{ "id": "<shield id>", "amount": "140000", "sender": "<Solana pubkey of the Phantom wallet>", "dry": false }`
 
 - `amount`: base units of ZEC on Solana (SPL mint `A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS`).
@@ -89,6 +91,15 @@ What is still public about this shield. Each row: `{ "what", "value", "whoCanSee
   "publicOnStatus": [ { "field": "recipient", "value": "u1..." } ],
   "addressReused": false }
 ```
+
+## Verified live (2026-10-10, read-only)
+
+`own` with the live-run u1 -> readbackAvailable true, second use -> 409 ADDRESS_REUSED; dry quote 140000 -> amountOut 108000, withdrawFee 32000;
+status DMDd...SjbM -> SUCCESS, landed 3512504; readback -> LANDED ironwood 115000 (deltaZat 7000) after an 18 s scan from 3512400; exposure -> 7 rows, 8 public status fields.
+
+## Deploy env
+
+`SHORE_UFVK` (view key only, no seed on the server), `SHORE_BIRTHDAY` (scan start, default 3512400), `SHORE_ORIGIN` (CORS origin of the web app), `AIRLOCK_PAUSED`.
 
 ## Other
 `GET /api/health` -> `{ "ok": true }`. Existing AIRLOCK routes (`/api/tokens`, `/api/inspect/:addr`, ...) are unchanged.

@@ -40,6 +40,7 @@ fn paused() -> Result<()> {
 }
 
 pub struct App {
+    shore: Arc<crate::shore::Shore>,
     tor: tor::Client,
     direct: Client,
     /// Bound concurrent Tor work, one pool per kind so status lookups cannot starve quotes.
@@ -58,13 +59,13 @@ fn bad(code: StatusCode, e: impl std::fmt::Display) -> (StatusCode, Json<Value>)
 pub async fn serve(addr: &str, dir: PathBuf) -> Result<()> {
     let tor = Transport::bootstrap_tor(&dir.join("tor")).await?;
     let shore = shore_state(&dir, tor.clone())?;
-    let app = Arc::new(App { tor, direct: Client::new()?, quote_slots: Semaphore::new(4), inspect_slots: Semaphore::new(4), cache: Mutex::new(HashMap::new()) });
+    let app = Arc::new(App { shore: shore.clone(), tor, direct: Client::new()?, quote_slots: Semaphore::new(4), inspect_slots: Semaphore::new(4), cache: Mutex::new(HashMap::new()) });
     let router = Router::new()
         .route("/api/health", get(|| async { Json(json!({ "ok": true })) }))
         .route("/api/tokens", get(tokens))
         .route("/api/plan", post(plan))
         .route("/api/inspect/{addr}", get(inspect))
-        .route("/api/quote", post(quote))
+        .route("/api/quote", post(quote_any))
         .route("/api/quote-in", post(quote_in))
         .with_state(app)
         .merge(crate::shore::router(shore))
@@ -241,6 +242,21 @@ struct QuoteReq {
     destination: String,
     /// Orchard-only unified address from the caller's own wallet.
     refund: String,
+}
+
+/// SHORE bodies carry a shield `id`; anything else is an AIRLOCK outbound part.
+async fn quote_any(State(app): S, Json(v): Json<Value>) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    if v.get("id").is_some() {
+        return match serde_json::from_value::<crate::shore::QuoteReq>(v) {
+            Ok(r) => crate::shore::quote(State(app.shore.clone()), Json(r)).await.into_response(),
+            Err(e) => bad(StatusCode::BAD_REQUEST, e).into_response(),
+        };
+    }
+    match serde_json::from_value::<QuoteReq>(v) {
+        Ok(r) => quote(State(app), Json(r)).await.into_response(),
+        Err(e) => bad(StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+    }
 }
 
 /// One part. Stateless: the service never sees two parts of a swap in one request and writes nothing.

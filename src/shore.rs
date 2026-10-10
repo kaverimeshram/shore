@@ -256,15 +256,21 @@ fn formatted(raw: &str) -> String {
 type St = State<Arc<Shore>>;
 type R = Result<Json<Value>, ApiErr>;
 
+/// Routes SHORE owns. `POST /api/quote` is shared with AIRLOCK's outbound quote; the server sends
+/// bodies carrying a shield `id` to [`quote`] (see `server::quote_any`).
 pub fn router(s: Arc<Shore>) -> Router {
     Router::new()
         .route("/api/shield/address", post(address))
         .route("/api/shield/{id}/tx", post(submit_tx))
-        .route("/api/quote", post(quote))
         .route("/api/status/{deposit}", get(status))
         .route("/api/readback/{id}", get(readback))
         .route("/api/exposure/{id}", get(exposure))
         .with_state(s)
+}
+
+/// SHORE alone, `/api/quote` included (tests and a SHORE-only deploy).
+pub fn standalone_router(s: Arc<Shore>) -> Router {
+    router(s.clone()).merge(Router::new().route("/api/quote", post(quote)).with_state(s))
 }
 
 #[derive(Deserialize)]
@@ -289,7 +295,7 @@ async fn address(State(s): St, Json(r): Json<AddrReq>) -> R {
 }
 
 #[derive(Deserialize)]
-struct QuoteReq {
+pub struct QuoteReq {
     id: String,
     amount: String,
     sender: String,
@@ -331,7 +337,7 @@ pub fn check_amount(a: &str) -> Result<u64, ApiErr> {
     Ok(n)
 }
 
-async fn quote(State(s): St, Json(r): Json<QuoteReq>) -> R {
+pub async fn quote(State(s): St, Json(r): Json<QuoteReq>) -> R {
     if std::env::var_os("AIRLOCK_PAUSED").is_some() {
         return Err(ApiErr(StatusCode::SERVICE_UNAVAILABLE, "PAUSED", "quotes are paused".into()));
     }
