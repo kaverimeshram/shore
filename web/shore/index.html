@@ -5,67 +5,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SHORE: bring Solana ZEC ashore, shielded</title>
 <meta name="description" content="Move ZEC held on Solana into a fresh shielded Zcash address with one Phantom approval, and read back exactly what landed and what stayed public.">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="dark">
 <link rel="icon" href="data:,">
+<link rel="preload" href="../fonts/satoshi-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../fonts/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="../fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#0B1F2A">
 <link rel="stylesheet" href="shore.css">
 </head>
 <body>
 <a class="skip" href="#flow">Skip to the flow</a>
+<div class="col">
 <header class="top">
-  <a class="mark" href="./" aria-label="SHORE home"><span class="mark-wave" aria-hidden="true"></span>SHORE</a>
+  <a class="mark" href="./" aria-label="SHORE, start over">SHORE</a>
   <p class="mode" id="mode" role="status"></p>
 </header>
 
-<section class="hero">
-  <p class="eyebrow">Solana ZEC &rarr; shielded Zcash &middot; one approval</p>
-  <h1 class="display">Bring your ZEC <em>ashore.</em></h1>
-  <p class="lede">ZEC sitting on Solana is a public balance. SHORE sends it to a fresh shielded address of yours through NEAR Intents 1Click, then reads the note back from the chain so you can see what landed, and tells you plainly what is still public.</p>
-  <div class="tide" aria-hidden="true"><span></span><span></span><span></span></div>
+<h1 class="display">Move your Solana ZEC into the shielded pool.</h1>
+<p class="lede">One Phantom approval. A fresh shielded address each time. The note is read back from Zcash, not taken on trust.</p>
+
+<section class="crossing" id="crossing" aria-label="Crossing tracker" data-phase="idle">
+  <ol class="path">
+    <li class="node" data-node="0"><span class="dot" aria-hidden="true"></span><span class="nl">Solana ZEC</span><span class="ns" data-ns>Phantom</span></li>
+    <li class="node" data-node="1"><span class="dot" aria-hidden="true"></span><span class="nl">Bridge</span><span class="ns" data-ns>NEAR Intents</span></li>
+    <li class="node" data-node="2"><span class="dot" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 2.5 3.6v4.1c0 3.3 2.3 5.9 5.5 6.8 3.2-.9 5.5-3.5 5.5-6.8V3.6Z"/></svg></span><span class="nl">Shielded</span><span class="ns" data-ns>Zcash pool</span></li>
+  </ol>
+  <p class="elapsed"><span class="clock" data-testid="clock" id="clock">84s</span> <span class="cap" id="clock-cap">last mainnet crossing, 10 Oct 2026, 115,000 zat landed</span></p>
 </section>
 
 <main id="flow" tabindex="-1">
   <ol class="steps">
     <li class="step" id="s-connect" data-state="active">
-      <header><span class="num">01</span><h2>Connect Phantom</h2><span class="tag" data-tag></span></header>
+      <header><h2>Connect Phantom</h2><span class="tag" data-tag></span></header>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-address" data-state="locked">
-      <header><span class="num">02</span><h2>Fresh shielded address</h2><span class="tag" data-tag></span></header>
+      <header><h2>Fresh shielded address</h2><span class="tag" data-tag></span></header>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-quote" data-state="locked">
-      <header><span class="num">03</span><h2>Live 1Click quote</h2><span class="tag" data-tag></span></header>
+      <header><h2>Quote from 1Click</h2><span class="tag" data-tag></span></header>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-approve" data-state="locked">
-      <header><span class="num">04</span><h2>One approval</h2><span class="tag" data-tag></span></header>
+      <header><h2>Review and approve</h2><span class="tag" data-tag></span></header>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-land" data-state="locked">
-      <header><span class="num">05</span><h2>Landing</h2><span class="tag" data-tag></span></header>
+      <header><h2>Crossing</h2><span class="tag" data-tag></span></header>
       <div class="body" data-body></div>
     </li>
   </ol>
 
-  <aside class="side">
-    <section class="card readback" id="readback" aria-live="polite">
-      <p class="label">Ironwood read-back</p>
-      <p class="empty">The note appears here once it is mined and your viewing key decrypts it. Nothing on this card is typed in by hand.</p>
-    </section>
-    <section class="card public" id="public">
-      <p class="label">What&rsquo;s still public</p>
-      <ul class="exposed" id="exposed"></ul>
-      <p class="label risk-h">Counterparty risk</p>
-      <p class="risk">The hop runs through NEAR Intents 1Click, a solver network with an operator. While your ZEC is in flight it can be delayed, refunded or frozen by that service. SHORE never holds your funds, but it cannot overrule 1Click.</p>
-    </section>
-  </aside>
+  <section class="card readback" id="readback" aria-live="polite">
+    <h2 class="ch">Read-back</h2>
+    <p class="empty">After the note is mined, the viewing key decrypts it and the amount shows here. It is read from the chain, never typed in.</p>
+  </section>
+
+  <section class="card public" id="public">
+    <h2 class="ch">What&rsquo;s still public</h2>
+    <ul class="exposed" id="exposed"></ul>
+    <h3 class="sub">Counterparty risk</h3>
+    <p class="risk">The hop runs through NEAR Intents 1Click, a solver network with an operator. While your ZEC is in flight it can be delayed, refunded or frozen by that service. SHORE never holds your funds, but it cannot overrule 1Click.</p>
+  </section>
 </main>
 
 <footer class="foot">
-  <p>SHORE is part of AIRLOCK. No custody, no account. <a href="?replay=1">Replay the recorded mainnet run</a> &middot; <a href="../">AIRLOCK receipts</a></p>
+  <p>No custody, no account. Built on AIRLOCK. <a href="../">AIRLOCK receipts</a></p>
 </footer>
+</div>
 <noscript><p class="noscript">SHORE runs in the browser and needs JavaScript.</p></noscript>
 <script src="../config.js"></script>
 <script type="module" src="shore.js"></script>

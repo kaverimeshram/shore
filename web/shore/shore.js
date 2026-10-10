@@ -116,7 +116,7 @@ function renderAddressDone() {
   const s = S.session;
   put(body("s-address"),
     h("p", { class: "help", "data-testid": "recipient" }, s.recipient),
-    h("div", { class: "row" }, h("span", { class: "pill" }, (s.receivers || []).join(" + ") || "shielded"),
+    h("div", { class: "row" }, h("span", { class: "pill shielded" }, (s.receivers || []).join(" + ") || "shielded"),
       h("span", { class: "pill" }, s.source === "fresh" ? `fresh · index ${s.uaIndex ?? "?"}` : "your wallet"),
       s.readbackAvailable ? null : h("span", { class: "pill warn" }, "no read-back: SHORE has no view key for this address")));
   setStep("s-address", "done", s.source === "fresh" ? "fresh" : "yours");
@@ -204,31 +204,40 @@ async function sendTransfer(q) {
 }
 
 // ---------- step 5 ----------
-const PHASES = [["PENDING_DEPOSIT", "Waiting for deposit"], ["KNOWN_DEPOSIT_TX", "Deposit seen"], ["PROCESSING", "Solver swapping"], ["SUCCESS", "Landed in Zcash"]];
+// The crossing tracker (signature component): Solana -> bridge -> shielded pool, with elapsed time.
+// idle shows the last recorded mainnet crossing; a new crossing resets it.
+function setCrossing(phase) {
+  const c = $("crossing"); c.dataset.phase = phase;
+  const at = { idle: 3, send: 0, bridge: 1, landed: 3 }[phase];
+  c.querySelectorAll(".node").forEach((n, i) => { n.className = "node" + (i < at ? " on" : i === at ? " now" : ""); });
+}
+const PHASE_OF = { PENDING_DEPOSIT: "send", KNOWN_DEPOSIT_TX: "send", INCOMPLETE_DEPOSIT: "send", PROCESSING: "bridge", SUCCESS: "landed" };
 async function land() {
   const b = body("s-land");
-  const clock = h("p", { class: "clock", "data-testid": "clock" }, "0 s");
-  const track = h("ol", { class: "track" }, PHASES.map(([, t]) => h("li", {}, t)));
-  const links = h("div", { class: "help" });
+  const clock = $("clock"), cap = $("clock-cap");
+  const links = h("div", { class: "linksrow" });
   const note = h("div");
-  put(b, track, clock, links, note);
+  put(b, h("p", {}, "Tracking the crossing above. Nothing else to sign."), links, note);
+  setCrossing("send");
+  cap.textContent = MODE === "replay" ? "recorded time, replayed faster" : "since you approved";
   const start = performance.now();
-  const tick = setInterval(() => { clock.textContent = `${Math.round(((performance.now() - start) / 1000) * api.SPEED)} s${MODE === "replay" ? " (recorded time)" : ""}`; }, 250);
+  const tick = setInterval(() => { clock.textContent = `${Math.round(((performance.now() - start) / 1000) * api.SPEED)}s`; }, 250);
   for (;;) {
     try {
       const s = (S.status = await api.status(S.quote.depositAddress));
-      const i = PHASES.findIndex(([k]) => k === s.status);
-      track.querySelectorAll("li").forEach((li, j) => { li.className = j < i || (j === i && s.terminal) ? "on" : j === i ? "now" : ""; });
+      setCrossing(s.status === "SUCCESS" && !s.landed ? "bridge" : PHASE_OF[s.status] || "send");
       put(links, ...[
-        s.solanaTx && [h("span", {}, "Solana "), link(EXPL.sol(s.solanaTx), short(s.solanaTx, 6)), " · "],
-        s.nearTx && [h("span", {}, "NEAR "), link(EXPL.near(s.nearTx), short(s.nearTx, 6)), " · "],
-        s.zcashTx && [h("span", {}, "Zcash "), link(EXPL.zec(s.zcashTx), short(s.zcashTx, 6)), " · "],
+        s.solanaTx && [h("span", {}, "Solana "), link(EXPL.sol(s.solanaTx), short(s.solanaTx, 6))],
+        s.nearTx && [h("span", {}, "NEAR "), link(EXPL.near(s.nearTx), short(s.nearTx, 6))],
+        s.zcashTx && [h("span", {}, "Zcash "), link(EXPL.zec(s.zcashTx), short(s.zcashTx, 6))],
         [link(EXPL.status(S.quote.depositAddress), "1Click status (public)")],
-      ].filter(Boolean).flat());
+      ].filter(Boolean).map((x) => h("span", {}, ...x.flat())));
       if (s.terminal) {
         clearInterval(tick);
         if (s.status !== "SUCCESS") { put(note, err(new Error(`1Click reports ${s.status}${s.refundReason ? `: ${s.refundReason}` : ""}. Refunds return to your Phantom wallet.`))); return; }
-        if (MODE === "replay") clock.textContent = `${(await api.loadReplay()).seconds} s, send to land (recorded)`;
+        if (MODE === "replay") { clock.textContent = `${(await api.loadReplay()).seconds}s`; cap.textContent = "send to land, as recorded on mainnet"; }
+        else cap.textContent = "send to land";
+        setCrossing("landed");
         setStep("s-land", "done", clock.textContent);
         readbackLoop(); exposureLoad(); return;
       }
@@ -242,7 +251,7 @@ async function readbackLoop() {
   for (let n = 0; n < 120; n++) {
     try {
       const r = (S.rb = await api.readback(S.session.id));
-      if (r.state === "UNAVAILABLE") { put(card, h("p", { class: "label" }, "Ironwood read-back"), h("p", { class: "empty" }, "This went to your own wallet, so SHORE has no viewing key for it. Open your wallet to see the note. Landed at height ", String(S.status.landed?.height ?? "?"), ".")); return; }
+      if (r.state === "UNAVAILABLE") { put(card, h("h2", { class: "ch" }, "Read-back"), h("p", { class: "empty" }, "This went to your own wallet, so SHORE has no viewing key for it. Open your wallet to see the note. Landed at height ", String(S.status.landed?.height ?? "?"), ".")); return; }
       if (r.state === "LANDED") { renderReadback(r); return; }
     } catch (e) { /* keep polling */ }
     await sleep(LIVE ? 5000 : 800);
@@ -251,10 +260,11 @@ async function readbackLoop() {
 
 function renderReadback(r) {
   const card = $("readback");
+  card.dataset.landed = "";
   put(card,
-    h("p", { class: "label" }, `${r.pool || "shielded"} read-back · view key only`),
+    h("h2", { class: "ch" }, `Shielded in ${r.pool ? r.pool[0].toUpperCase() + r.pool.slice(1) : "Zcash"}`),
     h("p", { class: "amount", "data-testid": "rb-amount" }, zec(r.valueZat), h("small", {}, "ZEC")),
-    h("p", { class: "seal" }, "Decrypted from the note, not the quote"),
+    h("p", { class: "seal" }, "Decrypted with the viewing key from the note itself, not from the quote."),
     kv([["Pool", r.pool], ["Mined at height", link(EXPL.zecBlock(r.height), r.height.toLocaleString("en-US"))],
       ["Zcash txid", link(EXPL.zec(r.txid), short(r.txid, 8))],
       S.status?.solanaTx && ["Solana tx", link(EXPL.sol(S.status.solanaTx), short(S.status.solanaTx, 8))],
@@ -290,6 +300,7 @@ function boot() {
   m.dataset.mode = MODE;
   m.textContent = MODE === "replay" ? "Replay · recorded mainnet run" : MODE === "mock" ? "Mock data · not real" : "Live · mainnet";
   renderExposureDefault();
+  setCrossing("idle");
   put(body("s-connect"),
     h("p", {}, "SHORE reads your ZEC balance on Solana. It never asks for a seed phrase and never holds funds."),
     h("div", { class: "row" }, h("button", { class: "btn", type: "button", "data-testid": "connect", onclick: connect }, MODE === "live" ? "Connect Phantom" : "Connect recorded wallet"),

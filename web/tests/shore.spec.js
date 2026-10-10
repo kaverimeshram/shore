@@ -96,10 +96,17 @@ test("a judge lands on the replay by default, live is one link away", async ({ p
   expect(writes).toEqual([]);
 });
 
-// Real SHORE service (local or deployed), opt-in: SHORE_LIVE_API=1. Fresh u1, real balance through
-// /api/rpc, and the quote forced to dry so no deposit address is ever created.
+// Real SHORE service (local or deployed), opt-in: SHORE_LIVE_API=1. Fresh u1 and a dry quote from the
+// real API; the balance lookup goes to the real /api/rpc and must answer, then the page is handed a
+// fixed 0.005 ZEC so the test never depends on a funded wallet. No deposit address is ever created.
 test("live flow against the real API (dry quote only)", async ({ page }) => {
   test.skip(!process.env.SHORE_LIVE_API, "set SHORE_LIVE_API=1 to hit the real service");
+  const rpc = [];
+  await page.route("**/api/rpc", async (r) => {
+    const real = await (await r.fetch()).json();
+    rpc.push(real);
+    await r.fulfill({ json: { jsonrpc: "2.0", id: 1, result: { value: [{ account: { data: { parsed: { info: { tokenAmount: { amount: "500000" } } } } } }] } } });
+  });
   await page.route("**/api/quote", (r) => r.continue({ postData: JSON.stringify({ ...JSON.parse(r.request().postData()), dry: true }) }));
   await page.addInitScript(() => {
     const p = { isPhantom: true, connect: async () => ({ publicKey: { toString: () => "ia3MLukFMa6zci4nyahxsKVT14yLkFzUkZs3EL5Vsa5" } }), signAndSendTransaction: async () => { throw new Error("never signs in tests"); } };
@@ -114,4 +121,6 @@ test("live flow against the real API (dry quote only)", async ({ page }) => {
   await page.getByRole("button", { name: "Get quote" }).click();
   await expect(page.getByTestId("quote")).toContainText("0.00032 ZEC", { timeout: 30_000 });
   await expect(page.getByTestId("approve")).toBeDisabled();
+  expect(rpc.length).toBe(1);
+  expect(Array.isArray(rpc[0].result?.value), JSON.stringify(rpc[0]).slice(0, 200)).toBe(true);
 });
