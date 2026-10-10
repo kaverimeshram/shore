@@ -31,9 +31,9 @@ https://shore-zec.pages.dev/shore/ (see `demo-walkthrough.md` for the click path
 
 ## 1:22 to 1:40, business model
 
-> The Zcash ecosystem already pays for this onboarding: ZecHub and zkSNARKs both run bounties for a
-> first shielded transaction. SHORE's invite links let those onboarders send a prefilled flow. SHORE
-> adds no fee today; every 1Click quote carries an app fee field I can switch on.
+> Holders pay a small SHORE fee on each shield, set through 1Click's app fee field and shown as its own
+> line in the quote. Today it's zero. Wallets, communities and bounty programs like ZecHub pay for invite
+> links that bring their members through in one approval.
 
 ## 1:40 to 2:00, why Zcash
 
@@ -58,7 +58,5 @@ Spoken words: 286 (about 145 words per minute).
   README "What's still public".
 - Launchpads line: README and the landing page lede.
 - Bounties (ZecHub, zkSNARKs) and invite links for onboarders and bounty hosts: README.
-- "Adds no fee today": SHORE's quote passes through only 1Click's fees (`src/shore.rs`, replay quote).
-  "app fee field": `appFees` on 1Click quotes, `docs/submission/FORM.md` (AIRLOCK's business section).
-  Neither the README nor the landing page states a SHORE business model; this is the closest supported
-  wording. kamal should confirm it.
+- Business model (holder fee through 1Click `appFees`, zero today; wallets, communities and bounty programs
+  pay for invite links): README "Business model" and the landing page "Business model" section.
