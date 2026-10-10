@@ -25,6 +25,15 @@
 <h1 class="display">Got ZEC in Phantom from rewards? Shield it in one approval.</h1>
 <p class="lede">The ZEC that landed in your Phantom wallet sits next to your public Solana history. SHORE moves it into a shielded Zcash balance with one approval, then reads the note back from Zcash so you can see it arrived. Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the way in.</p>
 <p class="invite" id="invite" hidden></p>
+<div class="judge" id="judge">
+  <a class="btn" href="?replay=1&amp;tour=1&amp;speed=3" data-testid="tour">Try it in 60s</a>
+  <p class="label">What you are seeing: the recorded mainnet run of 2026-10-10, nothing is sent</p>
+  <ol class="judge-steps">
+    <li><b>Connect and quote.</b> A Phantom wallet holding Solana ZEC gets a fresh shielded u1 and a 1Click quote with every fee shown.</li>
+    <li><b>One approval, one crossing.</b> A single SPL transfer; the tide band follows it from Solana through NEAR Intents to Zcash.</li>
+    <li><b>Read-back and honesty.</b> SHORE decrypts the landed note with a viewing key, then lists what is still public.</li>
+  </ol>
+</div>
 </div>
 <section class="ledger" id="ledger" aria-live="polite" hidden>
   <p class="lk" id="hero-k"></p>
@@ -85,6 +94,21 @@
     <p class="risk">The hop runs through NEAR Intents 1Click, a solver network with an operator. While your ZEC is in flight it can be delayed, refunded or frozen by that service. SHORE never holds your funds.</p>
   </details>
 </main>
+
+<section class="sect about" id="demand" aria-labelledby="demand-h">
+  <h2 class="ch" id="demand-h">Why now</h2>
+  <ul class="demand">
+    <li><a href="https://forum.zcashcommunity.com/t/38-000-new-zec-holders-on-solana-in-six-weeks-now-what/57788">Raydium&rsquo;s CMO</a>: 38,000 first-time ZEC holders on Solana in six weeks; almost none bridged.</li>
+    <li><a href="https://zechub.wiki/using-zcash/solana-zec-to-shielded">ZecHub guide</a>: today&rsquo;s path is 2 sites, 2+ approvals, about 8 minutes.</li>
+    <li><a href="https://x.com/zooko/status/2105044462397485491">Zooko</a> pointed those holders at that guide.</li>
+    <li>Bounties pay for this onboarding: <a href="https://bounties.zechub.wiki/bounty/cmuishtwo0010cvegb8eexpye">ZecHub</a>, <a href="https://x.com/zksnarks_/status/2104718302606205130">zkSNARKs &ldquo;first shielded transaction&rdquo;</a>.</li>
+  </ul>
+</section>
+
+<section class="sect about" id="business" aria-labelledby="biz-h">
+  <h2 class="ch" id="biz-h">Business model</h2>
+  <p class="biz">Holders pay a small, transparent SHORE fee on each shield, set through the 1Click <code>appFees</code> field and shown as its own line in the quote (today it is zero). Wallets, communities and bounty programs pay for invite links that bring their members through SHORE in one approval. SHORE never holds funds, so the fee is the whole business.</p>
+</section>
 
 <footer class="foot">
   <p>No custody, no account. Built on AIRLOCK. <a href="../">AIRLOCK receipts</a></p>

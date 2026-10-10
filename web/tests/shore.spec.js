@@ -186,3 +186,29 @@ test("invite amount pre-fills the quote form and stays editable", async ({ page 
   await expect(page.locator("#amt")).toHaveValue("0.0021");
   await expect(page.locator("#amt")).toBeEditable();
 });
+
+test("judge path: 'Try it in 60s' plays the whole replay hands-free and opens what's still public", async ({ page }) => {
+  const writes = await guard(page);
+  await page.goto("/shore/");
+  const t = page.getByTestId("tour");
+  await expect(t).toBeVisible();
+  await expect(page.locator(".judge-steps li")).toHaveCount(3);
+  await page.goto("/shore/?replay=1&tour=1&speed=30");
+  await expect(page.getByTestId("recipient")).toContainText("u1uufrl3tucq9", { timeout: 20_000 });
+  await expect(page.getByTestId("quote")).toContainText("0.00032 ZEC", { timeout: 20_000 });
+  await expect(page.locator("#readback[data-landed]")).toBeAttached({ timeout: 40_000 });
+  await expect(page.locator("html[data-tour='done']")).toBeAttached({ timeout: 20_000 });
+  await expect(page.locator("#public")).toHaveAttribute("open", "");
+  expect(writes).toEqual([]);
+});
+
+test("demand strip cites its sources and the business model is stated", async ({ page }) => {
+  await page.goto("/shore/");
+  const hrefs = await page.locator("#demand a").evaluateAll((as) => as.map((a) => a.href));
+  for (const u of ["forum.zcashcommunity.com/t/38-000", "zechub.wiki/using-zcash/solana-zec-to-shielded", "x.com/zooko/status/2105044462397485491", "bounties.zechub.wiki", "x.com/zksnarks_"])
+    expect(hrefs.some((h) => h.includes(u)), u).toBe(true);
+  const biz = page.locator("#business .biz");
+  await expect(biz).toContainText("appFees");
+  await expect(biz).toContainText("invite links");
+  expect((await biz.innerText()).split(/(?<=\.)\s+/).length).toBe(3);
+});

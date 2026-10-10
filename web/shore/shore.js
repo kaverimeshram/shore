@@ -395,5 +395,27 @@ function boot() {
     h("div", { class: "row" }, h("button", { class: "btn", type: "button", "data-testid": "connect", onclick: connect }, MODE === "live" ? "Connect Phantom" : "Connect recorded wallet"),
       MODE === "live" ? h("a", { class: "btn ghost", href: "?replay=1" }, "Watch the recorded run") : h("a", { class: "btn ghost", href: "?live=1" }, "Use it live (mainnet)")));
 }
+// ---------- judge tour ----------
+// ?tour=1 (replay only): presses each step's primary button after a readable pause, then opens "What's still public".
+export const TOUR_ORDER = ['[data-testid="connect"]', '[data-testid="fresh"]', '#s-quote .btn:not(.ghost)', '[data-testid="approve"]'];
+function tour(pause = 2200) {
+  if (MODE !== "replay" || !new URLSearchParams(location.search).has("tour")) return;
+  document.documentElement.dataset.tour = "";
+  let i = 0;
+  const tick = () => {
+    if (i < TOUR_ORDER.length) {
+      const b = document.querySelector(TOUR_ORDER[i]);
+      if (b && !b.disabled && b.offsetParent) { b.scrollIntoView({ block: "center", behavior: "smooth" }); b.click(); i++; }
+      return setTimeout(tick, i === TOUR_ORDER.length ? 600 : pause);
+    }
+    if ($("readback").hasAttribute("data-landed")) {
+      setTimeout(() => { const d = $("public"); d.open = true; d.scrollIntoView({ block: "start", behavior: "smooth" }); document.documentElement.dataset.tour = "done"; }, pause * 1.5);
+      return;
+    }
+    setTimeout(tick, 500);
+  };
+  setTimeout(tick, pause);
+}
 boot();
 setTimeout(() => document.documentElement.classList.add("booted"), 900);
+tour();

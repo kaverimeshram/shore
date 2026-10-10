@@ -12,6 +12,23 @@ Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the wa
 - API: https://airlock-zec.fly.dev (Fly, one machine, no volume)
 - Invite links: `https://shore-zec.pages.dev/shore/?invite=<code>&amount=<ZEC>&note=<text>`
 
+## For judges
+
+1. Open https://shore-zec.pages.dev/shore/ and press **Try it in 60s** (`?replay=1&tour=1&speed=3`). It plays the
+   recorded mainnet run of 2026-10-10 hands-free. No wallet is touched and nothing is sent.
+2. What you are seeing: connect, then a fresh Orchard-only u1 and a 1Click quote with every fee shown; one Phantom approval
+   and the crossing on the tide band; then the view-key read-back of the landed note and "What's still public".
+3. Check the proof yourself: the txids under "Mainnet proof" below, all on public explorers.
+4. Live: `?live=1` with Phantom and your own Zcash wallet's u1 (capped at 0.02 ZEC). Demo video: `docs/pitch/demo-capture.mp4`.
+5. Code: `src/shore.rs` (API), `web/shore/` (app), `tests/shore_api.rs`, `tests/rpc_proxy.rs`, `web/tests/`.
+
+## Business model
+
+Holders pay a small, transparent SHORE fee on each shield, set through the 1Click `appFees` field and shown as its
+own line in the quote (today it is zero, so the recorded run paid only 1Click's fees). Wallets, communities and bounty
+programs (ZecHub, zkSNARKs, Raydium reward campaigns) pay for invite links that bring their members through SHORE in one
+approval. SHORE never holds funds, so the fee is the whole business.
+
 ## Who it is for
 
 People who were paid in ZEC on Solana and never held ZEC before.
