@@ -1,0 +1,14 @@
+import { chromium } from "@playwright/test";
+const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+const base = "https://shore-zec.pages.dev"; const off = [];
+p.on("request", (r) => { const u = new URL(r.url()); if (u.origin !== base) off.push(r.method() + " " + r.url()); });
+await p.addInitScript(() => { const t = { isPhantom: true, connect() { throw 1; }, signAndSendTransaction() { throw 1; } }; window.phantom = { solana: t }; window.solana = t; });
+await p.goto(base + "/shore/?invite=zechub&amount=0.005&note=Welcome&replay=1");
+const banner = await p.locator("#invite").innerText();
+await p.locator("#readback[data-landed]").waitFor({ timeout: 120000 });
+const rb = await p.locator("#readback").innerText();
+await p.locator("html[data-tour='done']").waitFor({ timeout: 30000 }); await p.waitForTimeout(1500);
+await p.locator("#readback").scrollIntoViewIfNeeded();
+await p.screenshot({ path: process.argv[2], fullPage: true });
+console.log(JSON.stringify({ banner, rb: rb.slice(0, 160), offOrigin: off, mode: await p.locator("#mode").innerText() }, null, 1));
+await b.close();

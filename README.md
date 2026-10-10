@@ -129,8 +129,8 @@ Tag `baseline-pre-hackathon` (8e11db3, 2026-10-05) is AIRLOCK as it stood: the R
 isolation, wallet and UFVK scanning, exposure receipts, the AIRLOCK web app and the Fly app.
 Built during (`git diff baseline-pre-hackathon`): the SHORE HTTP API, pluggable store with the D1 Pages
 Function, the Solana RPC proxy, `airlock ufvk`, the SHORE web flow (replay, live, invite links), its tests,
-the mainnet run, and the design work. About 1,135 lines in `src/` and `tests/`, about 1,135 in the web flow,
-tests and deploy files.
+the mainnet run, and the design work. About 1,310 lines added in `src/` (921) and `tests/` (393), and about 1,480 in the SHORE web flow,
+its browser tests, scripts and deploy files (measured with `git diff --shortstat baseline-pre-hackathon`, 2026-10-11).
 
 ## Next steps
 
