@@ -822,6 +822,13 @@ function pageInboundNew(main) {
   async function create(e) {
     e.preventDefault();
     if (!e.currentTarget.reportValidity()) return;
+    const recip = recipIn.value.trim();
+    if (readList(INBOUND_KEY).some((s) => s.recipient === recip)) {
+      put(status, h("div", { class: "note", role: "alert" },
+        h("p", { class: "label" }, "Address already used"),
+        h("p", {}, "This address already received a swap from this browser. NEAR Intents payouts can be decrypted by anyone, so reusing it links both deposits. Generate a new address in your wallet and paste that.")));
+      return;
+    }
     submit.disabled = true;
     put(status, h("div", { class: "note", role: "status" },
       h("p", { class: "label" }, "Opening the quote"),
@@ -865,6 +872,7 @@ function pageInboundNew(main) {
           h("label", { class: "field", for: "in-asset" }, h("span", { class: "label" }, "Origin asset"), h("div", { class: "select-wrap" }, assetSel)),
           h("label", { class: "field", for: "in-refund" }, h("span", { class: "label" }, "Refund address on the origin chain"), refundIn),
           h("label", { class: "field", for: "in-recipient" }, h("span", { class: "label" }, "Recipient, Orchard-only unified address from your wallet"), recipIn),
+          h("p", { class: "help", style: "margin-top:12px" }, "Use a new address for every swap. NEAR Intents payouts to Zcash are publicly decryptable: anyone can read the recipient address and amount, so a reused address links your swaps."),
           h("p", { class: "help", style: "margin-top:12px" }, "The AIRLOCK service sees the addresses you submit, from your network address. Run airlock serve on your own machine and point config.js at it to take the service out of the path."),
           h("div", { class: "form-row" }, submit),
           status)),
@@ -906,7 +914,8 @@ function inboundReceipt(rec, d, err, readAt) {
       h("p", {}, "Returns every highlighted field above to anyone who holds the deposit address. No key needed.")),
     h("div", { class: "r-foot" },
       h("p", {}, "Not hidden: the amount, and the time it is sent, can still be matched by an observer who watches both ends."),
-      h("p", {}, "The recipient is a fresh Orchard-only address, so the destination of this swap is a shielded address."),
+      h("p", {}, "Publicly decryptable: NEAR Intents encrypts Zcash payouts so anyone can read the recipient address and amount. That links this deposit to the address."),
+      h("p", {}, "Each swap uses a fresh Orchard-only address, so this link does not extend to your other swaps or your wallet balance."),
       h("p", { class: "src" }, `GET /api/inspect/${rec.depositAddress}${readAt ? `, read ${fmtTime(readAt)}` : ""}`)));
 }
 
