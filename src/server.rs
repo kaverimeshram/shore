@@ -57,6 +57,7 @@ fn bad(code: StatusCode, e: impl std::fmt::Display) -> (StatusCode, Json<Value>)
 
 pub async fn serve(addr: &str, dir: PathBuf) -> Result<()> {
     let tor = Transport::bootstrap_tor(&dir.join("tor")).await?;
+    let shore = shore_state(&dir, tor.clone())?;
     let app = Arc::new(App { tor, direct: Client::new()?, quote_slots: Semaphore::new(4), inspect_slots: Semaphore::new(4), cache: Mutex::new(HashMap::new()) });
     let router = Router::new()
         .route("/api/health", get(|| async { Json(json!({ "ok": true })) }))
@@ -65,12 +66,30 @@ pub async fn serve(addr: &str, dir: PathBuf) -> Result<()> {
         .route("/api/inspect/{addr}", get(inspect))
         .route("/api/quote", post(quote))
         .route("/api/quote-in", post(quote_in))
-        .layer(cors())
-        .with_state(app);
+        .with_state(app)
+        .merge(crate::shore::router(shore))
+        .layer(cors());
     let l = tokio::net::TcpListener::bind(addr).await?;
     println!("airlock service on {}", l.local_addr()?);
     axum::serve(l, router).await?;
     Ok(())
+}
+
+/// SHORE needs only the demo wallet's UFVK: from SHORE_UFVK when set (deploys), else derived from
+/// the local work/ seed. The spending key never reaches the service.
+fn shore_state(dir: &std::path::Path, tor: tor::Client) -> Result<Arc<crate::shore::Shore>> {
+    use crate::shore::*;
+    let ufvk = match std::env::var("SHORE_UFVK") {
+        Ok(k) => k,
+        Err(_) => crate::wallet::Wallet::open(dir)?.ufvk(&zcash_protocol::consensus::MainNetwork)?,
+    };
+    let birthday = std::env::var("SHORE_BIRTHDAY").ok().and_then(|b| b.parse().ok()).unwrap_or(3_512_400);
+    Ok(Arc::new(Shore::new(
+        dir.to_path_buf(),
+        Arc::new(LiveOneClick { tor }),
+        Arc::new(LiveZcash::new(ufvk.clone(), dir.join("shore/notes-main.db"), birthday)),
+        Arc::new(UfvkAddresses::new(&ufvk)?),
+    )?))
 }
 
 /// Browsers on the static site (and local development) may call the service; other origins get no CORS header.
@@ -78,7 +97,7 @@ fn cors() -> tower_http::cors::CorsLayer {
     use axum::http::{header::CONTENT_TYPE, HeaderValue, Method};
     let allowed = |o: &HeaderValue, _: &axum::http::request::Parts| {
         let o = o.to_str().unwrap_or("");
-        o == "https://airlock-zec.vercel.app" || o.starts_with("http://127.0.0.1:") || o.starts_with("http://localhost:")
+        o == "https://airlock-zec.vercel.app" || std::env::var("SHORE_ORIGIN").is_ok_and(|x| x == o) || o.starts_with("http://127.0.0.1:") || o.starts_with("http://localhost:")
     };
     tower_http::cors::CorsLayer::new()
         .allow_origin(tower_http::cors::AllowOrigin::predicate(allowed))

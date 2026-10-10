@@ -5,6 +5,7 @@ pub mod notewatch;
 pub mod oneclick;
 pub mod profile;
 pub mod server;
+pub mod shore;
 pub mod splitter;
 pub mod swap;
 pub mod transport;

@@ -58,6 +58,11 @@ pub struct Quote {
     pub deposit_address: Option<String>,
     #[serde(default)]
     pub deadline: Option<String>,
+    /// Fee 1Click reserves for the destination-chain delivery, in destination base units.
+    #[serde(default)]
+    pub withdraw_fee: Option<String>,
+    #[serde(default)]
+    pub refund_fee: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

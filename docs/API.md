@@ -45,7 +45,7 @@ Response 200:
 { "id": "...", "depositAddress": "DMDd...SjbM", "mint": "A7bd...XaS", "decimals": 8,
   "amountIn": "140000", "amountInFormatted": "0.0014",
   "amountOut": "108000", "amountOutFormatted": "0.00108", "minAmountOut": "106920",
-  "fees": { "withdrawFee": "32000", "refundFee": "844", "totalFeeBps": 2286 },
+  "fees": { "withdrawFee": "32000", "refundFee": "844", "totalFeeBps": 2285 },
   "minAmount": "133334", "deadline": "2026-10-13T06:47:48.000Z", "timeEstimateSecs": 135,
   "recipient": "u1...", "correlationId": "..." }
 ```
