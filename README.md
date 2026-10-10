@@ -1,3 +1,117 @@
+# SHORE
+
+**Got ZEC in Phantom from rewards? Shield it in one approval.**
+
+SHORE moves ZEC that sits on Solana (the NEAR-bridged SPL token) into a shielded Zcash balance with one
+Phantom approval. It then reads the note back from Zcash, so you see what actually landed, and it tells you
+plainly what stays public.
+
+- App: https://shore-zec.pages.dev/shore/ (opens on a replay of a real mainnet run; `?live=1` for mainnet)
+- API: https://airlock-zec.fly.dev (Fly, one machine, no volume)
+- Invite links: `https://shore-zec.pages.dev/shore/?invite=<code>&amount=<ZEC>&note=<text>`
+
+## Who it is for
+
+People who were paid in ZEC on Solana and never held ZEC before.
+
+- Raydium's CMO, Zcash forum: about 84,000 Solana wallets received ZEC (about 8,700 ZEC) from a ZEC-paired
+  reward token; 38,000 of them had never held ZEC on Solana; about half the ZEC is still sitting in those
+  wallets. https://forum.zcashcommunity.com/t/38-000-new-zec-holders-on-solana-in-six-weeks-now-what/57788
+- Same thread: almost no one bridged; burns from these wallets total 78 ZEC.
+  https://forum.zcashcommunity.com/t/57788
+- Dune, ZEC distributed as rewards: https://dune.com/andrayondune/zec-distributed-rewards
+- Zooko pointed those holders at the ZecHub HOWTO: https://x.com/zooko/status/2105044462397485491
+- ZecHub guide "Got ZEC on Solana? Move it to shielded Zcash": https://zechub.wiki/using-zcash/solana-zec-to-shielded
+  (PR https://github.com/ZecHub/zechub/pull/2245: "solswap has a Withdraw page too, but it didn't work for us").
+  Today's path is 2 sites, 2+ approvals and about 8 minutes; the guide author's run took 507 s.
+- The ecosystem pays for this onboarding: ZecHub bounty https://bounties.zechub.wiki/bounty/cmuishtwo0010cvegb8eexpye,
+  zkSNARKs "zero to first shielded transaction" bounty https://x.com/zksnarks_/status/2104718302606205130
+
+## Mainnet proof (2026-10-10, recorded in `web/shore/replay.json`)
+
+| Leg | Transaction | Time (IST) |
+| --- | --- | --- |
+| Solana, one Phantom approval, 0.0014 ZEC | [2LLVDBnV…QQ86au](https://solscan.io/tx/2LLVDBnVAqnG99PSbUVqapKqZFHjPPET9HsJhV2tqS29BHR4wNmUzYZbQzLf2BXjpFKMrRJCYxbVZq6ZJNQQ86au) | 09:22:15 |
+| NEAR Intents 1Click | [BARJAuxG…tkqC53](https://nearblocks.io/txns/BARJAuxGT1tXY8XAK9LsUCroQsA3V1AgErm9DhtkqC53) | |
+| Zcash, shielded note, height 3,512,504 | [fa8d4d6b…5fa408](https://mainnet.zcashexplorer.app/transactions/fa8d4d6bd210c6150e98142ec1ae9a25706ec19bd591a775823f6616f95fa408) | 09:23:39 |
+
+84 seconds from send to land. 115,000 zat landed in the Ironwood pool (v6 transaction, Orchard receiver),
+read back by a view-only key (UFVK, no spending key). 1Click's status said 108,000 zat; the decrypted note holds
+7,000 zat more, and SHORE shows the decrypted value. Cost: $1.70 in, $1.31 out at quote time, so about
+39 cents, most of it 1Click's fixed 0.00032 ZEC Zcash withdraw fee (22.9% at this tiny size; it falls fast as the
+amount grows).
+
+## What's still public (honest)
+
+- **The hop in is public.** Your Phantom address, the deposit address, the amount and the time are on Solana.
+- **The route is linkable.** 1Click's unauthenticated `/v0/status` maps the deposit to the recipient u1, and
+  L2Beat reports that NEAR Intents Zcash payouts are decryptable by anyone
+  (https://l2beat.com/privacy/projects/zcash-near-intents). So the Phantom address is linked to that one u1
+  and amount. Use a fresh address for every shield, so the link does not extend to your other shields. What
+  stays private is everything after: spends from the note.
+- **Counterparty risk.** The hop runs through an operated solver network that can delay, refund or freeze funds.
+  Precedent: about $589,000 of USDT from 1,120 shielded ZEC was held by NEAR Intents for 50 days
+  (https://forum.zcashcommunity.com/t/57497/1). SHORE never holds funds but cannot overrule 1Click.
+- **You need a Zcash wallet.** On mainnet the ZEC goes only to an address you paste from your own wallet
+  (Zashi/Zodl, Ywallet). SHORE's "fresh address" button is the demo wallet and exists only in the replay;
+  live mode never offers it.
+- Launch cap 0.02 ZEC per shield; 1Click minimum 0.00133334 ZEC.
+
+## Invite links
+
+`/shore/?invite=<code>&amount=<ZEC>&note=<text>` lets an onboarder or bounty host share the flow. The link opens
+the live flow with the amount pre-filled (a suggestion the user can change, 0 to 0.02 ZEC) and the sender's note
+shown as plain text, labelled as the sender's words (140 characters, control and bidi characters removed). Nothing
+is stored and nothing is sent until the user connects Phantom and approves. No custody, no new trust.
+
+## Architecture
+
+```
+browser (Cloudflare Pages: shore-zec)       Fly: airlock-zec (Rust, axum)            outside
+  web/shore  ── /api/shield/address ──────▶  src/shore.rs  ── Tor ──▶ 1Click quote/status
+             ── /api/quote {id,amount} ───▶   Store trait  ── HTTPS ─▶ Pages Function /store ─▶ D1
+             ── /api/rpc (4 read methods) ─▶   RPC proxy    ── HTTPS ─▶ Solana RPC (key server-side)
+             ── /api/readback, /exposure ──▶   UFVK scan    ─────────▶ lightwalletd
+  Phantom signs one SPL transfer to the 1Click deposit address
+```
+
+- Sessions, the ua-index counter and the used-address list live in Cloudflare D1 behind a token-protected Pages
+  Function (`deploy/shore-store`); the index advances atomically, so it stays strictly increasing across machines.
+- The Solana RPC key is only a Fly secret; the proxy allows `getTokenAccountsByOwner`, `getLatestBlockhash`,
+  `getSignatureStatuses`, `getBalance`, nothing that writes.
+- Contract: `docs/API.md`. Design record: `docs/design/`.
+
+## Run and test
+
+```
+cargo test                                  # Rust, incl. tests/shore_api.rs
+cargo run -- serve                          # API on 127.0.0.1:8787 (needs a local wallet in work/)
+cd web && npm i && npx playwright test      # 20 browser tests, desktop + mobile
+PW_BASE_URL=https://shore-zec.pages.dev npx playwright test           # against production
+SHORE_LIVE_API=1 SHORE_TEST_U1=<u1> npx playwright test -g "real API"  # dry quote through the real API
+sh scripts/deploy.sh                        # Fly; bash deploy/pages/build.sh then wrangler pages deploy for Pages
+```
+
+## Built before vs during the hackathon
+
+Tag `baseline-pre-hackathon` (8e11db3, 2026-10-05) is AIRLOCK as it stood: the Rust 1Click client, Tor
+isolation, wallet and UFVK scanning, exposure receipts, the AIRLOCK web app and the Fly app.
+Built during (`git diff baseline-pre-hackathon`): the SHORE HTTP API, pluggable store with the D1 Pages
+Function, the Solana RPC proxy, `airlock ufvk`, the SHORE web flow (replay, live, invite links), its tests,
+the mainnet run, and the design work. About 1,135 lines in `src/` and `tests/`, about 1,135 in the web flow,
+tests and deploy files.
+
+## Next steps
+
+- Shielded receive in the browser: generate a fresh Orchard address in the page from a user-held seed (or a
+  WebZjs wallet) so a first-time holder needs no separate Zcash wallet app. Noted, not built.
+- Ask 1Click for authenticated status and non-public payout encryption, which removes the route link.
+- Raise the cap after more mainnet runs; batch reward holders through invite links with ZecHub.
+
+---
+
+SHORE is built on AIRLOCK. AIRLOCK's original README follows.
+
 # AIRLOCK
 
 Swap into and out of shielded ZEC through NEAR Intents with the smallest public footprint, and

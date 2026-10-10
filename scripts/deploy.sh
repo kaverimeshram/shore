@@ -12,4 +12,4 @@ cp -R "../$SIGNER/spikes/pczt-split" "$S/signer/spikes/"
 sed -i '' "s|\.\./$SIGNER/|../signer/|" "$S/airlock/Cargo.toml"
 cd "$S"
 cp airlock/fly.toml fly.toml
-flyctl deploy --app airlock-zec --remote-only
+flyctl deploy --app airlock-zec --remote-only --ha=false

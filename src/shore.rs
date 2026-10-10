@@ -609,6 +609,11 @@ async fn rpc(Json(v): Json<Value>) -> Result<Json<Value>, ApiErr> {
     }
     let url = std::env::var("SHORE_SOLANA_RPC").map_err(|_| ApiErr(StatusCode::SERVICE_UNAVAILABLE, "RPC_UNSET", "SHORE_SOLANA_RPC is not set".into()))?;
     let r = reqwest::Client::new().post(url).timeout(std::time::Duration::from_secs(15)).json(&v).send().await.map_err(|e| upstream(anyhow!("solana rpc: {}", e.without_url())))?;
+    let st = r.status();
+    if !st.is_success() {
+        // Only the status leaves the service: the provider URL carries the API key.
+        return Err(upstream(anyhow!("solana rpc: provider answered HTTP {}", st.as_u16())));
+    }
     Ok(Json(r.json().await.map_err(|e| upstream(anyhow!("solana rpc: {}", e.without_url())))?))
 }
 
