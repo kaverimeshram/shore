@@ -4,7 +4,8 @@
 //   mock   : made-up values for UI work, clearly labelled. No wallet, no network writes.
 const qs = new URLSearchParams(location.search);
 // Replay is the default so a judge lands on the recorded run; ?live=1 opens the real flow.
-export const MODE = qs.has("live") ? "live" : qs.has("mock") ? "mock" : "replay";
+// An invite link (?invite=<code>&amount=&note=) opens the real flow; ?replay=1 still forces the recording.
+export const MODE = qs.has("replay") ? "replay" : qs.has("live") || qs.has("invite") ? "live" : qs.has("mock") ? "mock" : "replay";
 export const SPEED = Number(qs.get("speed")) || (MODE === "replay" ? 6 : 1); // replay compresses 84 s
 export const API = window.SHORE_API || window.AIRLOCK_API || "";
 

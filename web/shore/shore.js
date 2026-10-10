@@ -15,6 +15,22 @@ const EXPL = {
   status: (d) => `https://1click.chaindefuser.com/v0/status?depositAddress=${d}`,
 };
 
+// ---------- invite links ----------
+// /shore/?invite=<code>&amount=<ZEC>&note=<text>: a sender (an onboarder, a bounty host) shares a link that opens the
+// same flow pre-filled. Nothing is stored or sent anywhere: the code is a label, the amount is only a suggestion the
+// user can change, the note is shown as plain text and marked as the sender's words. No custody, no new trust.
+export function parseInvite(search) {
+  const q = new URLSearchParams(search);
+  if (!q.has("invite")) return null;
+  const code = (q.get("invite") || "").trim();
+  if (!/^[A-Za-z0-9_-]{1,32}$/.test(code)) return { error: "This invite link is malformed, so it was ignored." };
+  const raw = (q.get("amount") || "").trim();
+  const amount = /^\d{0,2}(\.\d{1,8})?$/.test(raw) && raw && Number(raw) > 0 && Number(raw) <= 0.02 ? raw : null;
+  const note = (q.get("note") || "").replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e]/g, "").trim().slice(0, 140) || null;
+  return { code, amount, note, amountIgnored: !!raw && !amount };
+}
+const INVITE = parseInvite(location.search);
+
 const S = { wallet: null, balance: null, session: null, quote: null, sig: null, status: null, rb: null, exposure: null };
 
 // ---------- tiny DOM helpers ----------
@@ -64,7 +80,7 @@ function reopen(id, render) {
   if (id === "s-address") { delete L.send; delete L.lands; delete L.fee; ledger(null, null, null, { hero: ["Balance on Solana", [zec(S.balance), h("small", {}, "ZEC")]] }); }
   setStep(id, "active"); render();
 }
-const change = (id, render) => [" · ", h("button", { class: "linkbtn", type: "button", onclick: () => reopen(id, render) }, "Change")];
+const change = (id, render) => [h("span", { class: "chg" }, " · ", h("button", { class: "linkbtn", type: "button", onclick: () => reopen(id, render) }, "Change"))];
 const IST = (iso) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) + " IST";
 function countdown(iso) {
   const ms = new Date(iso) - Date.now();
@@ -148,6 +164,8 @@ function renderAddress() {
     try { S.session = await api.shieldAddress(req); renderAddressDone(); }
     catch (e) { put(msg, e.message); msg.className = "err"; fresh.disabled = own.disabled = false; }
   }
+  // Fresh addresses come from the SHORE demo wallet (replay and mock only). On mainnet the ZEC must go to the user's own wallet.
+  if (LIVE) { put(msg, "Paste a new receiving address from your own Zcash wallet (Zashi/Zodl, Ywallet). The ZEC lands there; SHORE never holds it."); put(b, h("label", { class: "f" }, h("span", { class: "label" }, "Your shielded address (u1…)"), input), msg, h("div", { class: "row" }, own)); return; }
   put(b, h("div", { class: "row" }, fresh), h("p", { class: "label" }, "Or paste your own"), h("label", { class: "f" }, input), msg, h("div", { class: "row" }, own));
 }
 
@@ -165,7 +183,7 @@ function renderAddressDone() {
 // ---------- step 3 ----------
 function renderQuoteForm() {
   const fixed = MODE === "replay";
-  const amt = h("input", { type: "text", inputmode: "decimal", id: "amt", value: fixed ? "0.0014" : "", placeholder: "0.0014", readonly: fixed });
+  const amt = h("input", { type: "text", inputmode: "decimal", id: "amt", value: fixed ? "0.0014" : INVITE?.amount || "", placeholder: "0.0014", readonly: fixed });
   const out = h("div");
   const go = h("button", { class: "btn", type: "button", onclick: run }, "Get quote");
   async function run() {
@@ -199,7 +217,7 @@ function renderQuote(out) {
       kv([["Worst case after slippage", `${zec(q.minAmountOut)} ZEC`], ["Zcash withdraw fee", `${zec(q.fees.withdrawFee)} ZEC`], ["Refund fee if it fails", `${zec(q.fees.refundFee)} ZEC`],
         ["Total cost", `${pct}% of what you send`], ["1Click minimum", `${zec(q.minAmount)} ZEC`], ["Quote expires", IST(q.deadline)]])),
     MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Recorded 1Click quote, correlation 9136ee09, file shore-funded-quote-v2.json.")) : null,
-    h("p", {}, h("button", { class: "linkbtn", type: "button", onclick: () => reopen("s-quote", renderQuoteForm) }, "Change amount"))));
+    h("p", { class: "chg" }, h("button", { class: "linkbtn", type: "button", onclick: () => reopen("s-quote", renderQuoteForm) }, "Change amount"))));
   setStep("s-quote", "done", "quoted");
   ledger("send", "Send", `${zec(q.amountIn)} ZEC`);
   ledger("fee", "Fee", h("span", { class: bps > 1000 ? "warn" : "" }, `${pct}%`));
@@ -220,6 +238,7 @@ function renderApprove() {
     try {
       if (LIVE) S.sig = await sendTransfer(q);
       else { put(msg, h("p", { class: "help" }, "Approved (simulated, nothing is sent).")); await sleep(600); S.sig = (await api.loadReplay()).solana_tx; }
+      document.documentElement.dataset.signed = ""; // a signed transfer cannot be changed: hide every Change link
       if (S.session.source === "own") markUsed(S.session.recipient);
       api.notifyTx(S.session.id, S.sig);
       api.startClock();
@@ -355,7 +374,18 @@ async function exposureLoad() {
 }
 
 // ---------- boot ----------
+function renderInvite() {
+  if (!INVITE) return;
+  const el = $("invite"); el.hidden = false;
+  if (INVITE.error) { put(el, INVITE.error); return; }
+  put(el, h("b", {}, `Invite ${INVITE.code}`),
+    INVITE.note ? [h("br"), "The sender wrote: ", h("q", { "data-testid": "invite-note" }, INVITE.note)] : null,
+    INVITE.amount ? [h("br"), "Suggested amount: ", h("b", { "data-testid": "invite-amount" }, `${INVITE.amount} ZEC`), ". You can change it."] : null,
+    INVITE.amountIgnored ? [h("br"), "The amount in this link was not valid (0 to 0.02 ZEC) and was ignored."] : null,
+    h("br"), h("span", { class: "help" }, "SHORE did not write this note and never holds funds. Your ZEC goes only to the Zcash address you paste."));
+}
 function boot() {
+  renderInvite();
   const m = $("mode");
   m.dataset.mode = MODE;
   m.textContent = MODE === "replay" ? "Replay of a mainnet run" : MODE === "mock" ? "Mock data, not real" : "Live on mainnet";

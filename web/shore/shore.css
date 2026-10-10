@@ -236,3 +236,6 @@ label.f{display:block}
 .lrows dd,.kv dd,.receipt .val,.qmini{font-size:18px}
 @media (max-width:959px){.crossing[data-live]{margin-top:0}}
 .hero[data-tone="shielded"]{display:table;padding-right:var(--s1)}
+html[data-signed] .chg{display:none}
+.invite{margin-top:var(--s4);padding:var(--s3) var(--s4);border-left:3px solid var(--sea);background:var(--white);font-size:var(--t-s);color:var(--ink);max-width:52ch}
+.invite q{font-style:italic}

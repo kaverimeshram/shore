@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
 // Fails the test if the page ever touches a wallet or a write endpoint in replay.
+const OWN = "u1qrdwfnpakf2xhw9rpsuvsxmnk6qkz2cm7xmk4m2r2hf7ug4fhz9kjv5x9tmuqhx6wysmhhqw3edpa0yepl4lhjkvd7fys09rrhj7ud4sfu9dg";
+
 async function guard(page) {
   const writes = [];
   page.on("request", (r) => { if (r.method() !== "GET" && !r.url().startsWith(new URL(page.url() === "about:blank" ? "http://127.0.0.1:4174" : page.url()).origin)) writes.push(r.url()); });
@@ -79,7 +81,7 @@ test("live mode keeps approve locked until mainnet is acknowledged", async ({ pa
   await page.goto("/shore/?live=1");
   await page.getByTestId("connect").click();
   await expect(page.getByTestId("balance")).toContainText("0.005");
-  await page.getByTestId("fresh").click();
+  await page.locator("#own").fill(OWN); await page.getByRole("button", { name: "Use this address" }).click();
   await page.locator("#amt").fill("0.0014");
   await page.getByRole("button", { name: "Get quote" }).click();
   await expect(page.getByTestId("approve")).toBeDisabled();
@@ -115,7 +117,7 @@ test("live flow against the real API (dry quote only)", async ({ page }) => {
   await page.goto("/shore/?live=1");
   await page.getByTestId("connect").click();
   await expect(page.getByTestId("balance")).toContainText("ZEC", { timeout: 20_000 });
-  await page.getByTestId("fresh").click();
+  await page.locator("#own").fill(process.env.SHORE_TEST_U1 || OWN); await page.getByRole("button", { name: "Use this address" }).click();
   await expect(page.getByTestId("recipient")).toContainText("u1", { timeout: 20_000 });
   await page.locator("#amt").fill("0.0014");
   await page.getByRole("button", { name: "Get quote" }).click();
@@ -123,4 +125,64 @@ test("live flow against the real API (dry quote only)", async ({ page }) => {
   await expect(page.getByTestId("approve")).toBeDisabled();
   expect(rpc.length).toBe(1);
   expect(Array.isArray(rpc[0].result?.value), JSON.stringify(rpc[0]).slice(0, 200)).toBe(true);
+});
+
+test("after signing, no Change link is offered", async ({ page }) => {
+  await guard(page);
+  await page.goto("/shore/?replay=1&speed=20");
+  await page.getByTestId("connect").click();
+  await page.getByTestId("fresh").click();
+  await page.getByRole("button", { name: "Get quote" }).click();
+  await expect(page.getByRole("button", { name: /^Change/ })).toHaveCount(2);
+  await page.getByTestId("approve").click();
+  await expect(page.locator("#s-approve")).toHaveAttribute("data-state", "done");
+  for (const b of await page.getByRole("button", { name: /^Change/ }).all()) await expect(b).toBeHidden();
+});
+
+test("live mode never offers the demo wallet as a destination", async ({ page }) => {
+  await page.route("**/api/rpc", (r) => r.fulfill({ json: { jsonrpc: "2.0", id: 1, result: { value: [] } } }));
+  await page.addInitScript(() => { window.phantom = { solana: { isPhantom: true, connect: async () => ({ publicKey: { toString: () => "ia3MLukFMa6zci4nyahxsKVT14yLkFzUkZs3EL5Vsa5" } }) } }; });
+  await page.goto("/shore/?live=1");
+  await page.getByTestId("connect").click();
+  await expect(page.locator("#own")).toBeVisible();
+  await expect(page.getByTestId("fresh")).toHaveCount(0);
+});
+
+test("invite link opens the live flow pre-filled, note shown as plain text, nothing sent", async ({ page }) => {
+  const writes = await guard(page);
+  const note = '<img src=x onerror="window.__xss=1">Welcome to Zcash, from the ZecHub bounty';
+  await page.goto("/shore/?invite=zechub-42&amount=0.002&note=" + encodeURIComponent(note));
+  await expect(page.locator("#mode")).toContainText("Live");
+  await expect(page.locator("#invite")).toContainText("Invite zechub-42");
+  await expect(page.getByTestId("invite-note")).toHaveText(note);
+  await expect(page.getByTestId("invite-amount")).toHaveText("0.002 ZEC");
+  await expect(page.locator("#invite img")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__xss)).toBeUndefined();
+  await expect(page.locator("#invite")).toContainText("SHORE did not write this note");
+  expect(writes).toEqual([]);
+});
+
+test("invite amount is only a suggestion and must be in range", async ({ page }) => {
+  await page.goto("/shore/?invite=x&amount=5");
+  await expect(page.locator("#invite")).toContainText("was not valid");
+  await expect(page.getByTestId("invite-amount")).toHaveCount(0);
+  await page.goto("/shore/?invite=bad%20code!");
+  await expect(page.locator("#invite")).toContainText("malformed");
+  await page.goto("/shore/?invite=r1&replay=1");
+  await expect(page.locator("#mode")).toContainText("Replay");
+});
+
+test("invite amount pre-fills the quote form and stays editable", async ({ page }) => {
+  await page.route("**/api/**", (r) => {
+    const u = r.request().url();
+    if (u.includes("/api/rpc")) return r.fulfill({ json: { jsonrpc: "2.0", id: 1, result: { value: [{ account: { data: { parsed: { info: { tokenAmount: { amount: "500000" } } } } } }] } } });
+    if (u.includes("/shield/address")) return r.fulfill({ json: { id: "t1", recipient: OWN, receivers: ["orchard"], source: "own", readbackAvailable: false } });
+    return r.fulfill({ status: 404, json: { error: "x" } });
+  });
+  await page.addInitScript(() => { window.phantom = { solana: { isPhantom: true, connect: async () => ({ publicKey: { toString: () => "ia3MLukFMa6zci4nyahxsKVT14yLkFzUkZs3EL5Vsa5" } }), signAndSendTransaction: async () => { throw new Error("never signs"); } } }; });
+  await page.goto("/shore/?invite=r2&amount=0.0021");
+  await page.getByTestId("connect").click();
+  await page.locator("#own").fill(OWN); await page.getByRole("button", { name: "Use this address" }).click();
+  await expect(page.locator("#amt")).toHaveValue("0.0021");
+  await expect(page.locator("#amt")).toBeEditable();
 });
