@@ -6,6 +6,8 @@ SHORE moves ZEC that sits on Solana (the NEAR-bridged SPL token) into a shielded
 Phantom approval. It then reads the note back from Zcash, so you see what actually landed, and it tells you
 plainly what stays public.
 
+Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the way in.
+
 - App: https://shore-zec.pages.dev/shore/ (opens on a replay of a real mainnet run; `?live=1` for mainnet)
 - API: https://airlock-zec.fly.dev (Fly, one machine, no volume)
 - Invite links: `https://shore-zec.pages.dev/shore/?invite=<code>&amount=<ZEC>&note=<text>`
@@ -79,6 +81,8 @@ browser (Cloudflare Pages: shore-zec)       Fly: airlock-zec (Rust, axum)       
   Function (`deploy/shore-store`); the index advances atomically, so it stays strictly increasing across machines.
 - The Solana RPC key is only a Fly secret; the proxy allows `getTokenAccountsByOwner`, `getLatestBlockhash`,
   `getSignatureStatuses`, `getBalance`, nothing that writes.
+  Balances are cached 8s per owner and blockhashes 2s; 429/5xx answers are retried with backoff (300ms, 900ms),
+  then the public mainnet endpoint is tried once (`SHORE_SOLANA_RPC_FALLBACK`, `off` to disable). Errors never carry the provider URL.
 - Contract: `docs/API.md`. Design record: `docs/design/`.
 
 ## Run and test

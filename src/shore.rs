@@ -598,23 +598,111 @@ async fn exposure(State(s): St, UrlPath(id): UrlPath<String>) -> R {
 /// Phantom broadcasts the signed transaction itself, so nothing that writes passes through here.
 pub const RPC_METHODS: [&str; 4] = ["getTokenAccountsByOwner", "getLatestBlockhash", "getSignatureStatuses", "getBalance"];
 
-/// Proxies allowed read methods to the provider in SHORE_SOLANA_RPC, so its API key stays server-side.
+/// The public mainnet endpoint, used only after the keyed provider has failed every retry.
+pub const PUBLIC_SOLANA_RPC: &str = "https://api.mainnet-beta.solana.com";
+
+/// Read-only Solana RPC proxy: a short per-request cache, retry with backoff on 429/5xx/network errors,
+/// then one try on a public fallback. Provider URLs (which carry the API key) never appear in errors or logs.
+pub struct RpcProxy {
+    primary: Option<String>,
+    fallback: Option<String>,
+    backoff: Vec<std::time::Duration>,
+    http: reqwest::Client,
+    cache: std::sync::Mutex<std::collections::HashMap<String, (std::time::Instant, Value)>>,
+}
+
+/// How long a successful answer is reused. Signature statuses are never cached: the page polls them for progress.
+pub fn rpc_ttl(method: &str) -> Option<std::time::Duration> {
+    use std::time::Duration;
+    match method {
+        "getBalance" | "getTokenAccountsByOwner" => Some(Duration::from_secs(8)),
+        "getLatestBlockhash" => Some(Duration::from_secs(2)),
+        _ => None,
+    }
+}
+
+enum Try { Ok(Value), Retry(String), Fail(String) }
+
+impl RpcProxy {
+    pub fn new(primary: Option<String>, fallback: Option<String>, backoff: Vec<std::time::Duration>) -> Self {
+        Self { primary, fallback, backoff, http: reqwest::Client::builder().timeout(std::time::Duration::from_secs(10)).build().expect("http client"), cache: Default::default() }
+    }
+    /// SHORE_SOLANA_RPC (keyed provider), SHORE_SOLANA_RPC_FALLBACK (default: public mainnet; "off" disables).
+    pub fn from_env() -> Self {
+        let fallback = match std::env::var("SHORE_SOLANA_RPC_FALLBACK") { Ok(v) if v == "off" => None, Ok(v) => Some(v), Err(_) => Some(PUBLIC_SOLANA_RPC.into()) };
+        use std::time::Duration;
+        Self::new(std::env::var("SHORE_SOLANA_RPC").ok(), fallback, vec![Duration::from_millis(300), Duration::from_millis(900)])
+    }
+
+    async fn once(&self, url: &str, v: &Value) -> Try {
+        match self.http.post(url).json(v).send().await {
+            Err(e) => Try::Retry(format!("network: {}", e.without_url())),
+            Ok(r) => {
+                let st = r.status();
+                if st.as_u16() == 429 || st.is_server_error() { return Try::Retry(format!("HTTP {}", st.as_u16())); }
+                if !st.is_success() { return Try::Fail(format!("HTTP {}", st.as_u16())); }
+                match r.json::<Value>().await {
+                    Ok(j) if j.get("error").and_then(|e| e["code"].as_i64()) == Some(429) => Try::Retry("rate limited".into()),
+                    Ok(j) => Try::Ok(j),
+                    Err(e) => Try::Retry(format!("bad body: {}", e.without_url())),
+                }
+            }
+        }
+    }
+
+    pub async fn call(&self, v: &Value) -> Result<Value, ApiErr> {
+        let m = v["method"].as_str().unwrap_or("");
+        if !RPC_METHODS.contains(&m) || v.as_object().map_or(true, |o| o.keys().any(|k| !["jsonrpc", "id", "method", "params"].contains(&k.as_str()))) {
+            return Err(bad("RPC_METHOD", format!("only {} are proxied", RPC_METHODS.join(", "))));
+        }
+        if serde_json::to_vec(v).map_or(true, |b| b.len() > 4096) {
+            return Err(bad("RPC_SIZE", "request too large"));
+        }
+        let key = format!("{m}|{}", v["params"]);
+        let ttl = rpc_ttl(m);
+        if let Some(t) = ttl {
+            let c = self.cache.lock().unwrap();
+            if let Some((at, res)) = c.get(&key) { if at.elapsed() < t { let mut r = res.clone(); r["id"] = v["id"].clone(); return Ok(r); } }
+        }
+        let mut last = String::from("no provider configured");
+        let mut got = None;
+        if let Some(p) = &self.primary {
+            for i in 0..=self.backoff.len() {
+                match self.once(p, v).await {
+                    Try::Ok(j) => { got = Some(j); break; }
+                    Try::Fail(e) => { last = format!("provider {e}"); break; }
+                    Try::Retry(e) => { last = format!("provider {e}"); if let Some(d) = self.backoff.get(i) { tokio::time::sleep(*d).await; } }
+                }
+            }
+        }
+        if got.is_none() {
+            if let Some(f) = &self.fallback {
+                match self.once(f, v).await {
+                    Try::Ok(j) => got = Some(j),
+                    Try::Retry(e) | Try::Fail(e) => last = format!("{last}; fallback {e}"),
+                }
+            }
+        }
+        let Some(mut j) = got else { return Err(upstream(anyhow!("solana rpc: {last}"))) };
+        if let (Some(t), true) = (ttl, j.get("result").is_some()) {
+            let mut c = self.cache.lock().unwrap();
+            if c.len() > 2000 { c.retain(|_, (at, _)| at.elapsed() < t); }
+            c.insert(key, (std::time::Instant::now(), j.clone()));
+        }
+        j["id"] = v["id"].clone();
+        Ok(j)
+    }
+}
+
+static RPC: std::sync::OnceLock<RpcProxy> = std::sync::OnceLock::new();
+
+/// Proxies allowed read methods so the provider key stays server-side.
 async fn rpc(Json(v): Json<Value>) -> Result<Json<Value>, ApiErr> {
-    let m = v["method"].as_str().unwrap_or("");
-    if !RPC_METHODS.contains(&m) || v.as_object().map_or(true, |o| o.keys().any(|k| !["jsonrpc", "id", "method", "params"].contains(&k.as_str()))) {
-        return Err(bad("RPC_METHOD", format!("only {} are proxied", RPC_METHODS.join(", "))));
+    let p = RPC.get_or_init(RpcProxy::from_env);
+    if p.primary.is_none() && p.fallback.is_none() {
+        return Err(ApiErr(StatusCode::SERVICE_UNAVAILABLE, "RPC_UNSET", "SHORE_SOLANA_RPC is not set".into()));
     }
-    if serde_json::to_vec(&v).map_or(true, |b| b.len() > 4096) {
-        return Err(bad("RPC_SIZE", "request too large"));
-    }
-    let url = std::env::var("SHORE_SOLANA_RPC").map_err(|_| ApiErr(StatusCode::SERVICE_UNAVAILABLE, "RPC_UNSET", "SHORE_SOLANA_RPC is not set".into()))?;
-    let r = reqwest::Client::new().post(url).timeout(std::time::Duration::from_secs(15)).json(&v).send().await.map_err(|e| upstream(anyhow!("solana rpc: {}", e.without_url())))?;
-    let st = r.status();
-    if !st.is_success() {
-        // Only the status leaves the service: the provider URL carries the API key.
-        return Err(upstream(anyhow!("solana rpc: provider answered HTTP {}", st.as_u16())));
-    }
-    Ok(Json(r.json().await.map_err(|e| upstream(anyhow!("solana rpc: {}", e.without_url())))?))
+    p.call(&v).await.map(Json)
 }
 
 // ---------- production implementations ----------
