@@ -162,14 +162,52 @@ test("invite link opens the live flow pre-filled, note shown as plain text, noth
   expect(writes).toEqual([]);
 });
 
-test("invite amount is only a suggestion and must be in range", async ({ page }) => {
+test("invite amount is clamped to the 1Click minimum and the launch cap; junk is ignored", async ({ page }) => {
   await page.goto("/shore/?invite=x&amount=5");
-  await expect(page.locator("#invite")).toContainText("was not valid");
-  await expect(page.getByTestId("invite-amount")).toHaveCount(0);
-  await page.goto("/shore/?invite=bad%20code!");
-  await expect(page.locator("#invite")).toContainText("malformed");
-  await page.goto("/shore/?invite=r1&replay=1");
+  await expect(page.getByTestId("invite-amount")).toHaveText("0.02 ZEC");
+  await expect(page.getByTestId("invite-amount-note")).toContainText("lowered to 0.02");
+  await page.goto("/shore/?invite=x&amount=0.0001");
+  await expect(page.getByTestId("invite-amount")).toHaveText("0.00133334 ZEC");
+  await expect(page.getByTestId("invite-amount-note")).toContainText("raised");
+  for (const bad of ["-1", "abc", "1e3", "0", "0x10", "0.000000001"]) {
+    await page.goto("/shore/?invite=x&amount=" + encodeURIComponent(bad));
+    await expect(page.getByTestId("invite-amount"), bad).toHaveCount(0);
+    await expect(page.getByTestId("invite-amount-note"), bad).toContainText("ignored");
+  }
+});
+
+test("unknown, empty, oversized and hostile invite params degrade gracefully", async ({ page }) => {
+  const writes = await guard(page);
+  await page.goto("/shore/?invite=bad%20code!&note=hi");
+  await expect(page.locator("#invite")).toContainText("Invite link");
+  await expect(page.locator("#invite")).toContainText("not recognized");
+  await expect(page.getByTestId("invite-note")).toHaveText("hi");
+  await page.goto("/shore/?invite=");
+  await expect(page.locator("#invite")).toContainText("Invite link");
+  await expect(page.getByTestId("connect")).toBeVisible();
+  await page.goto("/shore/?invite=" + "a".repeat(40));
+  await expect(page.locator("#invite")).toContainText("not recognized");
+  await page.goto("/shore/?invite=x&note=" + "n".repeat(2000));
+  await expect(page.locator("#invite")).toContainText("too long");
+  await page.goto("/shore/?invite=x&note=" + encodeURIComponent("a\u202eb\u200b\nc   d " + "z".repeat(300)));
+  const t = await page.getByTestId("invite-note").innerText();
+  expect(t.length).toBeLessThanOrEqual(140);
+  expect(t.startsWith("a b c d z")).toBe(true);
+  expect(writes).toEqual([]);
+});
+
+test("judge variant ?invite=&replay=1 shows the banner, then plays the replay without mainnet", async ({ page }) => {
+  const writes = await guard(page);
+  const hits = [];
+  page.on("request", (r) => { if (/fly\.dev|\/api\/|mainnet-beta|helius/.test(r.url())) hits.push(r.url()); });
+  await page.goto("/shore/?invite=zechub&amount=0.005&note=Welcome&replay=1&speed=30");
   await expect(page.locator("#mode")).toContainText("Replay");
+  await expect(page.getByTestId("invite-judge")).toContainText("nothing sent");
+  await expect(page.getByTestId("invite-note")).toHaveText("Welcome");
+  await expect(page.locator("#readback[data-landed]")).toBeAttached({ timeout: 40_000 });
+  await expect(page.locator("html[data-tour='done']")).toBeAttached({ timeout: 20_000 });
+  expect(writes).toEqual([]);
+  expect(hits).toEqual([]);
 });
 
 test("invite amount pre-fills the quote form and stays editable", async ({ page }) => {

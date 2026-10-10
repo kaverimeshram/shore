@@ -19,15 +19,26 @@ const EXPL = {
 // /shore/?invite=<code>&amount=<ZEC>&note=<text>: a sender (an onboarder, a bounty host) shares a link that opens the
 // same flow pre-filled. Nothing is stored or sent anywhere: the code is a label, the amount is only a suggestion the
 // user can change, the note is shown as plain text and marked as the sender's words. No custody, no new trust.
+export const INVITE_MIN = 0.00133334, INVITE_CAP = 0.02; // 1Click floor and the launch cap, as in the quote step
 export function parseInvite(search) {
+  if (typeof search !== "string" || search.length > 1024) return /[?&]invite=/.test(String(search).slice(0, 2048)) ? { error: "This invite link is too long, so it was ignored." } : null;
   const q = new URLSearchParams(search);
   if (!q.has("invite")) return null;
-  const code = (q.get("invite") || "").trim();
-  if (!/^[A-Za-z0-9_-]{1,32}$/.test(code)) return { error: "This invite link is malformed, so it was ignored." };
-  const raw = (q.get("amount") || "").trim();
-  const amount = /^\d{0,2}(\.\d{1,8})?$/.test(raw) && raw && Number(raw) > 0 && Number(raw) <= 0.02 ? raw : null;
-  const note = (q.get("note") || "").replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e]/g, "").trim().slice(0, 140) || null;
-  return { code, amount, note, amountIgnored: !!raw && !amount };
+  const rawCode = (q.get("invite") || "").trim();
+  // Unknown or empty codes still open the flow; only a well-formed code is shown, and it is never looked up anywhere.
+  const code = /^[A-Za-z0-9_-]{1,32}$/.test(rawCode) ? rawCode : null;
+  const codeIgnored = !!rawCode && !code;
+  const raw = (q.get("amount") || "").trim().slice(0, 16);
+  let amount = null, amountNote = null;
+  if (raw) {
+    const n = /^\d{1,2}(\.\d{1,8})?$|^\.\d{1,8}$/.test(raw) ? Number(raw) : NaN;
+    if (!(n > 0)) amountNote = "The amount in this link was not valid, so it was ignored.";
+    else if (n < INVITE_MIN) { amount = String(INVITE_MIN); amountNote = `The link asked for less than the 1Click minimum, so it was raised to ${INVITE_MIN} ZEC.`; }
+    else if (n > INVITE_CAP) { amount = String(INVITE_CAP); amountNote = `The link asked for more than the launch cap, so it was lowered to ${INVITE_CAP} ZEC.`; }
+    else amount = raw;
+  }
+  const note = (q.get("note") || "").slice(0, 600).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u2069\ufeff]/g, " ").replace(/\s+/g, " ").trim().slice(0, 140) || null;
+  return { code, codeIgnored, amount, amountNote, amountIgnored: !!raw && !amount, note };
 }
 const INVITE = parseInvite(location.search);
 
@@ -378,10 +389,13 @@ function renderInvite() {
   if (!INVITE) return;
   const el = $("invite"); el.hidden = false;
   if (INVITE.error) { put(el, INVITE.error); return; }
-  put(el, h("b", {}, `Invite ${INVITE.code}`),
+  const judge = MODE === "replay";
+  put(el, h("b", {}, INVITE.code ? `Invite ${INVITE.code}` : "Invite link"),
+    INVITE.codeIgnored ? [h("br"), "The invite code was not recognized, so it is not shown."] : null,
     INVITE.note ? [h("br"), "The sender wrote: ", h("q", { "data-testid": "invite-note" }, INVITE.note)] : null,
-    INVITE.amount ? [h("br"), "Suggested amount: ", h("b", { "data-testid": "invite-amount" }, `${INVITE.amount} ZEC`), ". You can change it."] : null,
-    INVITE.amountIgnored ? [h("br"), "The amount in this link was not valid (0 to 0.02 ZEC) and was ignored."] : null,
+    INVITE.amount ? [h("br"), "Suggested amount: ", h("b", { "data-testid": "invite-amount" }, `${INVITE.amount} ZEC`), judge ? ". The replay uses the recorded 0.0014 ZEC." : ". You can change it."] : null,
+    INVITE.amountNote ? [h("br"), h("span", { "data-testid": "invite-amount-note" }, INVITE.amountNote)] : null,
+    judge ? [h("br"), h("b", { "data-testid": "invite-judge" }, "Judge preview: this plays the recorded mainnet run. No wallet, nothing sent.")] : null,
     h("br"), h("span", { class: "help" }, "SHORE did not write this note and never holds funds. Your ZEC goes only to the Zcash address you paste."));
 }
 function boot() {
@@ -399,7 +413,7 @@ function boot() {
 // ?tour=1 (replay only): presses each step's primary button after a readable pause, then opens "What's still public".
 export const TOUR_ORDER = ['[data-testid="connect"]', '[data-testid="fresh"]', '#s-quote .btn:not(.ghost)', '[data-testid="approve"]'];
 function tour(pause = 2200) {
-  if (MODE !== "replay" || !new URLSearchParams(location.search).has("tour")) return;
+  if (MODE !== "replay" || !(new URLSearchParams(location.search).has("tour") || INVITE)) return;
   document.documentElement.dataset.tour = "";
   let i = 0;
   const tick = () => {

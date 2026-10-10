@@ -20,7 +20,10 @@ Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the wa
    and the crossing on the tide band; then the view-key read-back of the landed note and "What's still public".
 3. Check the proof yourself: the txids under "Mainnet proof" below, all on public explorers.
 4. Live: `?live=1` with Phantom and your own Zcash wallet's u1 (capped at 0.02 ZEC). Demo video: `docs/pitch/demo-capture.mp4`.
-5. Code: `src/shore.rs` (API), `web/shore/` (app), `tests/shore_api.rs`, `tests/rpc_proxy.rs`, `web/tests/`.
+5. Invite links, safely: `?invite=zechub&amount=0.005&note=Welcome&replay=1` shows the invite banner exactly as a
+   holder would see it, then plays the recorded run. It is marked "Judge preview", touches no wallet and makes no API or
+   mainnet call. Without `replay=1` the same link opens the live flow (look at the banner, do not connect).
+6. Code: `src/shore.rs` (API), `web/shore/` (app), `tests/shore_api.rs`, `tests/rpc_proxy.rs`, `web/tests/`.
 
 ## Business model
 
@@ -79,9 +82,16 @@ amount grows).
 ## Invite links
 
 `/shore/?invite=<code>&amount=<ZEC>&note=<text>` lets an onboarder or bounty host share the flow. The link opens
-the live flow with the amount pre-filled (a suggestion the user can change, 0 to 0.02 ZEC) and the sender's note
-shown as plain text, labelled as the sender's words (140 characters, control and bidi characters removed). Nothing
-is stored and nothing is sent until the user connects Phantom and approves. No custody, no new trust.
+the live flow with the amount pre-filled and the sender's note shown as plain text, labelled as the sender's words.
+Nothing is stored and nothing is sent until the user connects Phantom and approves. No custody, no new trust.
+
+- Code: `[A-Za-z0-9_-]`, up to 32 characters, shown only as a label and never looked up. An empty or unrecognized
+  code still opens the flow as "Invite link".
+- Amount: a suggestion the user can change. Below the 1Click minimum (0.00133334 ZEC) it is raised to it, above the
+  launch cap (0.02 ZEC) it is lowered to it, and anything that is not a plain decimal is ignored; the banner says which.
+- Note: rendered as text, never HTML; control, zero-width and bidi characters removed, whitespace collapsed, 140 characters.
+- A query string over 1,024 characters is ignored as a whole.
+- Add `&replay=1` for the judge preview: same banner, then the recorded run, no mainnet.
 
 ## Architecture
 
