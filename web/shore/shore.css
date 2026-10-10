@@ -6,12 +6,14 @@
    gold where the ZEC is shielded, and the wordmark carries the same band. One radius: 4px. */
 @font-face{font-family:"Big Shoulders Display";font-weight:700;font-display:swap;src:url("../fonts/big-shoulders-display-latin-600-normal.woff2") format("woff2")}
 @font-face{font-family:"Big Shoulders Display";font-weight:800;font-display:swap;src:url("../fonts/big-shoulders-display-latin-800-normal.woff2") format("woff2")}
+@font-face{font-family:"Commit Mono";font-weight:400;font-display:swap;src:url("../fonts/commit-mono-400.woff2") format("woff2")}
 @font-face{font-family:"Atkinson Hyperlegible";font-weight:400;font-display:swap;src:url("../fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2")}
 @font-face{font-family:"Atkinson Hyperlegible";font-weight:700;font-display:swap;src:url("../fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2")}
 
 :root{
   --paper:#F2ECDF; --white:#FBF8F1; --ink:#13233A; --ink-2:#434F63; --ink-3:#6A7384; --rule:#D3C9B5; --rule-2:#E2DACA;
-  --sea:#1E5A8A; --gold:#F4B728; --gold-ink:#6B4F00; --warn:#A3341B;
+  --sea:#1E5A8A; --gold:#F4B728; --gold-ink:#6B4F00; --warn:#A3341B; --cost:#9A4A00;
+  --fig:"Commit Mono",ui-monospace,Menlo,monospace;
   --tide:var(--gold-ink); --tide-ink:var(--ink); --tide-wash:#F7E6B8;
   --serif:"Big Shoulders Display","Arial Narrow",sans-serif;
   --sans:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
@@ -66,7 +68,8 @@ a:hover{text-decoration-color:var(--ink)}
 .lk{font:700 var(--t-s)/1.3 var(--sans);color:var(--ink-2)}
 .hero{font:800 96px/.92 var(--serif);letter-spacing:-.01em;margin-top:var(--s2);font-variant-numeric:tabular-nums lining-nums}
 .hero small{font:700 var(--t-s)/1 var(--sans);letter-spacing:0;margin-left:var(--s2);color:var(--ink-2)}
-.hero[data-tone="shielded"]{color:var(--ink);box-shadow:inset 0 -.22em 0 var(--gold)}
+.hero[data-tone="shielded"]{color:var(--ink)}
+.hero[data-tone="shielded"]::after{content:"";display:block;height:6px;margin-top:6px;border-radius:2px;background:var(--gold)}
 .lrows{margin-top:var(--s5);display:grid;grid-template-columns:auto 1fr;font-size:var(--t-s)}
 .lrows dt,.lrows dd{padding:var(--s2) 0;border-top:1px solid var(--rule-2)}
 .lrows dt{color:var(--ink-2)}
@@ -78,19 +81,18 @@ a:hover{text-decoration-color:var(--ink)}
 main{margin-top:var(--s7);display:flex;flex-direction:column;gap:var(--s8);min-width:0}
 main:focus{outline:none}
 .steps{border-top:1px solid var(--ink)}
-.step{position:relative;padding:var(--s5) 0 var(--s5) var(--s5);border-bottom:1px solid var(--rule)}
-.step::before{content:"";position:absolute;left:0;top:var(--s5);bottom:var(--s5);width:3px;border-radius:2px;background:transparent}
-.step[data-state="active"]::before{background:var(--sea)}
-.step[data-state="done"]::before{background:var(--ink-3);opacity:.35}
+.step{position:relative;padding:var(--s5) 0;border-bottom:1px solid var(--rule)}
+.step::before{content:none}
+.step[data-state="active"] h2{font-weight:700;color:var(--ink)}
+.step[data-state="done"] h2::before{content:"";display:inline-block;width:12px;height:7px;margin:0 var(--s2) 3px 0;border-left:2px solid var(--gold-ink);border-bottom:2px solid var(--gold-ink);transform:rotate(-45deg)}
 .step header{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s3);min-height:28px}
 .step h2{font:700 var(--t-m)/1.4 var(--sans)}
 .hint{margin-top:var(--s1);font-size:var(--t-s);color:var(--ink-2);max-width:52ch}
-.step[data-state="locked"] h2{color:var(--ink-2)}
-.step{transition:padding .2s var(--ease)}
+.step[data-state="locked"] h2{color:var(--ink-2);font-weight:400}
+
 .step[data-state="locked"] .body{display:none}
 .step[data-state="done"] .hint{display:none}
 .step[data-state="done"]{padding-block:var(--s3)}
-.step[data-state="done"]::before{top:var(--s3);bottom:var(--s3)}
 .step[data-state="done"] h2{font-size:var(--t-s);color:var(--ink-2)}
 .step[data-state="done"] header{min-height:0}
 .step[data-state="done"] .body{margin-top:var(--s1)}
@@ -221,7 +223,7 @@ label.f{display:block}
   .crossing[data-live] .strip-now{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s3);margin-top:var(--s2)}
   .strip-now span{font-size:var(--t-xs);color:var(--ink-2)}
   .strip-now b{font:800 var(--t-l)/1 var(--serif);font-variant-numeric:tabular-nums}
-  .strip-now[data-tone="shielded"] b{box-shadow:inset 0 -.25em 0 var(--gold)}
+  .strip-now[data-tone="shielded"] b{color:var(--gold-ink)}
   main{order:3;margin-top:var(--s5)}
   .foot{order:5}
   .mode{white-space:nowrap;font-size:12px}
@@ -231,8 +233,31 @@ label.f{display:block}
 }
 @media (max-width:959px){.steps{border-top:0}}
 
-/* figures: the signage face, never the reading face's dotted zero */
-.lrows dd,.receipt .val,.kv dd,.qmini,.clock,.qsec{font-family:var(--serif);font-weight:700;letter-spacing:.01em}
-.lrows dd,.kv dd,.receipt .val,.qmini{font-size:18px}
+/* figures: one zero style. Small amounts, addresses and hashes in Commit Mono (plain zero, tabular);
+   the condensed signage face only for the big display numbers (hero, phone strip, read-back, phone quote pair). */
+.lrows dd,.receipt .val,.kv dd,.qmini,.linksrow a,.receipt a{font-family:var(--fig);font-weight:400;font-size:var(--t-xs);letter-spacing:0}
+.qsec{font-family:var(--sans)}
+.clock{font-family:var(--fig);font-weight:400}
 @media (max-width:959px){.crossing[data-live]{margin-top:0}}
-.hero[data-tone="shielded"]{display:table;padding-right:var(--s1)}
+.hero[data-tone="shielded"]{display:table}
+
+.qctl{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 var(--s5)}
+.qctl details[open]{flex-basis:100%}
+.qctl .linkbtn{padding:var(--s2) 0}
+html[data-signed] .chg{display:none}
+.again{margin-top:var(--s3)}
+.cost{color:var(--cost)!important;font-weight:700}
+.qsec .cost{background:#F6E2C8;padding:0 var(--s1);border-radius:2px}
+/* stop marks on the band: Solana, Bridge, Shielded */
+.tide::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--ink-3) 0 2px,transparent 2px calc(50% - 1px),var(--ink-3) calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px) calc(100% - 2px),var(--ink-3) calc(100% - 2px));opacity:.55;pointer-events:none}
+@media (max-width:959px){
+  .readback .amount{display:none}
+  .crossing{padding-block:var(--s2) var(--s1)}
+  .crossing[data-live] .node{padding-top:var(--s4)}
+  .crossing[data-live] .nl{font-size:var(--t-xs)}
+  .crossing[data-live] .strip-now{margin-top:0}
+  .strip-now b{font-size:22px}
+}
+@media (max-width:959px){.crossing[data-live] .path{display:none}.crossing[data-live] .tide{position:relative;left:auto;right:auto;top:auto;height:8px}.crossing[data-live] .strip-now{margin-top:var(--s2)}}
+.kv dt,.kv dd{display:flex;align-items:center;min-height:44px}
+.kv dd{justify-content:flex-end}

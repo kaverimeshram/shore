@@ -13,7 +13,7 @@ for (const [w, hgt] of [[1440, 900], [390, 844]]) {
   await p.screenshot({ path: `${D}/r${round}-quote-${w}.png` });
   await p.getByTestId("approve").click(); await p.waitForTimeout(9000);
   await p.screenshot({ path: `${D}/r${round}-crossing-${w}.png` });
-  await p.getByTestId("rb-amount").waitFor({ timeout: 60000 }); await p.waitForTimeout(1200);
+  await p.getByTestId("rb-amount").waitFor({ state: "attached", timeout: 60000 }); await p.locator("#readback[data-landed]").waitFor(); await p.waitForTimeout(1200);
   await p.locator("#readback").scrollIntoViewIfNeeded();
   await p.screenshot({ path: `${D}/r${round}-readback-${w}.png` });
   await p.screenshot({ path: `${D}/r${round}-full-${w}.png`, fullPage: true });

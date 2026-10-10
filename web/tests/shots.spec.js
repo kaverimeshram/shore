@@ -13,7 +13,7 @@ test("screens", async ({ page }, info) => {
   await page.getByTestId("approve").click();
   await page.waitForTimeout(1800);
   await page.screenshot({ path: `${dir}-3-landing.png`, fullPage: true });
-  await page.getByTestId("rb-amount").waitFor({ timeout: 30000 });
+  await page.locator("#readback[data-landed]").waitFor({ timeout: 30000 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${dir}-4-readback.png`, fullPage: true });
 });

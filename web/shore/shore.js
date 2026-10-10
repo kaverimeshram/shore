@@ -64,7 +64,7 @@ function reopen(id, render) {
   if (id === "s-address") { delete L.send; delete L.lands; delete L.fee; ledger(null, null, null, { hero: ["Balance on Solana", [zec(S.balance), h("small", {}, "ZEC")]] }); }
   setStep(id, "active"); render();
 }
-const change = (id, render) => [" · ", h("button", { class: "linkbtn", type: "button", onclick: () => reopen(id, render) }, "Change")];
+const change = (id, render) => [h("span", { class: "chg" }, " · ", h("button", { class: "linkbtn", type: "button", onclick: () => reopen(id, render) }, "Change"))];
 const IST = (iso) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) + " IST";
 function countdown(iso) {
   const ms = new Date(iso) - Date.now();
@@ -193,16 +193,16 @@ function renderQuote(out) {
   put(step, h("div", { "data-testid": "quote", class: "qt" },
     h("p", { class: "qpair" }, h("span", {}, h("small", {}, "You send"), `${zec(q.amountIn)} ZEC`), h("i", { "aria-hidden": "true" }, "→"),
       h("span", {}, h("small", {}, "Lands, quoted"), `${zec(q.amountOut)} ZEC`)),
-    h("p", { class: "qsec" }, h("span", { class: "qmini" }, `${zec(q.amountIn)} → ${zec(q.amountOut)} ZEC · `), h("span", { class: bps > 1000 ? "warn" : "" }, `${pct}% fee`), ` · about ${q.timeEstimateSecs}s · `, valid),
+    h("p", { class: "qsec" }, h("span", { class: "qmini" }, `${zec(q.amountIn)} → ${zec(q.amountOut)} ZEC · `), h("span", { class: bps > 1000 ? "cost" : "" }, `${pct}% fee`), ` · about ${q.timeEstimateSecs}s · `, valid),
     bps > 1000 ? h("p", { class: "help", "data-testid": "fee-honest" }, `Most of it is the fixed ${zec(q.fees.withdrawFee)} ZEC Zcash withdraw fee, so the percentage falls fast as the amount grows.`) : null,
-    h("details", { class: "fold" }, h("summary", {}, "Fee breakdown (6)"),
+    h("div", { class: "qctl" }, h("details", { class: "fold" }, h("summary", {}, "Fee breakdown (6)"),
       kv([["Worst case after slippage", `${zec(q.minAmountOut)} ZEC`], ["Zcash withdraw fee", `${zec(q.fees.withdrawFee)} ZEC`], ["Refund fee if it fails", `${zec(q.fees.refundFee)} ZEC`],
         ["Total cost", `${pct}% of what you send`], ["1Click minimum", `${zec(q.minAmount)} ZEC`], ["Quote expires", IST(q.deadline)]])),
     MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Recorded 1Click quote, correlation 9136ee09, file shore-funded-quote-v2.json.")) : null,
-    h("p", {}, h("button", { class: "linkbtn", type: "button", onclick: () => reopen("s-quote", renderQuoteForm) }, "Change amount"))));
+    h("button", { class: "linkbtn chg", type: "button", onclick: () => reopen("s-quote", renderQuoteForm) }, "Change amount"))));
   setStep("s-quote", "done", "quoted");
   ledger("send", "Send", `${zec(q.amountIn)} ZEC`);
-  ledger("fee", "Fee", h("span", { class: bps > 1000 ? "warn" : "" }, `${pct}%`));
+  ledger("fee", "Fee", h("span", { class: bps > 1000 ? "cost" : "" }, `${pct}%`));
   ledger("lands", "Lands, quoted", `${zec(q.amountOut)} ZEC`, { hero: ["Lands in the shielded pool, quoted", [zec(q.amountOut), h("small", {}, "ZEC")]], strip: ["Lands, quoted", `${zec(q.amountOut)} ZEC`] });
   setStep("s-approve", "active");
   renderApprove();
@@ -220,6 +220,7 @@ function renderApprove() {
     try {
       if (LIVE) S.sig = await sendTransfer(q);
       else { put(msg, h("p", { class: "help" }, "Approved (simulated, nothing is sent).")); await sleep(600); S.sig = (await api.loadReplay()).solana_tx; }
+      document.documentElement.dataset.signed = "";
       if (S.session.source === "own") markUsed(S.session.recipient);
       api.notifyTx(S.session.id, S.sig);
       api.startClock();
@@ -291,6 +292,7 @@ async function land() {
         ledger("elapsed", "Elapsed", clock.textContent);
         setCrossing("landed");
         put(now, "Landed on Zcash."); now.className = "receipt";
+        b.append(h("p", { class: "again" }, h("a", { class: "btn ghost", href: location.pathname + location.search }, "Shield again")));
         setStep("s-land", "done", "landed");
         readbackLoop(); exposureLoad(); return;
       }
@@ -340,13 +342,13 @@ const DEFAULT_EXPOSED = [
   ["What is private afterwards:", "spends you make later from the note. Nobody outside your wallet can see those."],
 ];
 function renderExposureDefault() {
-  put($("pub-n"), `${DEFAULT_EXPOSED.length} in general`);
+  put($("pub-n"), `${DEFAULT_EXPOSED.length} facts, before you send`);
   put($("exposed"), DEFAULT_EXPOSED.map(([b, t], i) => h("li", {}, i < 3 ? h("b", {}, b) : h("strong", {}, b), " ", t)));
 }
 async function exposureLoad() {
   try {
     const x = (S.exposure = await api.exposure(S.session.id, { sender: S.wallet.address, deposit: S.quote.depositAddress, recipient: S.session.recipient }));
-    put($("pub-n"), `${x.rows.length} for this transfer`);
+    put($("pub-n"), `${x.rows.length} facts for this transfer`);
     put($("exposed"), x.rows.map((r) => h("li", { "data-exposed": String(r.exposed), "data-who": /anyone/i.test(r.whoCanSee) ? "anyone" : /nobody/i.test(r.whoCanSee) ? "nobody" : "some" },
       r.exposed ? h("b", {}, r.what) : h("strong", {}, r.what), r.value ? h("span", { class: "help" }, /^\d+$/.test(r.value) ? `${zec(r.value)} ZEC` : short(r.value, 10)) : null,
       h("span", { class: "help" + (/anyone/i.test(r.whoCanSee) ? " warn" : "") }, `${r.exposed ? "Readable by" : "Visible to"}: ${r.whoCanSee}`))),
