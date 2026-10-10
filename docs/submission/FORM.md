@@ -31,6 +31,12 @@ dependency today and the form lists it so a reader can follow it.
 - Live: https://airlock-zec.vercel.app against https://airlock-zec.fly.dev. A real quote from the page for
   0.02 ZEC inbound returned a Base deposit address and 27.52 USDC.
 
+**Competition.** Zodl in-wallet swaps use fresh refund UAs but measured `/v0/status` reads still link
+deposits to recipients and refund targets. Zwap and default NEAR Intents flows do not minimize split
+outbound t-address legs or report shared identifiers across parts. ShieldBid is sealed-bid (seller
+sees bid sizes); not this cross-chain exposure product. AIRLOCK ships the exposure harness, split
+planner, Tor-isolated status, and per-swap audit with target 0 shared identifiers.
+
 **Business.** Buyers are wallets and apps that route ZEC through NEAR Intents (Zodl in-wallet swaps,
 Zwap, Vizor) and the holders who exit through them. Named users and what they said, verbatim sources:
 timtech, who moved about 589,000 USDT worth of ZEC (1,120 ZEC held 50 days) through the rail

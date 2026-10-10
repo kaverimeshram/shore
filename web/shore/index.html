@@ -21,16 +21,24 @@
 </header>
 
 <div class="side">
+<div class="intro" id="intro">
 <h1 class="display">Move your Solana ZEC into the shielded pool.</h1>
-<p class="lede">One Phantom approval. A fresh shielded address each time. The note is read back from Zcash, not taken on trust.</p>
+<p class="lede">One Phantom approval. A fresh shielded address each time. The note is read back from Zcash.</p>
+</div>
+<section class="ledger" id="ledger" aria-live="polite" hidden>
+  <p class="lk" id="hero-k"></p>
+  <p class="hero" id="hero-v"></p>
+  <dl class="lrows" id="lrows"></dl>
+</section>
 
 <section class="crossing" id="crossing" aria-label="Crossing tracker" data-phase="idle">
+  <div class="tide" aria-hidden="true"><i class="tide-fill" id="tide-fill"></i></div>
   <ol class="path">
-    <li class="node" data-node="0"><span class="dot" aria-hidden="true"></span><span class="nl">Solana ZEC</span><span class="ns" data-ns>Phantom</span></li>
+    <li class="node" data-node="0"><span class="dot" aria-hidden="true"></span><span class="nl">Solana</span><span class="ns" data-ns>Phantom</span></li>
     <li class="node" data-node="1"><span class="dot" aria-hidden="true"></span><span class="nl">Bridge</span><span class="ns" data-ns>NEAR Intents</span></li>
-    <li class="node" data-node="2"><span class="dot" aria-hidden="true"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 2.5 3.6v4.1c0 3.3 2.3 5.9 5.5 6.8 3.2-.9 5.5-3.5 5.5-6.8V3.6Z"/></svg></span><span class="nl">Shielded</span><span class="ns" data-ns>Zcash pool</span></li>
+    <li class="node" data-node="2"><span class="dot" aria-hidden="true"></span><span class="nl">Shielded</span><span class="ns" data-ns>Zcash</span></li>
   </ol>
-  <p class="elapsed"><span class="clock" data-testid="clock" id="clock">84s</span> <span class="cap" id="clock-cap">last mainnet crossing, 10 Oct 2026, 115,000 zat landed</span></p>
+  <p class="elapsed"><span class="clock" data-testid="clock" id="clock">84s</span> <span class="cap" id="clock-cap">last mainnet run, 115,000 zat landed</span></p>
 </section>
 </div>
 
@@ -53,27 +61,27 @@
     </li>
     <li class="step" id="s-approve" data-state="locked">
       <header><h2>Review and approve</h2><span class="tag" data-tag></span></header>
-      <p class="hint">One Phantom approval sends ZEC to the 1Click deposit address.</p>
+      <p class="hint">Phantom shows one transfer. You approve it once.</p>
       <div class="body" data-body></div>
     </li>
     <li class="step" id="s-land" data-state="locked">
       <header><h2>Crossing</h2><span class="tag" data-tag></span></header>
-      <p class="hint">The note is found in the shielded pool and decrypted with a viewing key.</p>
+      <p class="hint">SHORE watches the note arrive on Zcash and decrypts it.</p>
       <div class="body" data-body></div>
     </li>
   </ol>
 
   <section class="sect readback" id="readback" aria-live="polite">
     <h2 class="ch">Read-back</h2>
-    <p class="empty">After the note is mined, the viewing key decrypts it and the amount shows here. It is read from the chain, never typed in.</p>
+    <p class="empty">After the note is mined, SHORE decrypts it with a viewing key and shows the amount here.</p>
   </section>
 
-  <section class="sect public" id="public">
-    <h2 class="ch">What&rsquo;s still public</h2>
+  <details class="sect public" id="public">
+    <summary><h2 class="ch">What&rsquo;s still public <span class="n" id="pub-n"></span></h2></summary>
     <ul class="exposed" id="exposed"></ul>
     <h3 class="sub">Counterparty risk</h3>
-    <p class="risk">The hop runs through NEAR Intents 1Click, a solver network with an operator. While your ZEC is in flight it can be delayed, refunded or frozen by that service. SHORE never holds your funds, but it cannot overrule 1Click.</p>
-  </section>
+    <p class="risk">The hop runs through NEAR Intents 1Click, a solver network with an operator. While your ZEC is in flight it can be delayed, refunded or frozen by that service. SHORE never holds your funds.</p>
+  </details>
 </main>
 
 <footer class="foot">

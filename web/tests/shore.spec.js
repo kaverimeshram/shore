@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 // Fails the test if the page ever touches a wallet or a write endpoint in replay.
 async function guard(page) {
   const writes = [];
-  page.on("request", (r) => { if (r.method() !== "GET" && !r.url().startsWith(new URL(page.url() === "about:blank" ? "http://127.0.0.1:4173" : page.url()).origin)) writes.push(r.url()); });
+  page.on("request", (r) => { if (r.method() !== "GET" && !r.url().startsWith(new URL(page.url() === "about:blank" ? "http://127.0.0.1:4174" : page.url()).origin)) writes.push(r.url()); });
   await page.addInitScript(() => {
     const trap = { isPhantom: true, connect() { throw new Error("wallet touched"); }, signAndSendTransaction() { throw new Error("wallet touched"); } };
     window.phantom = { solana: trap }; window.solana = trap;
