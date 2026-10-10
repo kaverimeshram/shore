@@ -1,0 +1,96 @@
+{
+ "url": "https://phantom.com/",
+ "body": {
+  "text": "Features\nLearn\nExplore\nCompany\nDevelopers\nSupport\nDownload\nW",
+  "font": "Phantom",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "Your home for trading\ncrypto, predictions,\nperps, and more",
+  "font": "Phantom",
+  "size": "80px",
+  "weight": "400",
+  "tracking": "-2px",
+  "leading": "88px",
+  "color": "rgb(255, 253, 248)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": {
+  "text": "Where the world trades",
+  "font": "Phantom",
+  "size": "24px",
+  "weight": "400",
+  "tracking": "-0.6px",
+  "leading": "32.4px",
+  "color": "rgb(255, 253, 248)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": {
+  "text": "Trading",
+  "font": "Phantom",
+  "size": "24px",
+  "weight": "400",
+  "tracking": "-0.6px",
+  "leading": "32.4px",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "p": {
+  "text": "Buy and sell all types of crypto in an instant.",
+  "font": "Phantom",
+  "size": "30px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "36px",
+  "color": "rgb(28, 28, 28)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "",
+  "font": "Phantom",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "32px"
+ },
+ "button": {
+  "text": "",
+  "font": "Phantom",
+  "size": "13.3333px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "normal",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgb(253, 252, 254)",
+  "radius": "32px"
+ },
+ "input": {
+  "text": "",
+  "font": "Phantom",
+  "size": "64px",
+  "weight": "400",
+  "tracking": "-1.6px",
+  "leading": "64px",
+  "color": "rgb(60, 49, 91)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "fonts": [
+  "Phantom 300",
+  "Phantom 400",
+  "Phantom 350"
+ ]
+}

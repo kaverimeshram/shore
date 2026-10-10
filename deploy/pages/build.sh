@@ -5,6 +5,7 @@ set -eu
 cd "$(dirname "$0")"
 rm -rf dist functions && mkdir -p dist functions/store
 cp -R ../../web/shore ../../web/fonts ../../web/config.js dist/
+rm -rf dist/shore/design-research dist/shore/.uicraft-read.json
 printf '/ /shore/ 302\n' > dist/_redirects
 cp ../shore-store/src/index.js functions/store/_store.js
 printf 'import store from "./_store.js";\nexport const onRequest = (ctx) => store.fetch(ctx.request, ctx.env);\n' > 'functions/store/[[path]].js'

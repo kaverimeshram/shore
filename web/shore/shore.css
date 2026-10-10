@@ -1,3 +1,4 @@
+/* Hallmark · macrostructure: Ferry log (sticky argument + log left, numbered register right) · theme: tide paper · knobs: rules-not-boxes, accent=action+shielded only */
 /* SHORE · "Ferry log" (docs/design/DESIGN.md). Tide paper, ink, one harbor-teal accent whose only job is
    "this is the action / this is shielded". Newsreader for display and figures that matter, Manrope for
    everything else. Two columns on desktop: the argument and the crossing on the left, the register of
@@ -19,8 +20,8 @@
   --ease:cubic-bezier(.2,.7,.1,1);
 }
 *,*::before,*::after{box-sizing:border-box}
-html{background:var(--paper)}
-body{margin:0;background:var(--paper);color:var(--ink);font:400 var(--t-m)/1.6 var(--sans);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+html{background:var(--paper);overflow-x:clip}
+body{margin:0;overflow-x:clip;background:var(--paper);color:var(--ink);font:400 var(--t-m)/1.6 var(--sans);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
 h1,h2,h3,p,ul,ol,dl{margin:0}ul,ol{padding:0;list-style:none}
 a{color:var(--ink);text-decoration-color:var(--ink-3);text-underline-offset:3px}
 a:hover{text-decoration-color:var(--ink)}
@@ -91,6 +92,7 @@ main:focus{outline:none}
 input[type=text]{width:100%;min-height:48px;padding:0 var(--s3);background:var(--white);border:1px solid var(--ink-3);border-radius:var(--r);font:400 var(--t-s)/1.5 var(--sans);color:var(--ink)}
 input[type=text]:hover{border-color:var(--ink)}
 input[type=text]:focus-visible{outline:2px solid var(--tide);outline-offset:1px;border-color:var(--tide)}
+input[disabled]{opacity:.6;cursor:not-allowed}
 input[readonly]{color:var(--ink-2);background:transparent}
 input::placeholder{color:var(--ink-3)}
 label.f{display:block}
@@ -147,4 +149,15 @@ label.f{display:block}
   .display{font-size:var(--t-d)}
   .side{position:sticky;top:var(--s6);align-self:start}
   main{margin-top:0}
+}
+/* phone: the first action sits above the fold; the crossing log follows the steps */
+@media (max-width:959px){
+  .side{display:contents}
+  .display,.lede{grid-column:1}
+  main{order:3;margin-top:var(--s6)}
+  .crossing{order:4;margin-top:var(--s8)}
+  .foot{order:5}
+  .mode{white-space:nowrap;letter-spacing:.02em;font-size:12px}
+  .top{margin-bottom:var(--s6)}
+  .display{font-size:36px}
 }

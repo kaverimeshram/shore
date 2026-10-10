@@ -1,0 +1,88 @@
+{
+ "url": "https://zodl.com/zashi-is-becoming-zodl/",
+ "body": {
+  "text": "Skip to content\nHome\nAbout\nBlog\nDownload\nBlog\nZodl Blog\nZash",
+  "font": "\"Anek Latin\", sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "22.4px",
+  "color": "rgb(51, 51, 51)",
+  "background": "rgb(255, 255, 255)",
+  "radius": "0px"
+ },
+ "h1": {
+  "text": "Zashi Is Becoming Zodl",
+  "font": "Michroma, sans-serif",
+  "size": "40px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "48px",
+  "color": "rgb(51, 51, 51)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h2": {
+  "text": "What This Means for Zashi Users",
+  "font": "\"Anek Latin\", sans-serif",
+  "size": "28px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "39.2px",
+  "color": "rgb(51, 51, 51)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "h3": null,
+ "p": {
+  "text": "The upcoming app update will rebrand Zashi to Zodl, without ",
+  "font": "\"Anek Latin\", sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(51, 51, 51)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "a": {
+  "text": "Skip to content",
+  "font": "\"Anek Latin\", sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "22.4px",
+  "color": "rgb(204, 51, 102)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "button": {
+  "text": "",
+  "font": "\"Anek Latin\", sans-serif",
+  "size": "16px",
+  "weight": "500",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(51, 51, 51)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "10px"
+ },
+ "input": {
+  "text": "",
+  "font": "\"Anek Latin\", sans-serif",
+  "size": "16px",
+  "weight": "400",
+  "tracking": "normal",
+  "leading": "24px",
+  "color": "rgb(0, 0, 0)",
+  "background": "rgba(0, 0, 0, 0)",
+  "radius": "0px"
+ },
+ "fonts": [
+  "Anek Latin 400",
+  "Anek Latin 500",
+  "Anek Latin 600",
+  "Anek Latin 700",
+  "Michroma 400"
+ ]
+}
