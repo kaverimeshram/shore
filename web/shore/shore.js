@@ -48,14 +48,24 @@ const L = {};
 function ledger(key, label, value, opts = {}) {
   if (key) L[key] = [label, value];
   $("intro").hidden = true; $("ledger").hidden = false;
-  if (opts.hero) { put($("hero-k"), opts.hero[0]); put($("hero-v"), ...[].concat(opts.hero[1])); $("hero-v").dataset.tone = opts.tone || ""; }
-  const order = ["send", "lands", "fee", "elapsed", "landed"];
+  $("crossing").dataset.live = "";
+  if (opts.hero) { put($("hero-k"), opts.hero[0]); put($("hero-v"), ...[].concat(opts.hero[1])); $("hero-v").dataset.tone = opts.tone || "";
+    put($("strip-k"), opts.strip ? opts.strip[0] : opts.hero[0]); put($("strip-v"), opts.strip ? opts.strip[1] : $("hero-v").textContent); $("strip-now").dataset.tone = opts.tone || ""; }
+  const order = ["send", "lands", "fee", "elapsed"];
   put($("lrows"), order.filter((k) => L[k]).flatMap((k) => [h("dt", {}, L[k][0]), h("dd", { "data-k": k }, L[k][1])]));
 }
 function receipt(id, tag, ...line) {
-  put(body(id), h("p", { class: "receipt" }, ...line));
+  put(body(id), h("p", { class: "receipt" }, ...line.filter(Boolean)));
   setStep(id, "done", tag);
 }
+const STEPS = ["s-connect", "s-address", "s-quote", "s-approve", "s-land"];
+function reopen(id, render) {
+  for (const s of STEPS.slice(STEPS.indexOf(id) + 1)) { setStep(s, "locked"); put(body(s)); }
+  if (id === "s-address") { delete L.send; delete L.lands; delete L.fee; ledger(null, null, null, { hero: ["Balance on Solana", [zec(S.balance), h("small", {}, "ZEC")]] }); }
+  setStep(id, "active"); render();
+}
+const change = (id, render) => [" · ", h("button", { class: "linkbtn", type: "button", onclick: () => reopen(id, render) }, "Change")];
+const IST = (iso) => new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) + " IST";
 function countdown(iso) {
   const ms = new Date(iso) - Date.now();
   if (ms <= 0) return "expired";
@@ -146,7 +156,7 @@ function renderAddressDone() {
   receipt("s-address", s.source === "fresh" ? "fresh" : "yours",
     h("span", { class: "val", "data-testid": "recipient", title: s.recipient }, short(s.recipient, 13)), " · ",
     (s.receivers || []).includes("orchard") ? "Orchard receiver" : "shielded receiver",
-    s.source === "fresh" ? `, never used before (index ${s.uaIndex ?? "?"})` : ", your wallet");
+    s.source === "fresh" ? `, never used before (index ${s.uaIndex ?? "?"})` : ", your wallet", ...change("s-address", renderAddress));
   if (!s.readbackAvailable) body("s-address").append(h("p", { class: "help warn" }, "No read-back: SHORE has no viewing key for your own address."));
   setStep("s-quote", "active");
   renderQuoteForm();
@@ -177,23 +187,23 @@ function renderQuote(out) {
   const bps = q.fees?.totalFeeBps ?? Number(((BigInt(q.amountIn) - BigInt(q.amountOut)) * 10000n) / BigInt(q.amountIn));
   const pct = (bps / 100).toFixed(1);
   if (q.recipient && q.recipient !== S.session.recipient) { put(out, err(new Error("Quote recipient differs from your address. Not continuing."))); return; }
-  const valid = h("span", { "data-testid": "expiry", title: new Date(q.deadline).toISOString().replace(".000Z", "Z") }, countdown(q.deadline));
-  setInterval(() => put(valid, countdown(q.deadline)), 30000);
+  const valid = h("span", { "data-testid": "expiry", title: new Date(q.deadline).toISOString().replace(".000Z", "Z") }, `${countdown(q.deadline)} (until ${IST(q.deadline)})`);
+  setInterval(() => put(valid, `${countdown(q.deadline)} (until ${IST(q.deadline)})`), 30000);
   const step = body("s-quote");
   put(step, h("div", { "data-testid": "quote", class: "qt" },
     h("p", { class: "qpair" }, h("span", {}, h("small", {}, "You send"), `${zec(q.amountIn)} ZEC`), h("i", { "aria-hidden": "true" }, "→"),
       h("span", {}, h("small", {}, "Lands, quoted"), `${zec(q.amountOut)} ZEC`)),
-    h("p", { class: "qsec" }, h("span", { class: bps > 1000 ? "warn" : "" }, `${pct}% fee`), ` · about ${q.timeEstimateSecs}s · `, valid),
+    h("p", { class: "qsec" }, h("span", { class: "qmini" }, `${zec(q.amountIn)} → ${zec(q.amountOut)} ZEC · `), h("span", { class: bps > 1000 ? "warn" : "" }, `${pct}% fee`), ` · about ${q.timeEstimateSecs}s · `, valid),
     bps > 1000 ? h("p", { class: "help", "data-testid": "fee-honest" }, `Most of it is the fixed ${zec(q.fees.withdrawFee)} ZEC Zcash withdraw fee, so the percentage falls fast as the amount grows.`) : null,
     h("details", { class: "fold" }, h("summary", {}, "Fee breakdown (6)"),
       kv([["Worst case after slippage", `${zec(q.minAmountOut)} ZEC`], ["Zcash withdraw fee", `${zec(q.fees.withdrawFee)} ZEC`], ["Refund fee if it fails", `${zec(q.fees.refundFee)} ZEC`],
-        ["Total cost", `${pct}% of what you send`], ["1Click minimum", `${zec(q.minAmount)} ZEC`], ["Quote expires", new Date(q.deadline).toISOString().slice(0, 16).replace("T", " ") + " UTC"]])),
+        ["Total cost", `${pct}% of what you send`], ["1Click minimum", `${zec(q.minAmount)} ZEC`], ["Quote expires", IST(q.deadline)]])),
     MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Recorded 1Click quote, correlation 9136ee09, file shore-funded-quote-v2.json.")) : null,
-    LIVE ? h("button", { class: "linkbtn", type: "button", onclick: () => { setStep("s-approve", "locked"); put(body("s-approve")); setStep("s-quote", "active"); renderQuoteForm(); } }, "Change amount") : null));
+    h("p", {}, h("button", { class: "linkbtn", type: "button", onclick: () => reopen("s-quote", renderQuoteForm) }, "Change amount"))));
   setStep("s-quote", "done", "quoted");
   ledger("send", "Send", `${zec(q.amountIn)} ZEC`);
   ledger("fee", "Fee", h("span", { class: bps > 1000 ? "warn" : "" }, `${pct}%`));
-  ledger("lands", "Lands, quoted", `${zec(q.amountOut)} ZEC`, { hero: ["Lands in the shielded pool, quoted", [zec(q.amountOut), h("small", {}, "ZEC")]] });
+  ledger("lands", "Lands, quoted", `${zec(q.amountOut)} ZEC`, { hero: ["Lands in the shielded pool, quoted", [zec(q.amountOut), h("small", {}, "ZEC")]], strip: ["Lands, quoted", `${zec(q.amountOut)} ZEC`] });
   setStep("s-approve", "active");
   renderApprove();
 }
@@ -248,7 +258,7 @@ function setCrossing(phase) {
   c.querySelectorAll(".node").forEach((n, i) => { n.className = "node" + (i < at ? " on" : i === at ? " now" : ""); });
   if (phase === "landed") tide(1); else if (phase === "idle") tide(0);
 }
-function tide(f) { $("tide-fill").style.transform = `scaleX(${Math.max(0, Math.min(1, f))})`; }
+function tide(f) { $("tide-fill").style.clipPath = `inset(0 ${(100 - 100 * Math.max(0, Math.min(1, f))).toFixed(1)}% 0 0)`; }
 const PHASE_OF = { PENDING_DEPOSIT: "send", KNOWN_DEPOSIT_TX: "send", INCOMPLETE_DEPOSIT: "send", PROCESSING: "bridge", SUCCESS: "landed" };
 async function land() {
   const b = body("s-land");
@@ -262,7 +272,7 @@ async function land() {
   const start = performance.now();
   const eta = MODE === "replay" ? (await api.loadReplay()).seconds : S.quote.timeEstimateSecs || 135;
   const tick = setInterval(() => { const sec = Math.round(((performance.now() - start) / 1000) * api.SPEED);
-    clock.textContent = `${sec}s`; tide(Math.min(0.94, sec / eta)); ledger("elapsed", "Elapsed", `${sec}s`, { hero: ["Crossing, elapsed", [String(sec), h("small", {}, "s")]] }); }, 250);
+    clock.textContent = `${sec}s`; tide(Math.min(0.94, sec / eta)); ledger(null, null, null, { hero: ["Crossing, elapsed", [String(sec), h("small", {}, "s")]], strip: ["Crossing, elapsed", `${sec}s`] }); }, 250);
   for (;;) {
     try {
       const s = (S.status = await api.status(S.quote.depositAddress));
@@ -280,8 +290,8 @@ async function land() {
         else cap.textContent = "send to land";
         ledger("elapsed", "Elapsed", clock.textContent);
         setCrossing("landed");
-        put(now, `Landed in ${clock.textContent}.`); now.className = "receipt";
-        setStep("s-land", "done", clock.textContent);
+        put(now, "Landed on Zcash."); now.className = "receipt";
+        setStep("s-land", "done", "landed");
         readbackLoop(); exposureLoad(); return;
       }
     } catch (e) { put(note, err(e)); }
@@ -306,7 +316,7 @@ function renderReadback(r) {
   card.dataset.landed = "";
   const amt = h("p", { class: "amount", "data-testid": "rb-amount" });
   put(card,
-    h("h2", { class: "ch" }, "Shielded"),
+    h("h2", { class: "ch" }, "Read back from Zcash"),
     amt,
     h("p", { class: "seal" }, "Decrypted from the note on Zcash with SHORE's viewing key. Orchard receiver, Ironwood pool (v6 transaction)."),
     kv([["Mined at height", link(EXPL.zecBlock(r.height), r.height.toLocaleString("en-US"))],
@@ -318,9 +328,8 @@ function renderReadback(r) {
     MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Replay of the recorded mainnet run, 2026-10-10 09:22 IST, file shore-live-run.json.")) : null);
   countUp(amt, r.valueZat, h("small", {}, "ZEC"));
   const hv = h("span"); countUp(hv, r.valueZat, "");
-  ledger("landed", "Landed", h("span", { class: "sh" }, `${zec(r.valueZat)} ZEC`), { hero: ["Shielded, read back from Zcash", [hv, h("small", {}, "ZEC")]], tone: "shielded" });
-  $("clock-cap").textContent = `${zec(r.valueZat)} ZEC shielded`;
-  if (matchMedia("(max-width: 959px)").matches) card.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
+  ledger(null, null, null, { hero: ["Shielded, read back from Zcash", [hv, h("small", {}, "ZEC")]], tone: "shielded", strip: ["Shielded", `${zec(r.valueZat)} ZEC`] });
+  if (matchMedia("(max-width: 959px)").matches) card.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "center" });
 }
 
 // ---------- what's still public ----------
@@ -331,14 +340,14 @@ const DEFAULT_EXPOSED = [
   ["What is private afterwards:", "spends you make later from the note. Nobody outside your wallet can see those."],
 ];
 function renderExposureDefault() {
-  put($("pub-n"), String(DEFAULT_EXPOSED.length));
+  put($("pub-n"), `${DEFAULT_EXPOSED.length} in general`);
   put($("exposed"), DEFAULT_EXPOSED.map(([b, t], i) => h("li", {}, i < 3 ? h("b", {}, b) : h("strong", {}, b), " ", t)));
 }
 async function exposureLoad() {
   try {
     const x = (S.exposure = await api.exposure(S.session.id, { sender: S.wallet.address, deposit: S.quote.depositAddress, recipient: S.session.recipient }));
-    put($("pub-n"), String(x.rows.length));
-    put($("exposed"), x.rows.map((r) => h("li", { "data-exposed": String(r.exposed) },
+    put($("pub-n"), `${x.rows.length} for this transfer`);
+    put($("exposed"), x.rows.map((r) => h("li", { "data-exposed": String(r.exposed), "data-who": /anyone/i.test(r.whoCanSee) ? "anyone" : /nobody/i.test(r.whoCanSee) ? "nobody" : "some" },
       r.exposed ? h("b", {}, r.what) : h("strong", {}, r.what), r.value ? h("span", { class: "help" }, /^\d+$/.test(r.value) ? `${zec(r.value)} ZEC` : short(r.value, 10)) : null,
       h("span", { class: "help" + (/anyone/i.test(r.whoCanSee) ? " warn" : "") }, `${r.exposed ? "Readable by" : "Visible to"}: ${r.whoCanSee}`))),
       x.addressReused ? h("li", {}, h("b", {}, "This u1 was used before."), " Earlier shields are now linkable to this one.") : null);
@@ -357,3 +366,4 @@ function boot() {
       MODE === "live" ? h("a", { class: "btn ghost", href: "?replay=1" }, "Watch the recorded run") : h("a", { class: "btn ghost", href: "?live=1" }, "Use it live (mainnet)")));
 }
 boot();
+setTimeout(() => document.documentElement.classList.add("booted"), 900);
