@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 // Fails the test if the page ever touches a wallet or a write endpoint in replay.
 async function guard(page) {
   const writes = [];
-  page.on("request", (r) => { if (r.method() !== "GET" && !r.url().startsWith("http://127.0.0.1:4173")) writes.push(r.url()); });
+  page.on("request", (r) => { if (r.method() !== "GET" && !r.url().startsWith(new URL(page.url() === "about:blank" ? "http://127.0.0.1:4173" : page.url()).origin)) writes.push(r.url()); });
   await page.addInitScript(() => {
     const trap = { isPhantom: true, connect() { throw new Error("wallet touched"); }, signAndSendTransaction() { throw new Error("wallet touched"); } };
     window.phantom = { solana: trap }; window.solana = trap;
@@ -69,14 +69,14 @@ test("live mode keeps approve locked until mainnet is acknowledged", async ({ pa
     if (u.includes("/quote")) return r.fulfill({ json: { id: "t1", depositAddress: "DMDdCzumrZBaPPjKBP33o1RgDhW2F2BZPzyYZEk9SjbM", mint: "A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS", decimals: 8, amountIn: "140000", amountOut: "108000", minAmountOut: "106920", fees: { withdrawFee: "32000", refundFee: "844", totalFeeBps: 2286 }, minAmount: "133334", deadline: "2026-10-13T06:47:48.000Z", timeEstimateSecs: 135, recipient: "u1" + "a".repeat(110) } });
     return r.fulfill({ status: 404, json: { error: "x" } });
   });
-  await page.route("**/api.mainnet-beta.solana.com/**", (r) => r.fulfill({ json: { jsonrpc: "2.0", id: 1, result: { value: [{ account: { data: { parsed: { info: { tokenAmount: { amount: "500000" } } } } } }] } } }));
+  await page.route("**/api/rpc", (r) => r.fulfill({ json: { jsonrpc: "2.0", id: 1, result: { value: [{ account: { data: { parsed: { info: { tokenAmount: { amount: "500000" } } } } } }] } } }));
   const signed = [];
   await page.exposeFunction("__signed", () => signed.push(1));
   await page.addInitScript(() => {
     const p = { isPhantom: true, connect: async () => ({ publicKey: { toString: () => "ia3MLukFMa6zci4nyahxsKVT14yLkFzUkZs3EL5Vsa5" } }), signAndSendTransaction: async () => { window.__signed(); throw new Error("blocked in test"); } };
     window.phantom = { solana: p };
   });
-  await page.goto("/shore/");
+  await page.goto("/shore/?live=1");
   await page.getByTestId("connect").click();
   await expect(page.getByTestId("balance")).toContainText("0.005");
   await page.getByTestId("fresh").click();
@@ -86,4 +86,32 @@ test("live mode keeps approve locked until mainnet is acknowledged", async ({ pa
   await page.locator("#ack").check();
   await expect(page.getByTestId("approve")).toBeEnabled();
   expect(signed).toEqual([]);
+});
+
+test("a judge lands on the replay by default, live is one link away", async ({ page }) => {
+  const writes = await guard(page);
+  await page.goto("/shore/");
+  await expect(page.locator("#mode")).toContainText("Replay");
+  await expect(page.getByRole("link", { name: /live/i })).toHaveAttribute("href", "?live=1");
+  expect(writes).toEqual([]);
+});
+
+// Real SHORE service (local or deployed), opt-in: SHORE_LIVE_API=1. Fresh u1, real balance through
+// /api/rpc, and the quote forced to dry so no deposit address is ever created.
+test("live flow against the real API (dry quote only)", async ({ page }) => {
+  test.skip(!process.env.SHORE_LIVE_API, "set SHORE_LIVE_API=1 to hit the real service");
+  await page.route("**/api/quote", (r) => r.continue({ postData: JSON.stringify({ ...JSON.parse(r.request().postData()), dry: true }) }));
+  await page.addInitScript(() => {
+    const p = { isPhantom: true, connect: async () => ({ publicKey: { toString: () => "ia3MLukFMa6zci4nyahxsKVT14yLkFzUkZs3EL5Vsa5" } }), signAndSendTransaction: async () => { throw new Error("never signs in tests"); } };
+    window.phantom = { solana: p };
+  });
+  await page.goto("/shore/?live=1");
+  await page.getByTestId("connect").click();
+  await expect(page.getByTestId("balance")).toContainText("ZEC", { timeout: 20_000 });
+  await page.getByTestId("fresh").click();
+  await expect(page.getByTestId("recipient")).toContainText("u1", { timeout: 20_000 });
+  await page.locator("#amt").fill("0.0014");
+  await page.getByRole("button", { name: "Get quote" }).click();
+  await expect(page.getByTestId("quote")).toContainText("0.00032 ZEC", { timeout: 30_000 });
+  await expect(page.getByTestId("approve")).toBeDisabled();
 });

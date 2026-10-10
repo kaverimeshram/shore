@@ -291,3 +291,14 @@ async fn real_notes_db_holds_the_live_note() {
     let n = nw.landed().unwrap().into_iter().find(|n| n.txid == LIVE_ZTX).expect("live note in the db");
     assert_eq!((n.pool.as_str(), n.value_zat, n.mined_height), ("ironwood", 115_000, Some(3_512_504)));
 }
+
+#[tokio::test]
+async fn rpc_proxy_allows_reads_only() {
+    let s = Srv::start(Arc::new(MockOneClick::default()), Arc::new(MockZcash::default()), test_addrs()).await;
+    for m in ["sendTransaction", "requestAirdrop", "getProgramAccounts"] {
+        let (c, v) = s.post("/api/rpc", json!({ "jsonrpc": "2.0", "id": 1, "method": m, "params": [] })).await;
+        assert_eq!((c, v["code"].as_str()), (400, Some("RPC_METHOD")), "{m}");
+    }
+    let (c, v) = s.post("/api/rpc", json!({ "jsonrpc": "2.0", "id": 1, "method": "getBalance", "params": [SENDER], "x": 1 })).await;
+    assert_eq!((c, v["code"].as_str()), (400, Some("RPC_METHOD")));
+}

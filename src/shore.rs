@@ -180,7 +180,8 @@ impl Shore {
         let p = self.dir.join("ua-index");
         let i: u32 = match std::fs::read_to_string(&p) {
             Ok(s) => s.trim().parse().map_err(|_| anyhow!("ua-index is not a number"))?,
-            Err(_) => 0,
+            // A new disk (a deploy) starts in its own index range so it never repeats a local address.
+            Err(_) => std::env::var("SHORE_INDEX_START").ok().and_then(|x| x.parse().ok()).unwrap_or(0),
         };
         std::fs::write(&p, (i + 1).to_string())?;
         let u1 = self.addrs.at(i)?;
@@ -265,6 +266,7 @@ pub fn router(s: Arc<Shore>) -> Router {
         .route("/api/status/{deposit}", get(status))
         .route("/api/readback/{id}", get(readback))
         .route("/api/exposure/{id}", get(exposure))
+        .route("/api/rpc", post(rpc))
         .with_state(s)
 }
 
@@ -495,6 +497,24 @@ async fn exposure(State(s): St, UrlPath(id): UrlPath<String>) -> R {
     // Reuse across shields: another session with the same recipient.
     let reused = std::fs::read_dir(s.dir.join("shore/sessions")).map_err(|e| internal(e.into()))?.flatten().filter_map(|e| serde_json::from_slice::<Session>(&std::fs::read(e.path()).ok()?).ok()).filter(|x| x.recipient == sess.recipient).count() > 1;
     Ok(Json(exposure_json(&sess, &r.raw, shape.as_ref(), reused)))
+}
+
+/// Solana JSON-RPC methods the page needs: the ZEC balance and a blockhash for the one transfer.
+/// Phantom broadcasts the signed transaction itself, so nothing that writes passes through here.
+pub const RPC_METHODS: [&str; 4] = ["getTokenAccountsByOwner", "getLatestBlockhash", "getSignatureStatuses", "getBalance"];
+
+/// Proxies allowed read methods to the provider in SHORE_SOLANA_RPC, so its API key stays server-side.
+async fn rpc(Json(v): Json<Value>) -> Result<Json<Value>, ApiErr> {
+    let m = v["method"].as_str().unwrap_or("");
+    if !RPC_METHODS.contains(&m) || v.as_object().map_or(true, |o| o.keys().any(|k| !["jsonrpc", "id", "method", "params"].contains(&k.as_str()))) {
+        return Err(bad("RPC_METHOD", format!("only {} are proxied", RPC_METHODS.join(", "))));
+    }
+    if serde_json::to_vec(&v).map_or(true, |b| b.len() > 4096) {
+        return Err(bad("RPC_SIZE", "request too large"));
+    }
+    let url = std::env::var("SHORE_SOLANA_RPC").map_err(|_| ApiErr(StatusCode::SERVICE_UNAVAILABLE, "RPC_UNSET", "SHORE_SOLANA_RPC is not set".into()))?;
+    let r = reqwest::Client::new().post(url).timeout(std::time::Duration::from_secs(15)).json(&v).send().await.map_err(|e| upstream(anyhow!("solana rpc: {}", e.without_url())))?;
+    Ok(Json(r.json().await.map_err(|e| upstream(anyhow!("solana rpc: {}", e.without_url())))?))
 }
 
 // ---------- production implementations ----------

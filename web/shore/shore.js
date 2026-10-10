@@ -3,7 +3,8 @@ import * as api from "./api.js";
 const MODE = api.MODE;
 const LIVE = MODE === "live";
 const MINT = "A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS";
-const RPC = window.SHORE_RPC || "https://api.mainnet-beta.solana.com";
+// Solana reads go through the SHORE service, which holds the provider key (POST /api/rpc).
+const RPC = window.SHORE_RPC || api.API + "/api/rpc";
 const USED_KEY = "shore.usedRecipients";
 const EXPL = {
   sol: (s) => `https://solscan.io/tx/${s}`,
@@ -292,6 +293,6 @@ function boot() {
   put(body("s-connect"),
     h("p", {}, "SHORE reads your ZEC balance on Solana. It never asks for a seed phrase and never holds funds."),
     h("div", { class: "row" }, h("button", { class: "btn", type: "button", "data-testid": "connect", onclick: connect }, MODE === "live" ? "Connect Phantom" : "Connect recorded wallet"),
-      MODE === "live" ? h("a", { class: "btn ghost", href: "?replay=1" }, "Watch the recorded run") : h("a", { class: "btn ghost", href: "./" }, "Exit replay")));
+      MODE === "live" ? h("a", { class: "btn ghost", href: "?replay=1" }, "Watch the recorded run") : h("a", { class: "btn ghost", href: "?live=1" }, "Use it live (mainnet)")));
 }
 boot();
