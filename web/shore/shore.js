@@ -93,6 +93,8 @@ function ledger(key, label, value, opts = {}) {
     el.closest(".metric").dataset.set = L[k] != null ? "" : null;
     if (L[k] == null) delete el.closest(".metric").dataset.set;
   }
+  for (const k of ["lands", "fee", "elapsed"]) { const m = $("ms-" + k); if (m) m.textContent = $("m-" + k).textContent; }
+  $("mstrip").dataset.live = "";
   if (opts.sub) for (const [k, v] of Object.entries(opts.sub)) put($(`m-${k}-s`), v);
   if (opts.hero) { put($("hero-k"), opts.hero[0]); put($("hero-v"), ...[].concat(opts.hero[1])); $("hero-v").dataset.tone = opts.tone || ""; }
   if (opts.chip) { const c = $("cross-chip"); c.textContent = opts.chip[0]; c.className = "chip " + opts.chip[1]; }
@@ -161,6 +163,7 @@ async function connect() {
       S.wallet = { provider: null, address: rec.sender };
       S.balance = BigInt(rec.quote.amountIn);
     }
+    document.documentElement.dataset.flow = "";
     renderConnected();
   } catch (e) { b.append(err(e)); }
 }
@@ -301,12 +304,13 @@ function setCrossing(phase) {
   const c = $("crossing"); c.dataset.phase = phase;
   const at = { idle: -1, send: 0, bridge: 1, landed: 3 }[phase];
   c.querySelectorAll(".node").forEach((n, i) => { n.className = "node" + (i < at ? " on" : i === at ? " now" : ""); });
-  if (phase === "landed") tide(1); else if (phase === "idle") tide(0);
+  if (phase === "landed" || phase === "idle") tide(1);
 }
 function tide(f) {
-  const v = `inset(0 ${(100 - 100 * Math.max(0, Math.min(1, f))).toFixed(1)}% 0 0)`;
-  document.querySelectorAll("#tide-fill, .mini-tide i").forEach((el) => { el.style.clipPath = v; });
+  const v = Math.max(0, Math.min(1, f)).toFixed(3);
+  document.querySelectorAll(".tide, .mini-tide").forEach((el) => el.style.setProperty("--f", v));
 }
+const tlab = (l, r) => { put($("t-left"), l); put($("t-right"), r); };
 const PHASE_OF = { PENDING_DEPOSIT: "send", KNOWN_DEPOSIT_TX: "send", INCOMPLETE_DEPOSIT: "send", PROCESSING: "bridge", SUCCESS: "landed" };
 async function land() {
   const b = body("s-land");
@@ -316,13 +320,15 @@ async function land() {
   const now = h("p", {}, "Crossing now. Nothing else to sign.");
   const mini = h("div", { class: "mini-tide", "aria-hidden": "true" }, h("i"));
   const miniPath = h("p", { class: "mini-path" }, h("span", {}, "Solana"), h("span", {}, "NEAR Intents"), h("span", {}, "Zcash"));
-  put(b, now, mini, miniPath, links, note);
+  const miniLab = h("p", { class: "mini-lab", "data-testid": "elapsed" }, "0s elapsed");
+  put(b, now, mini, miniPath, miniLab, links, note);
+  setCrossing("send"); tide(0); tlab("0s elapsed", "");
   setCrossing("send");
   cap.textContent = MODE === "replay" ? "recorded time, replayed faster" : "since you approved";
   const start = performance.now();
   const eta = MODE === "replay" ? (await api.loadReplay()).seconds : S.quote.timeEstimateSecs || 135;
   const tick = setInterval(() => { const sec = Math.round(((performance.now() - start) / 1000) * api.SPEED);
-    clock.textContent = `${sec}s`; tide(Math.min(0.94, sec / eta)); ledger("elapsed", null, `${sec}s`, { sub: { elapsed: MODE === "replay" ? "replayed faster" : "since you approved" }, hero: ["Crossing, elapsed", [String(sec), h("small", {}, "s")]], chip: ["crossing", "chip-warn"] }); }, 250);
+    clock.textContent = `${sec}s`; tide(Math.min(0.94, sec / eta)); tlab(`${sec}s elapsed`, `ETA about ${eta}s`); put(miniLab, `${sec}s elapsed, ETA about ${eta}s`); ledger("elapsed", null, `${sec}s`, { sub: { elapsed: MODE === "replay" ? "replayed faster" : "since you approved" }, hero: ["Crossing, elapsed", [String(sec), h("small", {}, "s")]], chip: ["crossing", "chip-warn"] }); }, 250);
   for (;;) {
     try {
       const s = (S.status = await api.status(S.quote.depositAddress));
@@ -339,7 +345,7 @@ async function land() {
         if (MODE === "replay") { clock.textContent = `${(await api.loadReplay()).seconds}s`; cap.textContent = "send to land, recorded on mainnet"; }
         else cap.textContent = "send to land";
         ledger("elapsed", null, clock.textContent, { sub: { elapsed: MODE === "replay" ? "send to land, recorded" : "send to land" } });
-        setCrossing("landed");
+        setCrossing("landed"); tlab("Solana", `landed in ${clock.textContent}`); put(miniLab, `Landed in ${clock.textContent}`);
         put(now, "Landed on Zcash."); now.className = "receipt";
         setStep("s-land", "done", "landed");
         readbackLoop(); exposureLoad(); return;
@@ -402,6 +408,7 @@ function renderReadback(r) {
     MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Replay of the recorded mainnet run, 2026-10-10 09:22 IST, file shore-live-run.json.")) : null);
   countUp(amt, r.valueZat, h("small", {}, "ZEC"));
   const hv = h("span"); countUp(hv, r.valueZat, "");
+  put($("clock-cap"), `Landed in ${L.elapsed || "?"}, read back from the note at height ${r.height.toLocaleString("en-US")}`);
   ledger("lands", null, zec(r.valueZat), { sub: { lands: "ZEC, read back from the note" }, hero: ["Shielded, read back from Zcash", [hv, h("small", {}, "ZEC")]], tone: "shielded", chip: ["shielded", "chip-pos"] });
   if (matchMedia("(max-width: 959px)").matches) card.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "center" });
 }
@@ -445,8 +452,8 @@ function renderInvite() {
 // Before a wallet connects, the metric row shows the last recorded mainnet run, labelled as such.
 function idleMetrics() {
   const set = (k, v, sub) => { put($("m-" + k), v); put($(`m-${k}-s`), sub); $("m-" + k).closest(".metric").dataset.idle = ""; };
-  set("balance", "0.0014", "ZEC sent, last mainnet run"); set("lands", "0.00115", "ZEC landed, last run");
-  set("fee", "22.9%", "fee, last run"); set("elapsed", "84s", "send to land, last run");
+  set("lands", "0.00115", "ZEC, last run"); set("fee", "22.9%", "last run");
+  put($("m-elapsed"), "\u2013"); put($("m-elapsed-s"), "starts when you approve");
 }
 function boot() {
   renderInvite();

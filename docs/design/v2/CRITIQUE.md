@@ -32,3 +32,17 @@ Seen and accepted (time box): on 390 the first action sits just under the fold a
 and the lede (the lede keeps the positioning line, so it is not clamped); the "Source" folds are still plain rows;
 desktop leaves empty space under the right-hand panels during the early steps.
 Self-critique only. The cwf-ui-gate requires an independent critic (fresh:<agent> or design-review) with a FINAL line.
+
+## Fix round after fresh critic v2 (6.6, min 5). Shots: docs/design/v2/fix1/, docs/design/r2-*.png
+1. Live state at the action: the dark crossing card now sits in a sticky right column beside the steps (desktop) and
+   carries Lands / Fee / Elapsed; mobile gets a sticky Lands / Fee / Elapsed strip under the header once a wallet connects.
+   The Crossing step shows "Ns elapsed, ETA about Ns"; the read-back card has scroll-margin-top (140px desktop, 130px mobile).
+2. Flattened: the explainer is one line of three numbered items (hidden on mobile; the tour covers it); Why now and
+   Business model moved to a footer section (header link "Why SHORE"); the quote's send/lands pair and the fee/source
+   disclosures are rows with separators; exposure rows are rows, not tiles; metric cards are gone from the page body.
+3. Own palette: harbour slate + Zcash gold (#f4b728) for shielded only, one action blue (#2350d8) for buttons,
+   teal (#0e7c86) as the in-flight accent, success/warning/danger/info set. "Try it in 60s" turns outline once the flow starts.
+4. Contrast: mute text #565f6b (about 6:1 on the canvas), danger chips #b4232a on #fbe4e5, footer in body ink, the
+   placeholder dash sits on the dark card at 70% white; labels and captions are 13px+.
+5. Progress: band with three stop ticks, a moving head, elapsed/ETA labels, full-strength gold at idle and landed,
+   landed caption "Landed in Ns, read back from the note at height N", 84s shown once at idle (Elapsed reads "starts when you approve").

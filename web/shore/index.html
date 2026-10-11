@@ -9,7 +9,7 @@
 <link rel="icon" href="data:,">
 <link rel="preload" href="../fonts/figtree-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../fonts/bricolage-grotesque-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<meta name="theme-color" content="#e8ebe6">
+<meta name="theme-color" content="#eef0f3">
 <link rel="stylesheet" href="shore.css">
 </head>
 <body>
@@ -19,47 +19,23 @@
     <a class="mark" href="./" aria-label="SHORE, start over"><span class="mark-dot" aria-hidden="true"></span>SHORE</a>
     <p class="mode chip" id="mode" role="status"></p>
     <a class="btn btn-sm tour-cta" href="?replay=1&amp;tour=1&amp;speed=3" data-testid="tour">Try it in 60s</a>
+    <a class="toabout" href="#about">Why SHORE</a>
   </div>
 </header>
+<div class="mstrip" id="mstrip" aria-hidden="true">
+  <span><small>Lands</small><b id="ms-lands">&ndash;</b></span><span><small>Fee</small><b id="ms-fee">&ndash;</b></span><span><small>Elapsed</small><b id="ms-elapsed">&ndash;</b></span>
+</div>
 
 <div class="page">
-<section class="hero-row">
-  <div class="intro" id="intro">
-    <p class="eyebrow">Solana ZEC &rarr; shielded Zcash</p>
-    <h1 class="display">Got ZEC in Phantom from rewards? Shield it in one approval.</h1>
-    <p class="lede">The ZEC that landed in your Phantom wallet sits next to your public Solana history. SHORE moves it into a shielded Zcash balance with one approval, then reads the note back from Zcash so you can see it arrived. Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the way in.</p>
-    <p class="invite card" id="invite" hidden></p>
-    <div class="judge card card-soft" id="judge">
-      <p class="card-k">What you are seeing: the recorded mainnet run of 2026-10-10, nothing is sent</p>
-      <ol class="judge-steps">
-    <li><b>Connect and quote.</b> A Phantom wallet holding Solana ZEC gets a fresh shielded u1 and a 1Click quote with every fee shown.</li>
-    <li><b>One approval, one crossing.</b> A single SPL transfer; the tide band follows it from Solana through NEAR Intents to Zcash.</li>
-    <li><b>Read-back and honesty.</b> SHORE decrypts the landed note with a viewing key, then lists what is still public.</li>
-  </ol>
-    </div>
+<section class="intro" id="intro">
+  <p class="eyebrow">Solana ZEC &rarr; shielded Zcash</p>
+  <h1 class="display">Got ZEC in Phantom from rewards? Shield it in one approval.</h1>
+  <p class="lede">The ZEC that landed in your Phantom wallet sits next to your public Solana history. SHORE moves it into a shielded Zcash balance with one approval, then reads the note back from Zcash so you can see it arrived. Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the way in.</p>
+  <p class="invite" id="invite" hidden></p>
+  <div class="judge" id="judge">
+    <p class="judge-k">Replay of the 10 Oct mainnet run, nothing is sent:</p>
+    <ol class="judge-steps"><li><b>Connect and quote</b></li><li><b>One approval, one crossing</b></li><li><b>Read-back and what is still public</b></li></ol>
   </div>
-
-  <section class="crossing card" id="crossing" aria-label="Crossing tracker" data-phase="idle">
-    <div class="crossing-head">
-      <p class="card-k" id="hero-k">Last mainnet crossing</p>
-      <span class="chip chip-pos" id="cross-chip">recorded</span>
-    </div>
-    <p class="hero" id="hero-v"><span class="clock" data-testid="clock" id="clock">84s</span></p>
-    <p class="cap" id="clock-cap">last mainnet run, 115,000 zat landed</p>
-    <div class="tide" aria-hidden="true"><i class="tide-fill" id="tide-fill"></i></div>
-    <ol class="path">
-      <li class="node" data-node="0"><span class="dot" aria-hidden="true"></span><span class="nl">Solana</span><span class="ns" data-ns>Phantom</span></li>
-      <li class="node" data-node="1"><span class="dot" aria-hidden="true"></span><span class="nl">Bridge</span><span class="ns" data-ns>NEAR Intents</span></li>
-      <li class="node" data-node="2"><span class="dot" aria-hidden="true"></span><span class="nl">Shielded</span><span class="ns" data-ns>Zcash</span></li>
-    </ol>
-  </section>
-</section>
-
-<section class="metrics" id="ledger" aria-live="polite" aria-label="Summary">
-  <div class="metric card" data-k="balance"><p class="metric-k">Balance</p><p class="metric-v" id="m-balance">&ndash;</p><p class="metric-s" id="m-balance-s">ZEC, SPL token</p></div>
-  <div class="metric card" data-k="lands"><p class="metric-k">Lands</p><p class="metric-v" id="m-lands">&ndash;</p><p class="metric-s" id="m-lands-s">quoted by 1Click</p></div>
-  <div class="metric card" data-k="fee"><p class="metric-k">Fee</p><p class="metric-v" id="m-fee">&ndash;</p><p class="metric-s" id="m-fee-s">of what you send</p></div>
-  <div class="metric card" data-k="elapsed"><p class="metric-k">Elapsed</p><p class="metric-v" id="m-elapsed">&ndash;</p><p class="metric-s" id="m-elapsed-s">send to land</p></div>
 </section>
 
 <div class="work">
@@ -91,25 +67,45 @@
       <div class="body" data-body></div>
     </li>
   </ol>
-</main>
-
-<aside class="panels">
   <section class="card readback" id="readback" aria-live="polite">
     <h2 class="ch">Read-back</h2>
     <p class="empty">After the note is mined, SHORE decrypts it with a viewing key and shows the amount here.</p>
   </section>
-
   <details class="card public" id="public">
     <summary><h2 class="ch">What&rsquo;s still public <span class="n" id="pub-n"></span></h2></summary>
     <ul class="exposed" id="exposed"></ul>
     <h3 class="sub">Counterparty risk</h3>
     <p class="risk">The hop runs through NEAR Intents 1Click, a solver network with an operator. While your ZEC is in flight it can be delayed, refunded or frozen by that service. SHORE never holds your funds.</p>
   </details>
+</main>
+
+<aside class="side">
+  <section class="crossing card" id="crossing" aria-label="Crossing tracker" data-phase="idle">
+    <div class="crossing-head">
+      <p class="card-k" id="hero-k">Last mainnet crossing</p>
+      <span class="chip chip-gold" id="cross-chip">recorded</span>
+    </div>
+    <p class="hero" id="hero-v"><span class="clock" data-testid="clock" id="clock">84s</span></p>
+    <p class="cap" id="clock-cap">Solana to shielded Zcash, 115,000 zat landed</p>
+    <div class="tide" aria-hidden="true"><i class="tide-fill" id="tide-fill"></i><i class="tick" style="left:0"></i><i class="tick" style="left:50%"></i><i class="tick" style="left:100%"></i><i class="tide-head"></i></div>
+    <p class="tide-lab"><span id="t-left">start</span><span id="t-right">landed</span></p>
+    <ol class="path">
+      <li class="node" data-node="0"><span class="nl">Solana</span><span class="ns">Phantom</span></li>
+      <li class="node" data-node="1"><span class="nl">Bridge</span><span class="ns">NEAR Intents</span></li>
+      <li class="node" data-node="2"><span class="nl">Shielded</span><span class="ns">Zcash</span></li>
+    </ol>
+    <dl class="strip" id="ledger" aria-live="polite">
+      <div class="metric" data-k="lands"><dt>Lands</dt><dd id="m-lands">&ndash;</dd><dd class="metric-s" id="m-lands-s">quoted by 1Click</dd></div>
+      <div class="metric" data-k="fee"><dt>Fee</dt><dd id="m-fee">&ndash;</dd><dd class="metric-s" id="m-fee-s">of what you send</dd></div>
+      <div class="metric" data-k="elapsed"><dt>Elapsed</dt><dd id="m-elapsed">&ndash;</dd><dd class="metric-s" id="m-elapsed-s">send to land</dd></div>
+    </dl>
+  </section>
 </aside>
 </div>
 
-<div class="about-row">
-<section class="card about" id="demand" aria-labelledby="demand-h">
+<footer class="foot" id="about">
+  <div class="about-row">
+<section class="about" id="demand" aria-labelledby="demand-h">
   <h2 class="ch" id="demand-h">Why now</h2>
   <ul class="demand">
     <li><a href="https://forum.zcashcommunity.com/t/38-000-new-zec-holders-on-solana-in-six-weeks-now-what/57788">Raydium&rsquo;s CMO</a>: 38,000 first-time ZEC holders on Solana in six weeks; almost none bridged.</li>
@@ -118,15 +114,12 @@
     <li>Bounties pay for this onboarding: <a href="https://bounties.zechub.wiki/bounty/cmuishtwo0010cvegb8eexpye">ZecHub</a>, <a href="https://x.com/zksnarks_/status/2104718302606205130">zkSNARKs &ldquo;first shielded transaction&rdquo;</a>.</li>
   </ul>
 </section>
-
-<section class="card about" id="business" aria-labelledby="biz-h">
+<section class="about" id="business" aria-labelledby="biz-h">
   <h2 class="ch" id="biz-h">Business model</h2>
   <p class="biz">Holders will pay a small, transparent SHORE fee on each shield: it is built in through the 1Click <code>appFees</code> field and shown as its own line in the quote, and it is switched off today, so every shield so far paid only 1Click&rsquo;s fees. Wallets, communities and bounty programs are the planned buyers of invite links that bring their members through SHORE in one approval; none has paid yet. SHORE never holds funds, so the fee is the whole business.</p>
 </section>
-</div>
-
-<footer class="foot">
-  <p>No custody, no account. Built on AIRLOCK. <a href="../">AIRLOCK receipts</a></p>
+  </div>
+  <p class="fine">No custody, no account. Built on AIRLOCK. <a href="../">AIRLOCK receipts</a></p>
 </footer>
 </div>
 <noscript><p class="noscript">SHORE runs in the browser and needs JavaScript.</p></noscript>
