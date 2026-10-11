@@ -8,6 +8,6 @@ ok   button styles present
 ok   status chips/badges styled (8)
 ok   surfaces/cards present
 ok   summary metrics present
-ok   radius mixed (1 zero, 8 non-zero)
+ok   radius ok
 ---
 slop-check: PASS

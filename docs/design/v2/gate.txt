@@ -2,6 +2,6 @@ ok   references: 3 captured
 ok   components logged
 FAIL CRITIQUE.md has no parseable 'FINAL: <score> min=<m> round=<n> critic=<who> review=<path>' line
 ok   uicraft gate
-FAIL banned pattern: /Users/kamal/Desktop/solana/cwf/zcash/projects/airlock/web/shore/shore.css:2:@layer properties{@supports (((-webkit-hyphens:none)) and (not (margin-trim:inline);
+ok   cwf banned grep
 ok   slop-check
----- 2 failure(s)
+---- 1 failure(s)
