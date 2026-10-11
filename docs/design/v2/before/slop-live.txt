@@ -1,0 +1,15 @@
+ok   webfont loaded
+ok   primary font: BigShouldersDisplay
+ok   tables: 0, none bare
+ok   no Markdown rendering
+ok   links styled
+ok   CSS variables defined (9 decls)
+ok   button styles present
+ok   status chips/badges styled (5)
+FAIL no surfaces (card/panel class + shadow/surface token): flat document
+ok   summary metrics present
+ok   radius ok
+rendered: face=Atkinson Hyperlegible rounded=5 square=16 panels=0 status_plain=0 status_chip=0
+FAIL rendered: no panels/cards (no surface differs from page background, no shadows)
+---
+slop-check: 2 issue(s)

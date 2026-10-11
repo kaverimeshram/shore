@@ -2,6 +2,17 @@
   "name": "shore-web",
   "private": true,
   "type": "module",
-  "scripts": { "test": "playwright test", "shots": "SHOTS=1 playwright test shots" },
-  "devDependencies": { "@playwright/test": "^1.48.0" }
+  "scripts": {
+    "test": "playwright test",
+    "shots": "SHOTS=1 playwright test shots",
+    "css": "tailwindcss -i shore/tw.css -o shore/shore.css --minify"
+  },
+  "devDependencies": {
+    "@fontsource/bricolage-grotesque": "^5.3.0",
+    "@fontsource/figtree": "^5.3.0",
+    "@fontsource/geist-mono": "^5.3.0",
+    "@playwright/test": "^1.48.0",
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  }
 }

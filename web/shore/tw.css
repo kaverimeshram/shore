@@ -1,0 +1,243 @@
+/* SHORE v2. Source for shore.css: npx @tailwindcss/cli -i shore/tw.css -o shore/shore.css --minify (see web/package.json "css").
+   System: adapted from design-md/wise (docs/design/DESIGN.md). shadcn-style recipes as components below. */
+@import "tailwindcss";
+@source "./index.html";
+@source "./shore.js";
+
+@font-face{font-family:"Figtree";src:url(../fonts/figtree-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Figtree";src:url(../fonts/figtree-latin-500-normal.woff2) format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Figtree";src:url(../fonts/figtree-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Figtree";src:url(../fonts/figtree-latin-700-normal.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Bricolage Grotesque";src:url(../fonts/bricolage-grotesque-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Bricolage Grotesque";src:url(../fonts/bricolage-grotesque-latin-800-normal.woff2) format("woff2");font-weight:800;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url(../fonts/geist-mono-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url(../fonts/geist-mono-latin-500-normal.woff2) format("woff2");font-weight:500;font-display:swap}
+
+@theme{
+  --font-sans:"Figtree",ui-sans-serif,sans-serif;
+  --font-display:"Bricolage Grotesque",ui-sans-serif,sans-serif;
+  --font-body:"Figtree",ui-sans-serif,sans-serif;
+  --font-mono:"Geist Mono",ui-monospace,monospace;
+  --color-canvas:#e8ebe6; --color-card:#ffffff; --color-card-2:#f4f6f2; --color-ink:#0e0f0c; --color-ink-deep:#163300;
+  --color-body:#454745; --color-mute:#6b6d6a; --color-line:#d6dad2;
+  --color-accent:#9fe870; --color-accent-pale:#e2f6d5; --color-accent-ink:#163300;
+  --color-positive:#2ead4b; --color-positive-pale:#dcf3e1; --color-warning:#ffd11a; --color-warning-ink:#7a4a00; --color-warning-pale:#fff3c4;
+  --color-negative:#d03238; --color-negative-pale:#fbe3e3; --color-info-pale:#e3f2fb; --color-info-ink:#0b4a6b;
+  --radius-input:10px; --radius-card:16px; --radius-pill:999px;
+  --shadow-card:0 1px 2px rgba(14,15,12,.06),0 8px 24px rgba(14,15,12,.06);
+}
+:root{ --surface:var(--color-card); --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px }
+
+@layer base{
+  html{background:var(--color-canvas);color:var(--color-ink);-webkit-font-smoothing:antialiased}
+  body{font-family:var(--font-body);font-size:16px;line-height:1.5;min-height:100vh}
+  h1,h2,h3{font-family:var(--font-display);letter-spacing:-.01em}
+  a{color:inherit}
+  input[type=text]{@apply w-full rounded-input border border-line bg-white px-3 py-2.5 font-mono text-sm text-ink outline-none transition;}
+  input[type=text]:focus{@apply border-ink ring-2 ring-accent;}
+  input[readonly]{@apply bg-card-2 text-body;}
+  summary{cursor:pointer}
+  ::selection{background:var(--color-accent)}
+  :focus-visible{outline:2px solid var(--color-ink);outline-offset:2px}
+}
+
+@layer components{
+  /* buttons: shadcn button variants (default / outline / ghost / sm / lg) */
+  .btn{@apply inline-flex items-center justify-center gap-2 rounded-pill bg-accent px-5 py-2.5 text-[15px] font-semibold text-accent-ink no-underline transition select-none cursor-pointer;}
+  .btn:hover{background:#b6f08f}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{@apply cursor-not-allowed bg-card-2 text-mute;}
+  .btn.ghost{@apply border border-ink/20 bg-white text-ink;}
+  .btn.ghost:hover{@apply border-ink bg-card-2;}
+  .btn.big{@apply px-7 py-3.5 text-base;}
+  .btn-sm{@apply px-4 py-2 text-sm;}
+  .linkbtn{@apply cursor-pointer rounded-pill px-2 py-0.5 text-sm font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:bg-card-2;}
+  .lnk{@apply font-medium text-ink underline decoration-ink/25 underline-offset-[3px] hover:decoration-ink;}
+  /* card / surface */
+  .card{@apply rounded-card bg-card p-5 shadow-[var(--shadow-card)];}
+  .card-soft{@apply bg-card-2 shadow-none ring-1 ring-line;}
+  .card-k{@apply text-xs font-semibold uppercase tracking-[.08em] text-mute;}
+  /* chips: shadcn badge variants */
+  .chip{@apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill px-2.5 py-1 text-xs font-semibold leading-none;}
+  .chip::before{content:"";@apply size-1.5 rounded-full bg-current opacity-80;}
+  .chip-locked{@apply bg-card-2 text-mute ring-1 ring-line;}
+  .chip-active{@apply bg-accent text-accent-ink;}
+  .chip-done,.chip-pos{@apply bg-positive-pale text-[#054d28];}
+  .chip-info{@apply bg-info-pale text-info-ink;}
+  .chip-warn{@apply bg-warning-pale text-warning-ink;}
+  .chip-neg{@apply bg-negative-pale text-negative;}
+  /* addresses */
+  .addr{@apply inline-flex max-w-full items-center gap-1.5 rounded-input bg-card-2 py-0.5 pl-2 pr-0.5 align-middle font-mono text-[13px] text-ink ring-1 ring-line;}
+  .addr-t{@apply truncate no-underline;}
+  .copy{@apply cursor-pointer rounded-[7px] bg-white px-1.5 py-0.5 font-body text-[11px] font-semibold text-body ring-1 ring-line hover:text-ink;}
+  .copy[data-done]{@apply bg-accent text-accent-ink ring-0;}
+}
+
+/* ---------- layout ---------- */
+.skip{position:absolute;left:-999px}.skip:focus{left:16px;top:16px;z-index:9;@apply rounded-pill bg-ink px-4 py-2 text-white}
+.appbar{@apply sticky top-0 z-20 border-b border-line bg-canvas/95;}
+.appbar-in{@apply mx-auto flex max-w-[1200px] items-center gap-3 px-5 py-3 sm:px-8;}
+.mark{@apply inline-flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-ink no-underline;}
+.mark-dot{@apply size-3.5 rounded-full bg-accent ring-4 ring-accent-pale;}
+.mode{@apply bg-white text-body ring-1 ring-line;}
+.mode[data-mode=live]{@apply bg-negative-pale text-negative ring-0;}
+.mode[data-mode=replay]{@apply bg-info-pale text-info-ink ring-0;}
+.tour-cta{@apply ml-auto whitespace-nowrap;}
+html[data-tour] .tour-cta{display:none}
+.page{@apply mx-auto max-w-[1200px] px-5 pb-12 pt-6 sm:px-8 sm:pt-10;}
+
+.hero-row{@apply grid gap-6 lg:grid-cols-[1.25fr_1fr] lg:items-start;}
+.eyebrow{@apply mb-3 text-sm font-semibold text-ink-deep;}
+.display{@apply max-w-[16ch] font-display text-[40px] font-extrabold leading-[1.02] tracking-[-.025em] text-ink sm:text-[56px];}
+.lede{@apply mt-4 max-w-[58ch] text-[17px] leading-relaxed text-body;}
+.invite{@apply mt-5 text-[15px] leading-relaxed text-body ring-2 ring-accent;}
+.invite b{@apply text-ink;}
+.invite q{@apply font-semibold text-ink;}
+.judge{@apply mt-5;}
+.judge-steps{@apply mt-3 grid gap-3 p-0 sm:grid-cols-3;counter-reset:j;list-style:none}
+.judge-steps li{@apply relative rounded-input bg-white p-3 pt-9 text-sm leading-snug text-body ring-1 ring-line;counter-increment:j}
+.judge-steps li::before{content:counter(j);@apply absolute left-3 top-3 grid size-5 place-items-center rounded-full bg-ink font-display text-xs font-extrabold text-accent;}
+.judge-steps b{@apply block text-ink;}
+
+/* crossing card */
+.crossing{@apply relative overflow-hidden bg-ink p-6 text-white shadow-[var(--shadow-card)];}
+.crossing .card-k{@apply text-white/60;}
+.crossing-head{@apply flex items-center justify-between gap-3;}
+.hero{@apply mt-3 font-display text-[64px] font-extrabold leading-none tracking-[-.03em] tabular-nums text-white;}
+.hero small{@apply ml-2 align-baseline font-body text-xl font-semibold tracking-normal text-white/60;}
+.hero[data-tone=shielded]{@apply text-accent;}
+.cap{@apply mt-2 text-sm text-white/65;}
+.tide{@apply relative mt-6 h-3 overflow-hidden rounded-pill bg-white/12;}
+.tide-fill{@apply absolute inset-0 rounded-pill bg-accent transition-[clip-path] duration-500 ease-out;clip-path:inset(0 100% 0 0)}
+.crossing[data-phase=idle] .tide-fill{clip-path:inset(0 0 0 0)!important;opacity:.35}
+.path{@apply mt-3 grid grid-cols-3 p-0;list-style:none}
+.node{@apply flex flex-col gap-0.5 text-white/55;}
+.node:nth-child(2){@apply items-center text-center;}
+.node:nth-child(3){@apply items-end text-right;}
+.node .dot{@apply mb-1 size-2.5 rounded-full bg-white/25;}
+.node.on,.node.now{@apply text-white;}
+.node.on .dot{@apply bg-accent;}
+.node.now .dot{@apply bg-warning ring-4 ring-warning/25;}
+.nl{@apply text-sm font-semibold;}
+.ns{@apply text-xs;}
+
+/* metrics */
+.metrics{@apply mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4;}
+.metric{@apply p-4 sm:p-5;}
+.metric-k{@apply text-xs font-semibold uppercase tracking-[.08em] text-mute;}
+.metric-v{@apply mt-2 truncate font-display text-[28px] font-extrabold leading-none tabular-nums tracking-[-.02em] text-mute/50 sm:text-[40px];}
+.metric[data-set] .metric-v{@apply text-ink;}
+.metric[data-idle] .metric-v{@apply text-body;}
+.metric[data-idle]{@apply bg-card-2 shadow-none ring-1 ring-line;}
+.metric[data-k=lands][data-set] .metric-v{@apply text-ink-deep;}
+.metric-s{@apply mt-2 text-xs text-mute;}
+.metric .warn{@apply text-warning-ink;}
+
+/* workspace */
+.work{@apply mt-6 grid gap-6 lg:grid-cols-[7fr_5fr] lg:items-start;}
+.steps{@apply m-0 grid gap-3 p-0;list-style:none}
+.step{@apply p-0 transition;}
+.step>header{@apply flex items-center justify-between gap-3 px-5 pt-4;}
+.step>header h2{@apply text-lg font-semibold text-ink;}
+.step .hint{@apply px-5 pb-1 pt-1 text-sm text-body;}
+.step .body{@apply px-5 pb-5 pt-2 empty:hidden;}
+.step[data-state=locked]{@apply bg-card-2 shadow-none ring-1 ring-line;}
+.step[data-state=locked]>header h2{@apply text-mute;}
+.step[data-state=locked] .hint{@apply text-mute;}
+.step[data-state=active]{@apply ring-2 ring-ink;}
+.step[data-state=done] .hint{display:none}
+.step[data-state=done] .body{@apply pt-1;}
+.row{@apply mt-3 flex flex-wrap items-center gap-2;}
+.label{@apply mb-1.5 block text-sm font-semibold text-ink;}
+.f{@apply mt-2 block;}
+.help{@apply mt-2 text-sm leading-relaxed text-body;}
+.help.warn,.warn{@apply text-warning-ink;}
+.err{@apply mt-2 rounded-input bg-negative-pale px-3 py-2 text-sm font-medium text-negative;}
+.receipt{@apply flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[15px] text-body;}
+.val{@apply font-mono font-medium text-ink;}
+.check{@apply mt-3 flex items-start gap-2.5 rounded-input bg-warning-pale p-3 text-sm text-warning-ink;}
+.check input{@apply mt-0.5 size-4 accent-ink;}
+.chg{@apply inline-flex items-center;}
+html[data-signed] .chg{display:none}
+.tag{@apply shrink-0;}
+.empty{@apply text-sm text-mute;}
+
+/* quote */
+.qt{@apply grid gap-3;}
+.qpair{@apply grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-card bg-card-2 p-4 ring-1 ring-line;}
+.qpair>span{@apply flex flex-col font-display text-2xl font-extrabold tabular-nums text-ink;}
+.qpair>span:last-child{@apply text-right text-ink-deep;}
+.qpair small{@apply font-body text-xs font-semibold uppercase tracking-[.08em] text-mute;}
+.qpair i{@apply grid size-9 place-items-center rounded-full bg-accent not-italic font-bold text-accent-ink;}
+.qsec{@apply text-sm text-body;}
+.qmini{display:none}
+.fold{@apply rounded-input ring-1 ring-line;}
+.fold>summary{@apply px-3 py-2 text-sm font-semibold text-ink;}
+.fold[open]>summary{@apply border-b border-line;}
+.fold>*:not(summary){@apply px-3 pb-3;}
+.kv{@apply mt-2 grid grid-cols-[auto_1fr] gap-x-4 text-sm;}
+.kv dt{@apply border-b border-line/70 py-2 text-mute;}
+.kv dd{@apply m-0 min-w-0 border-b border-line/70 py-2 text-right font-mono text-[13px] tabular-nums text-ink;}
+.kv dd .addr{@apply justify-end;}
+.mini-tide{@apply relative mt-3 h-2.5 overflow-hidden rounded-pill bg-card-2 ring-1 ring-line;}
+.mini-tide i{@apply absolute inset-0 rounded-pill bg-accent transition-[clip-path] duration-500;clip-path:inset(0 100% 0 0)}
+.mini-path{@apply mt-1.5 flex justify-between text-xs font-semibold text-mute;}
+.linksrow{@apply mt-3 flex flex-wrap gap-2 text-sm;}
+.linksrow>span{@apply inline-flex items-center gap-1.5;}
+
+/* panels */
+.panels{@apply grid gap-4 lg:sticky lg:top-20;}
+.ch{@apply font-display text-lg font-semibold text-ink;}
+.readback[data-landed]{@apply ring-2 ring-accent;}
+.readback .amount{@apply mt-3 font-display text-[48px] font-extrabold leading-none tabular-nums tracking-[-.03em] text-ink-deep;}
+.readback .amount small{@apply ml-2 font-body text-lg font-semibold text-mute;}
+.seal{@apply mt-3 inline-flex rounded-pill bg-accent-pale px-3 py-1.5 text-xs font-semibold text-accent-ink;}
+.note{@apply mt-3 text-sm text-body;}
+.public>summary{@apply flex items-center justify-between;list-style:none}
+.public>summary::-webkit-details-marker{display:none}
+.public>summary::after{content:"Show";@apply rounded-pill bg-card-2 px-3 py-1 text-xs font-semibold text-ink ring-1 ring-line;}
+.public[open]>summary::after{content:"Hide"}
+.public .n{@apply ml-2 rounded-pill bg-card-2 px-2 py-0.5 font-body text-xs font-semibold text-body;}
+.exposed{@apply mt-3 grid gap-2 p-0;list-style:none}
+.exposed li{@apply grid gap-1.5 rounded-input bg-card-2 p-3 text-sm leading-snug text-body;}
+.exposed li b,.exposed li strong{@apply text-ink;}
+.exposed .chip{@apply justify-self-start;}
+.sub{@apply mt-4 text-sm font-semibold text-ink;}
+.risk{@apply mt-1 text-sm leading-relaxed text-body;}
+
+/* about */
+.about-row{@apply mt-6 grid gap-4 lg:grid-cols-2;}
+.about .ch{@apply mb-1;}
+.demand{@apply mt-3 grid gap-2 p-0 sm:grid-cols-2;list-style:none}
+.demand li{@apply rounded-input bg-card-2 p-3 text-sm leading-snug text-body;}
+.demand a{@apply font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4;}
+.biz{@apply mt-3 text-[15px] leading-relaxed text-body;}
+.biz code{@apply rounded-[6px] bg-card-2 px-1 font-mono text-[13px] text-ink;}
+.foot{@apply mt-10 text-sm text-mute;}
+.foot a{@apply text-ink underline underline-offset-4;}
+.noscript{@apply p-6;}
+
+@media (max-width:1023px){
+  .page{display:flex;flex-direction:column}
+  .hero-row,.intro{display:contents}
+  .crossing{order:1}
+  .eyebrow,.display,.lede,.invite{order:2}
+  .eyebrow{margin-top:8px;margin-bottom:-8px}
+  .metrics{order:3;margin-top:0}
+  .work{order:4;margin-top:0}
+  .judge{order:5;margin-top:0}
+  .about-row{order:6;margin-top:0}
+  .foot{order:7}
+  .page{gap:16px}
+  .metric-v{font-size:26px}
+  .hero{font-size:44px;margin-top:6px}
+  .crossing{padding:18px}
+  .crossing .cap{display:none}
+  .crossing .tide{margin-top:14px}
+  .lede{font-size:15px;margin-top:10px}
+  .metric-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .display{font-size:34px}
+  .mode{font-size:11px;padding:4px 8px}
+}
+.public .n,.chip{white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
