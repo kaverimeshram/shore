@@ -67,6 +67,7 @@ async fn main() -> Result<()> {
                     recipient: ua.clone(),
                     recipient_type: "DESTINATION_CHAIN",
                     deadline: deadline_in(7200),
+                    app_fees: vec![],
                 };
                 match oc.quote(&q).await {
                     Ok(r) => println!(

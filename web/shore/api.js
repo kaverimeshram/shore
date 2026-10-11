@@ -91,6 +91,13 @@ export async function readback(id) {
     quotedOutZat: Number(rec.quote.amountOut), deltaZat: rec.received_zat - Number(rec.quote.amountOut), scannedTo: rec.zcash_height + 8 };
 }
 
+// Read-back for your own address with your wallet's viewing key: sent once over HTTPS, used for one scan, not stored.
+export async function readbackKey(id, ufvk) {
+  if (MODE === "live") return call("/api/readback/" + encodeURIComponent(id), { ufvk });
+  const r = await readback(id);
+  return { ...r, source: "your-key" };
+}
+
 export async function exposure(id, ctx = {}) {
   if (MODE === "live") return call("/api/exposure/" + encodeURIComponent(id));
   const rec = await loadReplay();

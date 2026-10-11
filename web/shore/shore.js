@@ -186,7 +186,7 @@ function renderAddressDone() {
     h("span", { class: "val", "data-testid": "recipient", title: s.recipient }, short(s.recipient, 13)), " · ",
     (s.receivers || []).includes("orchard") ? "Orchard receiver" : "shielded receiver",
     s.source === "fresh" ? `, never used before (index ${s.uaIndex ?? "?"})` : ", your wallet", ...change("s-address", renderAddress));
-  if (!s.readbackAvailable) body("s-address").append(h("p", { class: "help warn" }, "No read-back: SHORE has no viewing key for your own address."));
+  if (!s.readbackAvailable) body("s-address").append(h("p", { class: "help warn" }, "Read-back: after it lands, open your wallet or paste its viewing key (never a spending key)."));
   setStep("s-quote", "active");
   renderQuoteForm();
 }
@@ -334,11 +334,35 @@ async function readbackLoop() {
   for (let n = 0; n < 120; n++) {
     try {
       const r = (S.rb = await api.readback(S.session.id));
-      if (r.state === "UNAVAILABLE") { put(card, h("h2", { class: "ch" }, "Read-back"), h("p", { class: "empty" }, "This went to your own wallet, so SHORE has no viewing key for it. Open your wallet to see the note. Landed at height ", String(S.status.landed?.height ?? "?"), ".")); return; }
+      if (r.state === "UNAVAILABLE") { renderKeyReadback(card); return; }
       if (r.state === "LANDED") { renderReadback(r); return; }
     } catch (e) { /* keep polling */ }
     await sleep(LIVE ? 5000 : 800);
   }
+}
+
+// Your own address: open the note in your wallet, or paste that wallet's viewing key for a one-time read-back here.
+function renderKeyReadback(card) {
+  const input = h("input", { type: "text", id: "ufvk", autocomplete: "off", spellcheck: "false", placeholder: "uview1… or uvf1…" });
+  const msg = h("p", { class: "help", "data-testid": "ufvk-msg" });
+  const go = h("button", { class: "btn", type: "button", "data-testid": "ufvk-go", onclick: async () => {
+    const k = input.value.trim();
+    if (!/^(uview1|uvf1)[0-9a-z]{20,2000}$/.test(k)) { put(msg, "That is not a unified viewing key. Never paste a seed phrase or spending key."); return; }
+    go.disabled = true; put(msg, "Scanning from the payout block with your viewing key…");
+    try {
+      for (let n = 0; n < 60; n++) {
+        const r = await api.readbackKey(S.session.id, k);
+        if (r.state === "LANDED") { input.value = ""; renderReadback(r); return; }
+        put(msg, "Not mined yet, checking again…"); await sleep(LIVE ? 10000 : 800);
+      }
+    } catch (e) { put(msg, err(e)); }
+    go.disabled = false;
+  } }, "Read it back");
+  put(card, h("h2", { class: "ch" }, "Read-back"),
+    h("p", { class: "empty" }, "This went to your own wallet. Open it to see the note (landed at height ", String(S.status.landed?.height ?? "?"), "), or paste that wallet's viewing key to read it back here."),
+    h("label", { class: "f" }, h("span", { class: "label" }, "Your unified viewing key"), input),
+    h("p", { class: "help" }, "A viewing key can see this wallet's incoming notes but can never spend. SHORE uses it for this one scan over HTTPS and does not store or log it."),
+    msg, h("div", { class: "row" }, go));
 }
 
 function renderReadback(r) {

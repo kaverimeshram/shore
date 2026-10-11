@@ -63,6 +63,9 @@ struct MockZcash {
     heights: HashMap<String, u64>,
     notes: HashMap<String, Note>,
     shapes: HashMap<String, TxShape>,
+    /// The only viewing key the user-key read-back accepts, and what it was asked to scan from.
+    user_key: Option<String>,
+    scanned_from: Mutex<Option<u32>>,
 }
 
 #[async_trait]
@@ -75,6 +78,10 @@ impl ZcashApi for MockZcash {
     }
     async fn tx_shape(&self, t: &str) -> Result<Option<TxShape>> {
         Ok(self.shapes.get(t).cloned())
+    }
+    async fn readback_with(&self, k: &str, from: u32, t: &str) -> Result<(Option<Note>, u32)> {
+        *self.scanned_from.lock().unwrap() = Some(from);
+        Ok((if self.user_key.as_deref() == Some(k) { self.notes.get(t).cloned() } else { None }, 3_600_010))
     }
 }
 
@@ -301,4 +308,49 @@ async fn rpc_proxy_allows_reads_only() {
     }
     let (c, v) = s.post("/api/rpc", json!({ "jsonrpc": "2.0", "id": 1, "method": "getBalance", "params": [SENDER], "x": 1 })).await;
     assert_eq!((c, v["code"].as_str()), (400, Some("RPC_METHOD")));
+}
+
+fn test_ufvk(seed: u8) -> String {
+    let net = zcash_protocol::consensus::MainNetwork;
+    zcash_keys::keys::UnifiedSpendingKey::from_seed(&net, &[seed; 32], zip32::AccountId::ZERO).unwrap().to_unified_full_viewing_key().encode(&net)
+}
+
+/// A user-owned address: GET read-back is UNAVAILABLE; POSTing that wallet's viewing key reads the note back
+/// (scan starts at the payout block), a key for another wallet or a non-key is refused.
+#[tokio::test]
+async fn user_viewing_key_readback() {
+    let key = test_ufvk(9);
+    let u1 = UfvkAddresses::new(&key).unwrap().at(3).unwrap();
+    let ztx = "cd".repeat(32);
+    let oc = Arc::new(MockOneClick::default());
+    let mut z = MockZcash { user_key: Some(key.clone()), ..Default::default() };
+    z.heights.insert(ztx.clone(), 3_600_000);
+    z.notes.insert(ztx.clone(), Note { pool: "orchard".into(), value_zat: 108_500, height: Some(3_600_000) });
+    let z = Arc::new(z);
+    let s = Srv::start(oc.clone(), z.clone(), Arc::new(SetAddrs(HashSet::new()))).await;
+    let (c, a) = s.post("/api/shield/address", json!({ "mode": "own", "address": u1 })).await;
+    assert_eq!((c, a["readbackAvailable"].as_bool()), (200, Some(false)), "{a}");
+    let id = a["id"].as_str().unwrap().to_string();
+    let (_, rb) = s.post(&format!("/api/readback/{id}"), json!({ "ufvk": key })).await;
+    assert_eq!((rb["state"].as_str(), rb["reason"].as_str()), (Some("WAITING"), Some("no quote yet")), "{rb}");
+    let (c, q) = s.post("/api/quote", json!({ "id": id, "amount": "140000", "sender": SENDER })).await;
+    assert_eq!(c, 200, "{q}");
+    assert!(oc.quotes.lock().unwrap().last().unwrap().app_fees.is_empty(), "no SHORE fee unless configured");
+    assert_eq!(q["fees"]["shoreFeeBps"], 0);
+    let dep = q["depositAddress"].as_str().unwrap().to_string();
+    oc.statuses.lock().unwrap().insert(dep, json!({ "status": "SUCCESS", "swapDetails": { "destinationChainTxHashes": [{ "hash": ztx }], "amountOut": "108000" } }));
+
+    let (_, g) = s.get(&format!("/api/readback/{id}")).await;
+    assert_eq!(g["state"], "UNAVAILABLE");
+    let (c, rb) = s.post(&format!("/api/readback/{id}"), json!({ "ufvk": key })).await;
+    assert_eq!(c, 200, "{rb}");
+    assert_eq!((rb["state"].as_str(), rb["valueZat"].as_u64(), rb["deltaZat"].as_i64(), rb["source"].as_str()), (Some("LANDED"), Some(108_500), Some(500), Some("your-key")));
+    assert_eq!(*z.scanned_from.lock().unwrap(), Some(3_599_999), "scan starts just before the payout block");
+
+    let (c, e) = s.post(&format!("/api/readback/{id}"), json!({ "ufvk": test_ufvk(8) })).await;
+    assert_eq!((c, e["code"].as_str()), (400, Some("KEY_MISMATCH")));
+    for bad in ["abandon abandon abandon", "uview1notakey", "uvf1notakey", "secret-extended-key-main1qq"] {
+        let (c, e) = s.post(&format!("/api/readback/{id}"), json!({ "ufvk": bad })).await;
+        assert_eq!((c, e["code"].as_str()), (400, Some("BAD_UFVK")), "{bad}");
+    }
 }

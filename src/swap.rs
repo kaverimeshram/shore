@@ -74,6 +74,7 @@ pub async fn quote_part(tor: &tor::Client, amount_zat: u64, destination_asset: &
             recipient: destination.into(),
             recipient_type: "DESTINATION_CHAIN",
             deadline: deadline_in(crate::oneclick::REQUEST_DEADLINE_SECS),
+            app_fees: vec![],
     };
     let q = Client::with_transport(Transport::isolated(tor)).quote(&req).await?;
     q.verify_echo(&req)?;
@@ -276,6 +277,7 @@ pub async fn quote_inbound(
             recipient: recipient.clone(),
             recipient_type: "DESTINATION_CHAIN",
             deadline: deadline_in(crate::oneclick::REQUEST_DEADLINE_SECS),
+            app_fees: vec![],
     };
     let q = Client::with_transport(Transport::isolated(tor)).quote(&req).await?;
     q.verify_echo(&req)?;

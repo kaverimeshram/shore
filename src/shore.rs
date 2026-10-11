@@ -61,6 +61,11 @@ pub trait ZcashApi: Send + Sync {
     /// View-key scan; the note our wallet received in `txid`, if any, and the scanned height.
     async fn readback(&self, txid: &str) -> Result<(Option<Note>, u32)>;
     async fn tx_shape(&self, txid: &str) -> Result<Option<TxShape>>;
+    /// Read-back with a viewing key the user supplies for this request only: scans from `from_height` into a
+    /// throwaway db that is deleted afterwards. The key can view, never spend; it is not stored or logged.
+    async fn readback_with(&self, _ufvk: &str, _from_height: u32, _txid: &str) -> Result<(Option<Note>, u32)> {
+        anyhow::bail!("user viewing-key read-back is not available on this server")
+    }
 }
 
 /// The demo wallet's addresses, from its UFVK.
@@ -359,7 +364,7 @@ pub fn router(s: Arc<Shore>) -> Router {
         .route("/api/shield/address", post(address))
         .route("/api/shield/{id}/tx", post(submit_tx))
         .route("/api/status/{deposit}", get(status))
-        .route("/api/readback/{id}", get(readback))
+        .route("/api/readback/{id}", get(readback).post(readback_key))
         .route("/api/exposure/{id}", get(exposure))
         .route("/api/rpc", post(rpc))
         .with_state(s)
@@ -415,7 +420,16 @@ pub fn quote_request(recipient: &str, sender: &str, amount: u64, dry: bool) -> Q
         recipient: recipient.into(),
         recipient_type: "DESTINATION_CHAIN",
         deadline: deadline_in(crate::oneclick::REQUEST_DEADLINE_SECS),
+        app_fees: app_fee().into_iter().collect(),
     }
+}
+
+/// The SHORE shield fee, if configured: SHORE_APP_FEE_BPS (1..=100) paid to the NEAR account SHORE_APP_FEE_RECIPIENT.
+/// Unset (the default today) means no SHORE fee; the quote then carries only 1Click's own fees.
+pub fn app_fee() -> Option<crate::oneclick::AppFee> {
+    let bps: u32 = std::env::var("SHORE_APP_FEE_BPS").ok()?.parse().ok().filter(|b| (1..=100).contains(b))?;
+    let recipient = std::env::var("SHORE_APP_FEE_RECIPIENT").ok().filter(|r| !r.is_empty() && r.len() <= 64)?;
+    Some(crate::oneclick::AppFee { recipient, fee: bps })
 }
 
 /// Validates the amount: base units, at least [`MIN_AMOUNT`], at most [`MAX_AMOUNT`].
@@ -465,7 +479,7 @@ pub async fn quote(State(s): St, Json(r): Json<QuoteReq>) -> R {
         "id": sess.id, "dry": r.dry, "depositAddress": qq.deposit_address, "mint": SOL_ZEC_MINT, "decimals": DECIMALS,
         "amountIn": qq.amount_in, "amountInFormatted": qq.amount_in_formatted,
         "amountOut": qq.amount_out, "amountOutFormatted": qq.amount_out_formatted, "minAmountOut": qq.min_amount_out,
-        "fees": { "withdrawFee": qq.withdraw_fee, "refundFee": qq.refund_fee, "totalFeeBps": fee_bps },
+        "fees": { "withdrawFee": qq.withdraw_fee, "refundFee": qq.refund_fee, "totalFeeBps": fee_bps, "shoreFeeBps": req.app_fees.first().map_or(0, |f| f.fee) },
         "minAmount": MIN_AMOUNT.to_string(), "deadline": qq.deadline, "timeEstimateSecs": qq.time_estimate,
         "recipient": sess.recipient, "correlationId": q.correlation_id,
     })))
@@ -540,6 +554,37 @@ async fn readback(State(s): St, UrlPath(id): UrlPath<String>) -> R {
             "state": "LANDED", "pool": n.pool, "valueZat": n.value_zat, "height": n.height, "txid": txid,
             "quotedOutZat": quoted, "deltaZat": quoted.map(|q| n.value_zat as i64 - q as i64), "scannedTo": scanned,
         }),
+        None => json!({ "state": "WAITING", "txid": txid, "scannedTo": scanned }),
+    })))
+}
+
+#[derive(Deserialize)]
+struct KeyReq {
+    ufvk: String,
+}
+
+/// Read-back for a user-owned address: the user pastes their wallet's viewing key (uview1... or uvf1...). It is checked to
+/// cover the session's u1, used for this one scan (from the block that holds the payout), then dropped.
+async fn readback_key(State(s): St, UrlPath(id): UrlPath<String>, Json(r): Json<KeyReq>) -> R {
+    let sess = s.load(&id).await?;
+    let k = r.ufvk.trim();
+    if k.len() > 2048 || !(k.starts_with("uview1") || k.starts_with("uvf1")) {
+        return Err(bad("BAD_UFVK", "paste a mainnet unified full viewing key (uview1... or uvf1...), never a seed phrase or spending key"));
+    }
+    let owns = UfvkAddresses::new(k).map_err(|_| bad("BAD_UFVK", "this is not a valid unified viewing key"))?.owns(&sess.recipient);
+    if !owns {
+        return Err(bad("KEY_MISMATCH", "this viewing key does not cover the shield's address"));
+    }
+    let base = json!({ "id": sess.id, "recipient": sess.recipient, "source": "your-key" });
+    let Some(dep) = sess.deposit_address.clone() else { return Ok(Json(merge(base, json!({ "state": "WAITING", "reason": "no quote yet" })))) };
+    let st = read_status(&s, &dep).await?;
+    let Some(txid) = first_hash(&st.raw, "destinationChainTxHashes") else { return Ok(Json(merge(base, json!({ "state": "WAITING", "status": st.raw["status"] })))) };
+    let Some(h) = s.zcash.mined_height(&txid).await.map_err(upstream)? else { return Ok(Json(merge(base, json!({ "state": "WAITING", "txid": txid, "reason": "payout not mined yet" })))) };
+    let (note, scanned) = s.zcash.readback_with(k, h.saturating_sub(1) as u32, &txid).await.map_err(upstream)?;
+    let quoted: Option<u64> = st.raw["swapDetails"]["amountOut"].as_str().or(sess.quoted_out.as_deref()).and_then(|x| x.parse().ok());
+    Ok(Json(merge(base, match note {
+        Some(n) => json!({ "state": "LANDED", "pool": n.pool, "valueZat": n.value_zat, "height": n.height, "txid": txid,
+            "quotedOutZat": quoted, "deltaZat": quoted.map(|q| n.value_zat as i64 - q as i64), "scannedTo": scanned }),
         None => json!({ "state": "WAITING", "txid": txid, "scannedTo": scanned }),
     })))
 }
@@ -792,6 +837,21 @@ impl ZcashApi for LiveZcash {
         let scanned = nw.sync().await?;
         let note = nw.landed()?.into_iter().find(|n| n.txid == txid).map(|n| Note { pool: n.pool, value_zat: n.value_zat, height: n.mined_height });
         Ok((note, scanned))
+    }
+
+    async fn readback_with(&self, ufvk: &str, from_height: u32, txid: &str) -> Result<(Option<Note>, u32)> {
+        let dir = std::env::temp_dir().join(format!("shore-rb-{}", hex::encode(crate::wallet::random_bytes::<8>()?)));
+        std::fs::create_dir_all(&dir)?;
+        let path = dir.join("view.sqlite");
+        let r = async {
+            let mut nw = crate::notewatch::NoteWatch::open(&path, NET, ufvk, from_height).await?;
+            let scanned = nw.sync().await?;
+            let note = nw.landed()?.into_iter().find(|n| n.txid == txid).map(|n| Note { pool: n.pool, value_zat: n.value_zat, height: n.mined_height });
+            Ok::<_, anyhow::Error>((note, scanned))
+        }
+        .await;
+        let _ = std::fs::remove_dir_all(&dir);
+        r.map_err(|e| anyhow!("{}", e.to_string().replace(ufvk, "<ufvk>")))
     }
 
     async fn tx_shape(&self, txid: &str) -> Result<Option<TxShape>> {

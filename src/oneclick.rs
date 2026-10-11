@@ -42,6 +42,16 @@ pub struct QuoteRequest {
     pub recipient: String,
     pub recipient_type: &'static str,
     pub deadline: String,
+    /// Integrator fee (1Click `appFees`), omitted when empty.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub app_fees: Vec<AppFee>,
+}
+
+/// One 1Click integrator fee: `fee` in basis points of the input, paid to the NEAR account `recipient`.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AppFee {
+    pub recipient: String,
+    pub fee: u32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -246,7 +256,7 @@ mod echo_tests {
             dry: false, deposit_mode: "SIMPLE", swap_type: SwapType::ExactInput, slippage_tolerance: 200,
             origin_asset: ZEC_ASSET.into(), deposit_type: "ORIGIN_CHAIN", destination_asset: "nep141:base".into(),
             amount: "1000000".into(), refund_to: "u1refund".into(), refund_type: "ORIGIN_CHAIN",
-            recipient: "0xabc".into(), recipient_type: "DESTINATION_CHAIN", deadline: "2026-10-05T10:00:00.000Z".into(),
+            recipient: "0xabc".into(), recipient_type: "DESTINATION_CHAIN", deadline: "2026-10-05T10:00:00.000Z".into(), app_fees: vec![],
         }
     }
 

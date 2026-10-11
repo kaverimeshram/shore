@@ -250,3 +250,48 @@ test("demand strip cites its sources and the business model is stated", async ({
   await expect(biz).toContainText("invite links");
   expect((await biz.innerText()).split(/(?<=\.)\s+/).length).toBe(3);
 });
+
+// Full live flow with a stand-in Phantom (a real extension cannot run headless) and every API answer mocked:
+// own u1 -> quote -> one signature -> status -> UNAVAILABLE read-back -> the user pastes a viewing key -> LANDED.
+test("own-address read-back with the user's viewing key, end to end (mocked API, stand-in wallet)", async ({ page }) => {
+  const SIG = "2LLVDBnVAqnG99PSbUVqapKqZFHjPPET9HsJhV2tqS29BHR4wNmUzYZbQzLf2BXjpFKMrRJCYxbVZq6ZJNQQ86au", ZTX = "fa8d4d6bd210c6150e98142ec1ae9a25706ec19bd591a775823f6616f95fa408";
+  const KEY = "uview1" + "q".repeat(300); let keyBody = null;
+  await page.route("**/api/**", async (r) => {
+    const u = r.request().url(), m = r.request().method();
+    if (u.endsWith("/api/rpc")) {
+      const b = r.request().postDataJSON();
+      if (b.method === "getLatestBlockhash") return r.fulfill({ json: { jsonrpc: "2.0", id: b.id, result: { context: { slot: 1 }, value: { blockhash: "EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k", lastValidBlockHeight: 9e9 } } } });
+      if (b.method === "getSignatureStatuses") return r.fulfill({ json: { jsonrpc: "2.0", id: b.id, result: { value: [{ confirmationStatus: "finalized", err: null }] } } });
+      return r.fulfill({ json: { jsonrpc: "2.0", id: b.id, result: { value: [{ pubkey: "4oTPb1tUJ3Ed5D7ccD5hvJ6U5JQ6pRZ6Ntw5e2YMkTWS", account: { data: { parsed: { info: { tokenAmount: { amount: "500000" } } } } } }] } } });
+    }
+    if (u.includes("/shield/address")) return r.fulfill({ json: { id: "t1", recipient: OWN, receivers: ["orchard"], source: "own", readbackAvailable: false } });
+    if (u.includes("/quote")) return r.fulfill({ json: { id: "t1", dry: false, depositAddress: "DMDdCzumrZBaPPjKBP33o1RgDhW2F2BZPzyYZEk9SjbM", mint: "A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS", decimals: 8, amountIn: "140000", amountOut: "108000", minAmountOut: "106920", fees: { withdrawFee: "32000", refundFee: "844", totalFeeBps: 2286, shoreFeeBps: 0 }, minAmount: "133334", deadline: "2030-10-13T06:47:48.000Z", timeEstimateSecs: 135, recipient: OWN } });
+    if (u.includes("/tx")) return r.fulfill({ json: { ok: true } });
+    if (u.includes("/api/status/")) return r.fulfill({ json: { status: "SUCCESS", terminal: true, solanaTx: SIG, zcashTx: ZTX, landed: { txid: ZTX, height: 3512504 } } });
+    if (u.includes("/api/readback/") && m === "POST") { keyBody = r.request().postDataJSON(); return r.fulfill({ json: { id: "t1", state: "LANDED", source: "your-key", pool: "ironwood", valueZat: 115000, height: 3512504, txid: ZTX, quotedOutZat: 108000, deltaZat: 7000, scannedTo: 3512510 } }); }
+    if (u.includes("/api/readback/")) return r.fulfill({ json: { id: "t1", state: "UNAVAILABLE" } });
+    if (u.includes("/api/exposure/")) return r.fulfill({ json: { rows: [], addressReused: false, publicOnStatus: [] } });
+    return r.fulfill({ status: 404, json: { error: "x" } });
+  });
+  await page.addInitScript((sig) => {
+    const p = { isPhantom: true, connect: async () => ({ publicKey: { toString: () => "ia3MLukFMa6zci4nyahxsKVT14yLkFzUkZs3EL5Vsa5" } }), signAndSendTransaction: async () => ({ signature: sig }) };
+    window.phantom = { solana: p };
+  }, SIG);
+  await page.goto("/shore/?live=1");
+  await page.getByTestId("connect").click();
+  await page.locator("#own").fill(OWN); await page.getByRole("button", { name: "Use this address" }).click();
+  await page.locator("#amt").fill("0.0014");
+  await page.getByRole("button", { name: "Get quote" }).click();
+  await page.locator("#ack").check();
+  await page.getByTestId("approve").click();
+  await expect(page.getByTestId("ufvk-go")).toBeVisible({ timeout: 30_000 });
+  await page.locator("#ufvk").fill("abandon abandon abandon");
+  await page.getByTestId("ufvk-go").click();
+  await expect(page.getByTestId("ufvk-msg")).toContainText("not a unified viewing key");
+  expect(keyBody).toBeNull();
+  await page.locator("#ufvk").fill(KEY);
+  await page.getByTestId("ufvk-go").click();
+  await expect(page.locator("#readback[data-landed]")).toBeAttached({ timeout: 20_000 });
+  expect(keyBody).toEqual({ ufvk: KEY });
+  expect(await page.evaluate(() => JSON.stringify(localStorage) + document.cookie)).not.toContain("uview1");
+});

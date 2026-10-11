@@ -44,8 +44,6 @@ members through SHORE in one approval. SHORE never holds funds, so the fee is th
 - Playwright against production: 28 passed, 4 skipped (opt-in live-API tests; live dry flow passed 2/2 on 2026-10-10).
 
 ## Open items (need kamal)
-- [ ] Narration for the demo video (script in `docs/pitch/demo-walkthrough.md`).
 - [ ] X posts (`docs/pitch/x-posts.md`): drafts, awaiting kamal approval. Nothing posted.
 - [ ] Outreach (`docs/pitch/outreach.md`: @zksnarks_, forum t/57788, holder communities): drafts, awaiting kamal approval. Nothing sent.
-- [ ] Confirm the team is listed as solo on the submission form.
 - [ ] Post-deadline: shielded receive in the browser (noted, not built).
