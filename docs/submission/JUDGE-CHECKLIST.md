@@ -9,15 +9,16 @@ Colosseum World's Fair, Zcash track. Deadline Tue 2026-10-13 12:29 IST. Status a
 - Invite preview: https://shore-zec.pages.dev/shore/?invite=zechub&amount=0.005&note=Welcome&replay=1
   (banner marked "Judge preview", then the recorded run; verified 2026-10-11 01:26 IST with zero off-origin requests,
   screenshot `docs/submission/invite-preview-run.png`, script `web/scripts/invite-preview-check.mjs`)
-- Demo video: `docs/pitch/demo-capture.mp4` (and `.webm`), 1440x900, 2:39, no narration yet
 - Pitch script: `docs/pitch/pitch-script.md`; demo walkthrough: `docs/pitch/demo-walkthrough.md`
 - Repo / code: `/Users/kamal/Desktop/solana/cwf/zcash/projects/airlock` on kamal's Mac. API `src/shore.rs`, app `web/shore/`,
   tests `tests/shore_api.rs`, `tests/rpc_proxy.rs`, `web/tests/`. README.md has "For judges".
 
 ## Business model
-Holders pay a small, transparent SHORE fee on each shield, set through the 1Click `appFees` field and shown as its own
-line in the quote (today it is zero). Wallets, communities and bounty programs pay for invite links that bring their
-members through SHORE in one approval. SHORE never holds funds, so the fee is the whole business.
+Holders will pay a small, transparent SHORE fee on each shield: it is built in through the 1Click `appFees` field
+(`SHORE_APP_FEE_BPS`, 1 to 100 bps, paid to the NEAR account `SHORE_APP_FEE_RECIPIENT`) and shown as its own "SHORE fee"
+line in the quote, and it is switched off today, so every shield so far paid only 1Click's fees. Wallets, communities
+and bounty programs (ZecHub, zkSNARKs, Raydium reward campaigns) are the planned buyers of invite links that bring their
+members through SHORE in one approval; none has paid yet. SHORE never holds funds, so the fee is the whole business.
 
 ## Built before vs during
 - Tag `baseline-pre-hackathon` (8e11db3, 2026-10-05): AIRLOCK (Rust 1Click client, Tor isolation, wallet and UFVK

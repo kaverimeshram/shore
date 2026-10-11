@@ -19,7 +19,8 @@ Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the wa
 2. What you are seeing: connect, then a fresh Orchard-only u1 and a 1Click quote with every fee shown; one Phantom approval
    and the crossing on the tide band; then the view-key read-back of the landed note and "What's still public".
 3. Check the proof yourself: the txids under "Mainnet proof" below, all on public explorers.
-4. Live: `?live=1` with Phantom and your own Zcash wallet's u1 (capped at 0.02 ZEC). Demo video: `docs/pitch/demo-capture.mp4`.
+4. Live: `?live=1` with Phantom and your own Zcash wallet's u1 (capped at 0.02 ZEC). After it lands, paste that wallet's
+   viewing key for the read-back, or open the wallet. Live audit of every step short of signing: "Feature status" below.
 5. Invite links, safely: `?invite=zechub&amount=0.005&note=Welcome&replay=1` shows the invite banner exactly as a
    holder would see it, then plays the recorded run. It is marked "Judge preview", touches no wallet and makes no API or
    mainnet call. Without `replay=1` the same link opens the live flow (look at the banner, do not connect).
@@ -27,10 +28,55 @@ Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the wa
 
 ## Business model
 
-Holders pay a small, transparent SHORE fee on each shield, set through the 1Click `appFees` field and shown as its
-own line in the quote (today it is zero, so the recorded run paid only 1Click's fees). Wallets, communities and bounty
-programs (ZecHub, zkSNARKs, Raydium reward campaigns) pay for invite links that bring their members through SHORE in one
-approval. SHORE never holds funds, so the fee is the whole business.
+Holders will pay a small, transparent SHORE fee on each shield: it is built in through the 1Click `appFees` field
+(`SHORE_APP_FEE_BPS`, 1 to 100 bps, paid to the NEAR account `SHORE_APP_FEE_RECIPIENT`) and shown as its own "SHORE fee"
+line in the quote, and it is switched off today, so every shield so far paid only 1Click's fees. Wallets, communities
+and bounty programs (ZecHub, zkSNARKs, Raydium reward campaigns) are the planned buyers of invite links that bring their
+members through SHORE in one approval; none has paid yet. SHORE never holds funds, so the fee is the whole business.
+
+## Feature status (audited on production, 2026-10-11 10:30 IST)
+
+Checked by `web/scripts/live-audit.mjs` against https://shore-zec.pages.dev and https://airlock-zec.fly.dev, and by
+the Rust and Playwright suites. Nothing was signed or spent. A real Phantom extension cannot be driven headless, so a
+stand-in wallet object supplies the real Solana address and refuses to sign.
+
+| Feature | Status | Evidence |
+| --- | --- | --- |
+| Replay of the recorded mainnet run, 60s judge tour | working | Playwright on production |
+| Phantom connect (live) | working, stand-in wallet in tests | live audit: connect, real address |
+| ZEC balance via `/api/rpc` (key server-side, cache, retry, fallback, read-only) | working | live audit: real balance 4,571 base units; `sendTransaction` refused (400); `tests/rpc_proxy.rs` |
+| Pasted u1 validation (transparent / Sapling / no shielded receiver refused) | working | live audit: `TRANSPARENT_REFUSED`; Rust tests |
+| Address reuse rejected (D1 used-address list) | working | live audit: second use 409 `ADDRESS_REUSED`, and the page shows it |
+| Live mode never offers the demo wallet | working | live audit: no "fresh u1" button |
+| Dry and non-dry 1Click quote, fee breakdown, one quote per shield | working | live audit: deposit address issued, deadline, repeat 409 `QUOTE_EXISTS` |
+| Review and one approval | working up to signing | live audit: "Approve 0.0014 ZEC in Phantom", deposit address shown, one sign request, refused by the stand-in |
+| Status polling | working | live audit: `PENDING_DEPOSIT` from 1Click |
+| Read-back, demo wallet (UFVK scan) | working | recorded mainnet run, 115,000 zat |
+| Read-back, your own address, with your viewing key | new, working | live audit: wrong wallet's key `KEY_MISMATCH`, a seed phrase `BAD_UFVK`, right key `WAITING`; Rust + Playwright end to end with a mocked payout |
+| What's still public (exposure) | working | live audit: 7 rows |
+| Invite links, judge preview `&replay=1` | working | Playwright on production, zero off-origin requests |
+| SHORE fee via 1Click `appFees` | built, switched off | `shoreFeeBps: 0` in the live quote; Rust test that no fee is sent unless configured |
+| Full live shield end to end | needs a funded wallet | the mainnet run of 2026-10-10 above; `scripts/live-run.sh` for the next one |
+
+## Read-back for your own address
+
+Fresh addresses from the demo wallet exist only in the replay, so on mainnet the note lands in your own wallet. After
+it lands, you can paste that wallet's unified viewing key (`uview1...` or `uvf1...`) into the read-back card. The server
+checks that the key covers the shield's u1, scans from the block that holds the payout into a throwaway database,
+returns the decrypted value and deletes the database. The key is not stored or logged and cannot spend. The honest cost:
+for that one request the SHORE server could see the wallet's incoming notes, so a cautious user can just open the wallet
+instead. A fully in-browser scan (WebZjs) would remove that and is a next step.
+
+## Do a live run yourself (kamal)
+
+You need: Phantom with at least 0.00133334 ZEC on Solana (0.0014 suggested; the cap is 0.02) and about 0.003 SOL, and a
+Zcash wallet (Zashi/Zodl or Ywallet) for a fresh receiving u1; for the in-page read-back, that wallet's viewing key.
+
+1. `scripts/live-run.sh check <your Phantom address>` prints both balances and READY or what is missing.
+2. Open https://shore-zec.pages.dev/shore/?live=1, connect Phantom, paste a new u1 from your Zcash wallet, enter 0.0014.
+3. Get quote, read the fees, tick the mainnet box, approve once in Phantom.
+4. Watch the crossing (about 90 seconds last time). `scripts/live-run.sh status <deposit address>` shows the same 1Click status.
+5. Paste your viewing key in the read-back card, or open your Zcash wallet.
 
 ## Who it is for
 

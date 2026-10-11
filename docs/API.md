@@ -76,6 +76,13 @@ View-key read-back of the landed note (demo wallet only; scan with the UFVK, nev
 ```
 `valueZat` is the decrypted note value, not the quote. `UNAVAILABLE` for user-supplied addresses.
 
+## POST /api/readback/:id
+
+Read-back for a user-owned address with that wallet's viewing key: `{ "ufvk": "uview1..." | "uvf1..." }`. The key must
+cover the session's u1 (`KEY_MISMATCH` otherwise; anything that is not a unified viewing key is `BAD_UFVK`). The server
+scans from the payout block into a temporary db, deletes it, and never stores or logs the key. Response as GET, plus
+`"source": "your-key"`.
+
 ## GET /api/exposure/:id
 
 What is still public about this shield. Each row: `{ "what", "value", "whoCanSee", "source", "exposed": bool }`.

@@ -225,7 +225,7 @@ function renderQuote(out) {
     h("p", { class: "qsec" }, h("span", { class: "qmini" }, `${zec(q.amountIn)} → ${zec(q.amountOut)} ZEC · `), h("span", { class: bps > 1000 ? "warn" : "" }, `${pct}% fee`), ` · about ${q.timeEstimateSecs}s · `, valid),
     bps > 1000 ? h("p", { class: "help", "data-testid": "fee-honest" }, `Most of it is the fixed ${zec(q.fees.withdrawFee)} ZEC Zcash withdraw fee, so the percentage falls fast as the amount grows.`) : null,
     h("details", { class: "fold" }, h("summary", {}, "Fee breakdown (6)"),
-      kv([["Worst case after slippage", `${zec(q.minAmountOut)} ZEC`], ["Zcash withdraw fee", `${zec(q.fees.withdrawFee)} ZEC`], ["Refund fee if it fails", `${zec(q.fees.refundFee)} ZEC`],
+      kv([["Worst case after slippage", `${zec(q.minAmountOut)} ZEC`], ["Zcash withdraw fee", `${zec(q.fees.withdrawFee)} ZEC`], ["Refund fee if it fails", `${zec(q.fees.refundFee)} ZEC`], ["SHORE fee", q.fees.shoreFeeBps ? `${q.fees.shoreFeeBps / 100}% (1Click appFees)` : "none today (0%)"],
         ["Total cost", `${pct}% of what you send`], ["1Click minimum", `${zec(q.minAmount)} ZEC`], ["Quote expires", IST(q.deadline)]])),
     MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Recorded 1Click quote, correlation 9136ee09, file shore-funded-quote-v2.json.")) : null,
     h("p", { class: "chg" }, h("button", { class: "linkbtn", type: "button", onclick: () => reopen("s-quote", renderQuoteForm) }, "Change amount"))));

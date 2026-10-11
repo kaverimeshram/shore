@@ -29,9 +29,10 @@ Only the quoted lines are spoken.
 
 ## 1:18 to 1:36, business model
 
-> Holders pay a small, transparent SHORE fee on each shield, set through 1Click's app fee field and shown
-> as its own line in the quote. Today it's zero. Wallets, communities and bounty programs like ZecHub pay
-> for invite links that bring their members through in one approval. SHORE never holds funds.
+> Holders will pay a small, transparent SHORE fee on each shield. It's built in through 1Click's app fee
+> field and shown as its own line in the quote; today it's switched off. Wallets, communities and bounty
+> programs like ZecHub are the planned buyers of invite links that bring their members through in one
+> approval. SHORE never holds funds.
 
 ## 1:36 to 2:00, honest risk, why Zcash, close
 
@@ -51,7 +52,7 @@ Only the quoted lines are spoken.
 - 84 s, 115,000 zat, Ironwood pool, view-only key, 1Click said 108,000 so 7,000 more, about 39 cents, mostly the
   fixed withdraw fee that falls as the amount grows: "Mainnet proof".
 - Launchpads line: intro.
-- Fee through `appFees`, its own quote line, zero today, invite links paid for by wallets, communities and bounty
+- Fee through `appFees` (built, switched off today), its own quote line, invite links planned for wallets, communities and bounty
   programs (ZecHub), SHORE never holds funds: "Business model".
 - Hop in public, route links the Phantom address to that one u1, about $589,000 held by NEAR Intents for 50 days,
   you need a Zcash wallet, spends from the note stay private: "What's still public (honest)".
