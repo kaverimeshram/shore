@@ -1,9 +1,9 @@
 ok   webfont loaded
-warn primary face '-apple-system' is banned-list but a display face exists; justify in contract
+ok   primary font: Figtree
 ok   tables: 0, none bare
 ok   no Markdown rendering
 ok   links styled
-ok   CSS variables defined (13 decls)
+ok   CSS variables defined (14 decls)
 ok   button styles present
 ok   status chips/badges styled (8)
 ok   surfaces/cards present

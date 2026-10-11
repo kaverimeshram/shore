@@ -1,6 +1,19 @@
 /* SHORE v2. Source for shore.css: npx @tailwindcss/cli -i shore/tw.css -o shore/shore.css --minify (see web/package.json "css").
    System: adapted from design-md/wise (docs/design/DESIGN.md). shadcn-style recipes as components below. */
-@import "tailwindcss";
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+/* Own reset instead of Tailwind preflight (its fallback font stack is system faces). */
+@layer base{
+  *,::before,::after{box-sizing:border-box;margin:0;padding:0;border:0 solid}
+  html{line-height:1.5;-webkit-text-size-adjust:100%;font-family:var(--font-body)}
+  img,svg{display:block;max-width:100%}
+  button,input,select,textarea{font:inherit;color:inherit;background:transparent}
+  button{cursor:pointer}
+  ol,ul{list-style:none}
+  h1,h2,h3,p{overflow-wrap:break-word}
+  [hidden]{display:none!important}
+}
 @source "./index.html";
 @source "./shore.js";
 
@@ -33,7 +46,7 @@
   body{font-family:var(--font-body);font-size:16px;line-height:1.5;min-height:100vh}
   h1,h2,h3{font-family:var(--font-display);letter-spacing:-.01em}
   a{color:inherit}
-  input[type=text]{@apply w-full rounded-input border border-line bg-white px-3 py-2.5 font-mono text-sm text-ink outline-none transition;}
+  input[type=text]{@apply w-full rounded-input border border-line bg-white px-3 py-2.5 font-mono text-sm text-ink outline-none transition-colors;}
   input[type=text]:focus{@apply border-ink ring-2 ring-accent;}
   input[readonly]{@apply bg-card-2 text-body;}
   summary{cursor:pointer}
@@ -43,7 +56,7 @@
 
 @layer components{
   /* buttons: shadcn button variants (default / outline / ghost / sm / lg) */
-  .btn{@apply inline-flex items-center justify-center gap-2 rounded-pill bg-accent px-5 py-2.5 text-[15px] font-semibold text-accent-ink no-underline transition select-none cursor-pointer;}
+  .btn{@apply inline-flex items-center justify-center gap-2 rounded-pill bg-accent px-5 py-2.5 text-[15px] font-semibold text-accent-ink no-underline transition-colors select-none cursor-pointer;}
   .btn:hover{background:#b6f08f}
   .btn:active{transform:translateY(1px)}
   .btn:disabled{@apply cursor-not-allowed bg-card-2 text-mute;}
@@ -136,7 +149,7 @@ html[data-tour] .tour-cta{display:none}
 /* workspace */
 .work{@apply mt-6 grid gap-6 lg:grid-cols-[7fr_5fr] lg:items-start;}
 .steps{@apply m-0 grid gap-3 p-0;list-style:none}
-.step{@apply p-0 transition;}
+.step{@apply p-0 transition-colors;}
 .step>header{@apply flex items-center justify-between gap-3 px-5 pt-4;}
 .step>header h2{@apply text-lg font-semibold text-ink;}
 .step .hint{@apply px-5 pb-1 pt-1 text-sm text-body;}
