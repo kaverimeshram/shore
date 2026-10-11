@@ -47,7 +47,8 @@ Response 200:
 { "id": "...", "depositAddress": "DMDd...SjbM", "mint": "A7bd...XaS", "decimals": 8,
   "amountIn": "140000", "amountInFormatted": "0.0014",
   "amountOut": "108000", "amountOutFormatted": "0.00108", "minAmountOut": "106920",
-  "fees": { "withdrawFee": "32000", "refundFee": "844", "totalFeeBps": 2285 },
+  "fees": { "withdrawFee": "32000", "refundFee": "844", "totalFeeBps": 2285, "shoreFeeBps": 0 },
+`shoreFeeBps` is the SHORE fee sent to 1Click as `appFees`: 0 unless SHORE_APP_FEE_BPS (1 to 100) and SHORE_APP_FEE_RECIPIENT are set.
   "minAmount": "133334", "deadline": "2026-10-13T06:47:48.000Z", "timeEstimateSecs": 135,
   "recipient": "u1...", "correlationId": "..." }
 ```

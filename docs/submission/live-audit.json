@@ -1,0 +1,58 @@
+{
+ "balance": [
+  200,
+  "0.00004571"
+ ],
+ "rpcWrite": 400,
+ "transparent": "TRANSPARENT_REFUSED",
+ "own": [
+  200,
+  "own",
+  false
+ ],
+ "reuse": [
+  409,
+  "ADDRESS_REUSED"
+ ],
+ "dry": [
+  200,
+  "108000",
+  {
+   "refundFee": "834",
+   "shoreFeeBps": 0,
+   "totalFeeBps": 2285,
+   "withdrawFee": "32000"
+  }
+ ],
+ "nondry": [
+  200,
+  true,
+  "2026-10-14T07:04:02.000Z",
+  0
+ ],
+ "nondryAgain": "QUOTE_EXISTS",
+ "status": [
+  200,
+  "PENDING_DEPOSIT"
+ ],
+ "readbackGet": "UNAVAILABLE",
+ "readbackWrongKey": "KEY_MISMATCH",
+ "readbackSeed": "BAD_UFVK",
+ "readbackRightKey": [
+  200,
+  "WAITING",
+  "PENDING_DEPOSIT"
+ ],
+ "exposure": [
+  200,
+  7
+ ],
+ "uiRealBalanceSeen": "4571",
+ "uiBalance": "0.005 ZEC",
+ "uiFreshOffered": 0,
+ "uiReuse": true,
+ "uiApproveText": "Approve 0.0014 ZEC in Phantom",
+ "uiDeposit": true,
+ "uiSignAttempts": 1,
+ "uiAfter": "Review and approve\n\nPhantom shows one transfer. You approve it once.\n\nOne SPL transfer of 0.0014 ZEC to the 1Click deposit address.\n\nDeposit address\nDWLec67U…nciY6AiZ\nToken\nA7bdiY…xvQXaS\nRefunds go to"
+}
