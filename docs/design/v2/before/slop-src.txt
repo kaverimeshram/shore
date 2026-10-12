@@ -1,0 +1,13 @@
+ok   webfont loaded
+ok   primary font: BigShouldersDisplay
+ok   tables: 0, none bare
+ok   no Markdown rendering
+ok   links styled
+ok   CSS variables defined (10 decls)
+ok   button styles present
+ok   status chips/badges styled (5)
+FAIL no surfaces (card/panel class + shadow/surface token): flat document
+ok   summary metrics present
+ok   radius ok
+---
+slop-check: 1 issue(s)

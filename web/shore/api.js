@@ -66,6 +66,8 @@ export async function quote(req) {
     fees: { withdrawFee: q.withdrawFee, refundFee: q.refundFee, totalFeeBps: Number((fee * 10000n) / (MODE === "replay" ? BigInt(q.amountIn) : amt)) },
     minAmount: "133334", deadline: q.deadline, timeEstimateSecs: q.timeEstimate, recipient: rec.recipient,
     correlationId: MODE === "replay" ? "recorded" : "mock",
+    amountInUsd: MODE === "replay" ? q.amountInUsd : null, amountOutUsd: MODE === "replay" ? q.amountOutUsd : null,
+    usdSource: MODE === "replay" ? "1Click quote" : null, quotedAt: null, usdNote: MODE === "replay" ? "recorded quote, 10 Oct 2026" : null,
   };
 }
 

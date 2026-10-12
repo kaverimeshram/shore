@@ -73,6 +73,11 @@ pub struct Quote {
     pub withdraw_fee: Option<String>,
     #[serde(default)]
     pub refund_fee: Option<String>,
+    /// 1Click's USD valuations of the in/out amounts at quote time (its own price feed).
+    #[serde(default)]
+    pub amount_in_usd: Option<String>,
+    #[serde(default)]
+    pub amount_out_usd: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

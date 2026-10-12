@@ -1,0 +1,279 @@
+/* SHORE v2. Source for shore.css: npx @tailwindcss/cli -i shore/tw.css -o shore/shore.css --minify (see web/package.json "css").
+   System: adapted from design-md/wise (docs/design/DESIGN.md). shadcn-style recipes as components below. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+/* Own reset instead of Tailwind preflight (its fallback font stack is system faces). */
+@layer base{
+  *,::before,::after{box-sizing:border-box;margin:0;padding:0;border:0 solid}
+  html{line-height:1.5;-webkit-text-size-adjust:100%;font-family:var(--font-body)}
+  img,svg{display:block;max-width:100%}
+  button,input,select,textarea{font:inherit;color:inherit;background:transparent}
+  button{cursor:pointer}
+  ol,ul{list-style:none}
+  h1,h2,h3,p{overflow-wrap:break-word}
+  [hidden]{display:none!important}
+}
+@source "./index.html";
+@source "./shore.js";
+
+@font-face{font-family:"Figtree";src:url(../fonts/figtree-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Figtree";src:url(../fonts/figtree-latin-500-normal.woff2) format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Figtree";src:url(../fonts/figtree-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Figtree";src:url(../fonts/figtree-latin-700-normal.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Bricolage Grotesque";src:url(../fonts/bricolage-grotesque-latin-600-normal.woff2) format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"Bricolage Grotesque";src:url(../fonts/bricolage-grotesque-latin-800-normal.woff2) format("woff2");font-weight:800;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url(../fonts/geist-mono-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url(../fonts/geist-mono-latin-500-normal.woff2) format("woff2");font-weight:500;font-display:swap}
+
+@theme{
+  --font-sans:"Figtree",ui-sans-serif,sans-serif;
+  --font-display:"Bricolage Grotesque",ui-sans-serif,sans-serif;
+  --font-body:"Figtree",ui-sans-serif,sans-serif;
+  --font-mono:"Geist Mono",ui-monospace,monospace;
+  /* SHORE palette: harbour slate + Zcash gold. Gold = shielded only; blue = actions only; teal = in flight. */
+  --color-canvas:#eef0f3; --color-card:#ffffff; --color-card-2:#f6f7f9; --color-ink:#121821; --color-night:#121821;
+  --color-body:#3d4652; --color-mute:#565f6b; --color-line:#dde1e7;
+  --color-action:#2350d8; --color-action-hover:#1b41b4; --color-action-pale:#e6ecfc;
+  --color-gold:#f4b728; --color-gold-ink:#7a5200; --color-gold-pale:#fdf1d3;
+  --color-flight:#0a5f67; --color-flight-pale:#dff2f3;
+  --color-success:#1d7a46; --color-success-pale:#ddf2e5; --color-warning-ink:#8a4b00; --color-warning-pale:#fff0d6;
+  --color-danger:#b4232a; --color-danger-pale:#fbe4e5; --color-info-ink:#2b4a6f; --color-info-pale:#e5edf6;
+  --radius-input:10px; --radius-card:14px; --radius-pill:999px;
+  --shadow-card:0 1px 2px rgba(18,24,33,.06),0 6px 20px rgba(18,24,33,.06);
+}
+:root{ --surface:var(--color-card); --hdr:57px; --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px }
+
+@layer base{
+  html{background:var(--color-canvas);color:var(--color-ink);-webkit-font-smoothing:antialiased;scroll-padding-top:120px}
+  body{font-family:var(--font-body);font-size:16px;line-height:1.5;min-height:100vh}
+  h1,h2,h3{font-family:var(--font-display);letter-spacing:-.01em}
+  a{color:inherit}
+  input[type=text]{@apply w-full rounded-input border border-line bg-white px-3 py-2.5 font-mono text-sm text-ink outline-none transition-colors;}
+  input[type=text]:focus{@apply border-action ring-2 ring-action-pale;}
+  input[readonly]{@apply bg-card-2 text-body;}
+  summary{cursor:pointer}
+  ::selection{background:var(--color-gold-pale)}
+  :focus-visible{outline:3px solid var(--color-action);outline-offset:3px;border-radius:6px}
+  .crossing :focus-visible{outline-color:var(--color-gold)}
+}
+
+@layer components{
+  .btn{@apply inline-flex items-center justify-center gap-2 rounded-input bg-action px-5 py-2.5 text-[15px] font-semibold text-white no-underline transition-colors select-none cursor-pointer;}
+  .btn:hover{@apply bg-action-hover;}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{@apply cursor-not-allowed bg-card-2 text-mute ring-1 ring-line;}
+  .btn.ghost{@apply bg-white text-ink ring-1 ring-line;}
+  .btn.ghost:hover{@apply ring-ink/40 bg-card-2;}
+  .btn.big{@apply px-7 py-3.5 text-base;}
+  .btn-sm{@apply px-4 py-2 text-sm;}
+  .linkbtn{@apply cursor-pointer rounded-[6px] px-1.5 py-0.5 text-sm font-semibold text-action underline decoration-action/30 underline-offset-4 hover:bg-action-pale;}
+  .lnk{@apply font-medium text-ink underline decoration-ink/30 underline-offset-[3px] hover:decoration-action hover:text-action;}
+  .card{@apply rounded-card bg-card p-5 shadow-[var(--shadow-card)];}
+  .card-k{@apply text-[13px] font-semibold text-mute;}
+  .chip{@apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill px-2.5 py-1 text-[13px] font-semibold leading-none;}
+  .chip::before{content:"";@apply size-1.5 rounded-full bg-current;}
+  .chip-locked{@apply bg-card-2 text-mute ring-1 ring-line;}
+  .chip-active{@apply bg-action-pale text-action;}
+  .chip-done,.chip-pos{@apply bg-success-pale text-success;}
+  .chip-gold{@apply bg-gold text-night;}
+  .chip-info{@apply bg-info-pale text-info-ink;}
+  .chip-warn{@apply bg-flight-pale text-flight;}
+  .chip-neg{@apply bg-danger-pale text-danger;}
+  .addr{@apply inline-flex max-w-full items-center gap-1.5 rounded-input bg-card-2 py-0.5 pl-2 pr-0.5 align-middle font-mono text-[13px] text-ink ring-1 ring-line;}
+  .addr-t{@apply truncate no-underline;}
+  .copy{@apply cursor-pointer rounded-[7px] bg-white px-1.5 py-0.5 font-body text-[12px] font-semibold text-body ring-1 ring-line hover:text-action;}
+  .copy[data-done]{@apply bg-success-pale text-success ring-0;}
+}
+
+/* ---------- layout ---------- */
+.skip{position:absolute;left:-999px}.skip:focus{left:16px;top:16px;z-index:9;@apply rounded-input bg-ink px-4 py-2 text-white}
+.appbar{@apply sticky top-0 z-30 border-b border-line bg-canvas;}
+.appbar-in{@apply mx-auto flex max-w-[1200px] items-center gap-3 px-5 py-3 sm:px-8;}
+.mark{@apply inline-flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-ink no-underline;}
+.mark-dot{@apply size-3.5 rounded-full bg-gold ring-4 ring-gold-pale;}
+.mode{@apply bg-white text-body ring-1 ring-line;}
+.mode[data-mode=live]{@apply bg-danger-pale text-danger ring-0;}
+.mode[data-mode=replay]{@apply bg-info-pale text-info-ink ring-0;}
+.tour-cta{@apply ml-auto whitespace-nowrap;}
+html[data-flow] .tour-cta{@apply bg-white text-ink ring-1 ring-line hover:bg-card-2;}
+html[data-tour] .tour-cta{display:none}
+.toabout{@apply hidden text-sm font-semibold text-body underline decoration-ink/30 underline-offset-4 sm:inline;}
+html[data-tour] .toabout{@apply ml-auto;}
+.mstrip{display:none}
+.page{@apply mx-auto max-w-[1200px] px-5 pb-10 pt-6 sm:px-8 sm:pt-10;}
+
+.intro{@apply max-w-[760px];}
+.eyebrow{@apply mb-3 text-sm font-semibold text-gold-ink;}
+.display{@apply font-display text-[40px] font-extrabold leading-[1.02] tracking-[-.025em] text-ink sm:text-[56px];}
+.lede{@apply mt-4 max-w-[62ch] text-[17px] leading-relaxed text-body;}
+.invite{@apply mt-5 rounded-card border-l-4 border-gold bg-card p-4 text-[15px] leading-relaxed text-body;}
+.invite b,.invite q{@apply font-semibold text-ink;}
+.judge{@apply mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-body;}
+.judge-k{@apply font-semibold text-ink;}
+.judge-steps{@apply flex flex-wrap items-center gap-x-2 gap-y-1;counter-reset:j}
+.judge-steps li{counter-increment:j;@apply inline-flex items-center gap-1.5;}
+.judge-steps li::before{content:counter(j);@apply grid size-5 place-items-center rounded-full bg-ink text-[12px] font-bold text-white;}
+.judge-steps li+li{margin-left:4px}
+.judge-steps b{@apply font-medium text-body;}
+
+/* workspace: flow left, live card right (sticky beside the active step) */
+.work{@apply mt-8 grid gap-6 lg:grid-cols-[7fr_5fr];}
+#flow{@apply grid content-start gap-3;}
+.steps{@apply m-0 grid gap-3 p-0;}
+.side{@apply relative;}
+.crossing{@apply bg-night p-6 text-white lg:sticky lg:top-[calc(var(--hdr)+16px)];}
+.crossing .card-k{@apply text-white/75;}
+.crossing-head{@apply flex items-center justify-between gap-3;}
+.hero{@apply mt-3 font-display text-[64px] font-extrabold leading-none tracking-[-.03em] tabular-nums text-white;}
+.hero small{@apply ml-2 align-baseline font-body text-xl font-semibold tracking-normal text-white/70;}
+.hero[data-tone=shielded]{@apply text-gold;}
+.cap{@apply mt-2 text-sm text-white/75;}
+.tide{--f:0;@apply relative mt-6 h-3 rounded-pill bg-white/15;}
+.tide-fill{@apply absolute inset-y-0 left-0 rounded-pill bg-flight transition-[width] duration-500 ease-out;width:calc(var(--f)*100%)}
+.crossing[data-phase=landed] .tide-fill{@apply bg-gold;}
+.crossing .tide-fill{@apply bg-[#5fb8c0];}
+.tick{@apply absolute top-1/2 h-5 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-pill bg-white/50;}
+.tide-head{@apply absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white ring-4 ring-flight transition-[left] duration-500 ease-out;left:calc(var(--f)*100%)}
+.crossing[data-phase=landed] .tide-head{@apply ring-gold;}
+.crossing[data-phase=idle] .tide-head{@apply bg-white/60 ring-white/20;}
+.crossing .tide-head{@apply ring-[#5fb8c0];}
+.tide-lab{@apply mt-3 flex justify-between font-mono text-[13px] text-white/80 tabular-nums;}
+.path{@apply mt-3 grid grid-cols-3 border-t border-white/15 pt-3;}
+.node{@apply flex flex-col text-white/85;}
+.node:nth-child(2){@apply items-center text-center;}
+.node:nth-child(3){@apply items-end text-right;}
+.node.on,.node.now{@apply text-white;}
+.node.now .nl{@apply text-[#9ad9df];}
+.nl{@apply text-sm font-semibold;}
+.ns{@apply text-[13px];}
+.strip{@apply mt-5 grid grid-cols-3 gap-3 border-t border-white/15 pt-4;}
+.metric dt{@apply text-[13px] font-semibold text-white/75;}
+.metric dd{@apply m-0;}
+.metric dd:not(.metric-s){@apply mt-1 truncate font-display text-[26px] font-extrabold leading-none tabular-nums text-white/70;}
+.metric[data-set] dd:not(.metric-s){@apply text-white;}
+.metric[data-k=lands][data-set] dd:not(.metric-s){@apply text-gold;}
+.metric-s{@apply mt-1 text-[13px] leading-snug text-white/70;}
+.metric .warn{@apply text-[#ffc46b];}
+
+/* steps */
+.step{@apply p-0;}
+.step>header{@apply flex items-center justify-between gap-3 px-5 pt-4;}
+.step>header h2{@apply text-lg font-semibold text-ink;}
+.step .hint{@apply px-5 pt-1 text-sm text-body;}
+.step .body{@apply px-5 pb-5 pt-2 empty:hidden;}
+.step[data-state=locked]{@apply bg-transparent shadow-none ring-1 ring-line;}
+.step[data-state=locked]>header h2,.step[data-state=locked] .hint{@apply text-mute;}
+.step[data-state=locked] .hint{display:none}
+.step[data-state=locked]>header{@apply pb-4;}
+.step[data-state=active]{@apply ring-2 ring-action;}
+.step[data-state=done] .hint{display:none}
+.step[data-state=done] .body{@apply pt-1;}
+.row{@apply mt-3 flex flex-wrap items-center gap-2;}
+.label{@apply mb-1.5 block text-sm font-semibold text-ink;}
+.f{@apply mt-2 block;}
+.help{@apply mt-2 text-sm leading-relaxed text-body;}
+.help.warn,.warn{@apply text-warning-ink;}
+.err{@apply mt-2 rounded-input bg-danger-pale px-3 py-2 text-sm font-medium text-danger;}
+.receipt{@apply flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[15px] text-body;}
+.val{@apply font-mono font-medium text-ink;}
+.check{@apply mt-3 flex items-start gap-2.5 rounded-input bg-warning-pale p-3 text-sm text-warning-ink;}
+.check input{@apply mt-0.5 size-4 accent-action;}
+.chg{@apply inline-flex items-center;}
+html[data-signed] .chg{display:none}
+.tag{@apply shrink-0;}
+.empty{@apply text-sm text-body;}
+
+/* quote: rows, not nested boxes */
+.qt{@apply grid gap-0;}
+.qpair{@apply grid grid-cols-[1fr_auto_1fr] items-end gap-3 border-b border-line pb-3;}
+.qpair>span{@apply flex flex-col font-display text-[28px] font-extrabold tabular-nums leading-tight text-ink;}
+.qpair>span:last-child{@apply text-right text-gold-ink;}
+.qpair small{@apply font-body text-[13px] font-semibold text-mute;}
+.qpair i{@apply mb-1 not-italic text-xl font-bold text-mute;}
+.qsec{@apply border-b border-line py-2.5 text-sm text-body;}
+.qt>.help{@apply mt-0 border-b border-line py-2.5;}
+.qmini{display:none}
+.fold{@apply border-b border-line;}
+.fold>summary{@apply flex items-center justify-between py-2.5 text-sm font-semibold text-ink;list-style:none}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::after{content:"+";@apply font-mono text-base text-mute;}
+.fold[open]>summary::after{content:"\2212"}
+.fold>*:not(summary){@apply pb-3;}
+.qt>.chg{@apply pt-2;}
+.kv{@apply mt-1 grid grid-cols-[auto_1fr] gap-x-4 text-sm;}
+.kv dt{@apply border-b border-line py-2 text-mute;}
+.kv dd{@apply m-0 min-w-0 border-b border-line py-2 text-right font-mono text-[13px] tabular-nums text-ink;}
+.kv dd .addr{@apply justify-end;}
+.linksrow{@apply mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm;}
+.linksrow>span{@apply inline-flex items-center gap-1.5;}
+.mini-tide{--f:0;@apply relative mt-3 h-2.5 overflow-hidden rounded-pill bg-card-2 ring-1 ring-line;}
+.mini-tide i{@apply absolute inset-y-0 left-0 rounded-pill bg-flight transition-[width] duration-500;width:calc(var(--f)*100%)}
+.step[data-state=done] .mini-tide i{@apply bg-gold;}
+.mini-path{@apply mt-1.5 flex justify-between text-[13px] font-semibold text-mute;}
+.mini-lab{@apply mt-1 font-mono text-[13px] text-flight tabular-nums;}
+
+/* read-back + disclosure: cards in the flow, rows inside */
+.ch{@apply font-display text-lg font-semibold text-ink;}
+.readback{scroll-margin-top:140px}
+.readback[data-landed]{@apply ring-2 ring-gold;}
+.readback .amount{@apply mt-3 font-display text-[48px] font-extrabold leading-none tabular-nums tracking-[-.03em] text-ink;}
+.readback .amount small{@apply ml-2 font-body text-lg font-semibold text-mute;}
+.seal{@apply mt-3 inline-flex rounded-pill bg-gold-pale px-3 py-1.5 text-[13px] font-semibold text-gold-ink;}
+.note{@apply mt-3 text-sm text-body;}
+.public>summary{@apply flex items-center justify-between gap-3;list-style:none}
+.public>summary::-webkit-details-marker{display:none}
+.public>summary::after{content:"Show";@apply rounded-input bg-white px-3 py-1 text-[13px] font-semibold text-ink ring-1 ring-line;}
+.public[open]>summary::after{content:"Hide"}
+.public .n{@apply ml-2 rounded-pill bg-card-2 px-2 py-0.5 font-body text-[13px] font-semibold text-body;}
+.exposed{@apply mt-2;}
+.exposed li{@apply grid gap-1.5 border-b border-line py-3 text-sm leading-snug text-body last:border-0;}
+.exposed li b,.exposed li strong{@apply text-ink;}
+.exposed .chip{@apply justify-self-start;}
+.sub{@apply mt-4 text-sm font-semibold text-ink;}
+.risk{@apply mt-1 text-sm leading-relaxed text-body;}
+
+/* about: footer section, out of the product flow */
+.foot{@apply mt-14 border-t border-line pt-8 text-sm text-body;}
+.about-row{@apply grid gap-8 lg:grid-cols-2;}
+.about .ch{@apply mb-2 text-base;}
+.demand li{@apply border-b border-line py-2 leading-snug last:border-0;}
+.demand a,.foot a{@apply font-semibold text-ink underline decoration-gold decoration-2 underline-offset-4;}
+.biz{@apply leading-relaxed;}
+.biz code{@apply rounded-[6px] bg-card px-1 font-mono text-[13px] text-ink;}
+.fine{@apply mt-8 text-body;}
+.noscript{@apply p-6;}
+
+@media (max-width:1023px){
+  .work{display:flex;flex-direction:column;gap:12px;margin-top:20px}
+  .side{order:-1}
+  .crossing{padding:18px}
+  .crossing .cap,.crossing .path,.crossing .strip{display:none}
+  .hero{font-size:44px;margin-top:6px}
+  .tide{margin-top:14px}
+  .display{font-size:32px}
+  .lede{font-size:15px;margin-top:10px}
+  .judge{display:none}
+  .mode{font-size:12px;padding:4px 8px}
+  .mstrip{@apply sticky top-[var(--hdr)] z-20 hidden grid-cols-3 gap-2 border-b border-line bg-white px-5 py-2;}
+  .mstrip[data-live]{display:grid}
+  .mstrip span{@apply flex flex-col;}
+  .mstrip small{@apply text-[13px] font-semibold text-mute;}
+  .mstrip b{@apply font-display text-lg font-extrabold leading-tight tabular-nums text-ink;}
+  .about-row{gap:20px}
+  .readback{scroll-margin-top:130px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.hero-word{@apply text-[40px] tracking-[-.02em] text-white/90;}
+.lastrun{@apply mt-4 border-t border-white/15 pt-3 text-[13px] text-white/75;}
+.crossing[data-done] .strip,.crossing[data-done] .lastrun{display:none}
+.ts{@apply font-mono text-[13px] text-body;}
+.preview{@apply grid gap-1.5 border-b border-line pb-4;}
+.pv-line{@apply text-[17px] leading-snug text-ink;}
+.pv-line b{@apply font-semibold tabular-nums;}
+.pv-line .gold{@apply text-gold-ink;}
+.pv-src{@apply mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-body;}
+.public>summary h2{@apply whitespace-nowrap;}
+.tour-cta{@apply bg-white text-ink ring-1 ring-line hover:bg-card-2;}
+@media (max-width:1023px){ .public>summary h2{font-size:16px} .hero-word{font-size:32px} }

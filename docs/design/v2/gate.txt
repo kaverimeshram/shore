@@ -1,0 +1,7 @@
+ok   references: 3 captured
+ok   components logged
+FAIL CRITIQUE.md has no parseable 'FINAL: <score> min=<m> round=<n> critic=<who> review=<path>' line
+ok   uicraft gate
+ok   cwf banned grep
+ok   slop-check
+---- 1 failure(s)
