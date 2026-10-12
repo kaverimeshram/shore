@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#eef0f3"/>
+  <g transform="translate(187.82 38.93) scale(0.8104)">
+    <!-- till-roll receipt strip -->
+    <path d="M200 40 H600 V700 L560 740 L520 700 L480 740 L440 700 L400 740 L360 700 L320 740 L280 700 L240 740 L200 700 Z" fill="#ffffff" stroke="#121821" stroke-width="24" stroke-linejoin="round"/>
+    <!-- public rows: item bar and value bar, readable by anyone on the shore -->
+    <g stroke="#121821" stroke-width="22" stroke-linecap="round">
+      <path d="M244 120 H370 M500 120 H556"/>
+      <path d="M244 196 H330 M520 196 H556"/>
+      <path d="M244 272 H392 M480 272 H556"/>
+    </g>
+    <!-- the shielded sea: gold, with a wave for the waterline -->
+    <path d="M200 400 Q250 350 300 400 T400 400 T500 400 T600 400 V700 L560 740 L520 700 L480 740 L440 700 L400 740 L360 700 L320 740 L280 700 L240 740 L200 700 Z" fill="#f4b728"/>
+    <path d="M200 400 Q250 350 300 400 T400 400 T500 400 T600 400" fill="none" stroke="#121821" stroke-width="16" stroke-linecap="round"/>
+    <!-- redacted rows under the waterline -->
+    <g stroke="#121821" stroke-width="44">
+      <path d="M244 560 H556"/>
+      <path d="M244 640 H470"/>
+    </g>
+    <!-- the crossing: one blue line from a public row through the waterline to the shielded note -->
+    <path d="M404 272 H436 V462" fill="none" stroke="#2350d8" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="436" cy="486" r="24" fill="none" stroke="#121821" stroke-width="16"/>
+  </g>
+  <text x="512" y="880" text-anchor="middle" font-family="'Bricolage Grotesque', sans-serif" font-weight="800" font-size="200" letter-spacing="6" fill="#121821">SHORE</text>
+</svg>
