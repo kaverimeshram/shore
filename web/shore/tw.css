@@ -129,10 +129,6 @@ html[data-tour] .toabout{@apply ml-auto;}
 .rx-k{@apply font-display text-lg font-extrabold uppercase tracking-[.06em] text-ink;}
 .rx-meta{@apply font-mono text-[12px] text-mute;}
 .rx-fig{@apply grid w-full justify-items-start gap-0.5;}
-.rx-out{@apply font-display text-[36px] font-extrabold leading-none tabular-nums text-ink;}
-.rx-out small{@apply ml-1 font-body text-[15px] font-semibold text-gold-ink;}
-.rx-outl{@apply font-mono text-[12px] text-mute;}
-.rx-tally{@apply mt-1 text-[13px] font-semibold text-body;}
 .rx-rows{@apply px-5;}
 .rx-row{@apply grid gap-x-4 gap-y-1 border-b border-dotted border-line py-3 sm:grid-cols-[minmax(0,1fr)_auto];}
 .rx-what{@apply text-[15px] font-semibold text-ink;}
@@ -313,3 +309,16 @@ html[data-signed] .chg{display:none}
 @media (max-width:639px){.appbar .tour-cta,.appbar .toabout{display:none}}
 @media (min-width:1024px){.lead-grid .display{font-size:50px;text-wrap:balance}}
 .lead-grid .display{text-wrap:balance}
+/* r7: till roll. Perforated edges, dotted leaders, a rubber stamp for the landed note (DESIGN.md: till roll + redaction log). */
+.rx{-webkit-mask:radial-gradient(circle 5px at 7px 0,#0000 98%,#000) 0 0/14px 51% repeat-x,radial-gradient(circle 5px at 7px 100%,#0000 98%,#000) 0 100%/14px 51% repeat-x;mask:radial-gradient(circle 5px at 7px 0,#0000 98%,#000) 0 0/14px 51% repeat-x,radial-gradient(circle 5px at 7px 100%,#0000 98%,#000) 0 100%/14px 51% repeat-x;@apply rounded-none pt-2 pb-2;}
+.rx-tally{@apply text-[15px] text-body;}
+.rx-tally b{@apply font-display text-[28px] font-extrabold leading-none text-ink;}
+.rx-tally i{@apply not-italic text-mute;}
+@media (min-width:640px){.rx-what{display:flex;align-items:baseline;gap:8px}.rx-what::after{content:"";flex:1;min-width:24px;border-bottom:1.5px dotted var(--color-line);transform:translateY(-4px)}}
+.stamp{@apply mt-7 grid w-fit max-w-[360px] gap-0.5 rounded-[6px] border-2 border-gold-ink px-5 py-3 font-mono text-gold-ink no-underline;outline:1px solid var(--color-gold-ink);outline-offset:3px;transform:rotate(-1.5deg)}
+.stamp:hover{@apply bg-gold-pale;}
+.stamp-k{@apply text-[12px] font-medium uppercase tracking-[.14em];}
+.stamp-big{@apply font-display text-[44px] font-extrabold leading-none text-ink;}
+.stamp-sub{@apply font-body text-[14px] font-semibold text-ink;}
+.stamp-foot{@apply mt-1 text-[11.5px] text-gold-ink;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:reduce){.stamp{transform:none}}

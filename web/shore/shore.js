@@ -467,9 +467,14 @@ async function renderHeroReceipt() {
     const guards = Object.values(RX_GUARDS).flat().length;
     put($("rx-meta"), `Mainnet, ${new Date(rec.solana_block_time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${rec.seconds} s · `,
       link(`https://solscan.io/tx/${rec.solana_tx}`, "Solana tx"), " · ", link(`https://mainnet.zcashexplorer.app/transactions/${rec.zcash_txid}`, "Zcash tx"));
-    put($("rx-fig"), h("span", { class: "rx-out" }, `${zec(rec.received_zat)} `, h("small", {}, "ZEC landed")),
-      h("span", { class: "rx-outl" }, `read back at block ${Number(rec.zcash_height).toLocaleString("en-US")} with a view-only key`),
-      h("span", { class: "rx-tally" }, `${x.rows.length} links itemized · ${guards} guards enforced`));
+    put($("rx-fig"), h("span", { class: "rx-tally" }, h("b", {}, String(x.rows.length)), " links itemized", h("i", {}, " · "), h("b", {}, String(guards)), " guards enforced"));
+    const st = $("stamp");
+    st.href = `https://mainnet.zcashexplorer.app/transactions/${rec.zcash_txid}`;
+    put(st, h("span", { class: "stamp-k" }, "Landed shielded"),
+      h("span", { class: "stamp-big" }, `${rec.seconds} s`),
+      h("span", { class: "stamp-sub" }, "one Phantom approval, send to land"),
+      h("span", { class: "stamp-foot" }, `${zec(rec.received_zat)} ZEC read back at block ${Number(rec.zcash_height).toLocaleString("en-US")} with a view-only key`));
+    st.hidden = false;
     put($("rx-rows"), x.rows.map(rxRow));
     put($("rx-sum"), "Private to you after the crossing: ", h("b", {}, x.rows.filter((r) => !r.exposed).map((r) => r.what.toLowerCase()).join(", ")), ". Every other line is public somewhere, and SHORE says where.");
   } catch { $("rx").hidden = true; }
