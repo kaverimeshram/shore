@@ -46,3 +46,15 @@ Self-critique only. The cwf-ui-gate requires an independent critic (fresh:<agent
    placeholder dash sits on the dark card at 70% white; labels and captions are 13px+.
 5. Progress: band with three stop ticks, a moving head, elapsed/ETA labels, full-strength gold at idle and landed,
    landed caption "Landed in Ns, read back from the note at height N", 84s shown once at idle (Elapsed reads "starts when you approve").
+
+## Web3 pass (Phantom reference) + critic r2 items. Shots: docs/design/v2/r3web3/, docs/design/r3-*.png
+- Plain-language preview in Review and approve: "You send X ZEC (~$Y) from Phantom. About Z ZEC arrives shielded in
+  about Ns. Fee $F (p%)", USD from the 1Click quote's amountInUsd/amountOutUsd (API passes them with usdSource and
+  quotedAt; replay labels "recorded quote, 10 Oct 2026"), with Solana mainnet / Zcash mainnet badges.
+- Live card tracker: not started -> quoted, not sent -> pending (elapsed) -> confirmed (Zcash height + IST time).
+  Last run is one small line. One ETA (the quote's) in the strip and band label; no second elapsed readout; the strip
+  hides at confirmed so the landed amount appears once (read-back card).
+- Gold is the only brand accent (shielded); teal phased down to a light fill for "pending"; focus ring 3px action blue
+  with offset (gold on the dark card); teal chip text #0a5f67; node labels 85% white; "4 in general" on one line;
+  "Try it in 60s" is an outline button, so mobile idle has one primary (Connect).
+- New overlap test (tests/overlap.spec.js) passes at 1440/768/390.
