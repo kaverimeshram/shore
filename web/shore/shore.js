@@ -467,8 +467,9 @@ async function renderHeroReceipt() {
     const guards = Object.values(RX_GUARDS).flat().length;
     put($("rx-meta"), `Mainnet, ${new Date(rec.solana_block_time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${rec.seconds} s · `,
       link(`https://solscan.io/tx/${rec.solana_tx}`, "Solana tx"), " · ", link(`https://mainnet.zcashexplorer.app/transactions/${rec.zcash_txid}`, "Zcash tx"));
-    put($("rx-fig"), h("span", { class: "rx-n" }, String(x.rows.length)), h("span", { class: "rx-nl" }, "links itemized"),
-      h("span", { class: "rx-n" }, String(guards)), h("span", { class: "rx-nl" }, "guards enforced"));
+    put($("rx-fig"), h("span", { class: "rx-out" }, `${zec(rec.received_zat)} `, h("small", {}, "ZEC landed")),
+      h("span", { class: "rx-outl" }, `read back at block ${Number(rec.zcash_height).toLocaleString("en-US")} with a view-only key`),
+      h("span", { class: "rx-tally" }, `${x.rows.length} links itemized · ${guards} guards enforced`));
     put($("rx-rows"), x.rows.map(rxRow));
     put($("rx-sum"), "Private to you after the crossing: ", h("b", {}, x.rows.filter((r) => !r.exposed).map((r) => r.what.toLowerCase()).join(", ")), ". Every other line is public somewhere, and SHORE says where.");
   } catch { $("rx").hidden = true; }
@@ -518,8 +519,9 @@ function boot() {
   STEPS.forEach((id) => setStep(id, $(id).dataset.state));
   setCrossing("idle");
   put(body("s-connect"),
-    h("div", { class: "row" }, h("button", { class: "btn", type: "button", "data-testid": "connect", onclick: connect }, MODE === "live" ? "Connect Phantom" : "Connect recorded wallet"),
-      MODE === "live" ? h("a", { class: "btn ghost", href: "?replay=1" }, "Watch the recorded run") : h("a", { class: "btn ghost", href: "?live=1" }, "Use it live (mainnet)")));
+    h("div", { class: "row" }, MODE === "live"
+      ? [h("button", { class: "btn", type: "button", "data-testid": "connect", onclick: connect }, "Connect Phantom"), h("a", { class: "btn ghost", href: "?replay=1" }, "Watch the recorded run")]
+      : [h("a", { class: "btn", href: "?live=1#flow" }, "Use it live (mainnet)"), h("button", { class: "btn ghost", type: "button", "data-testid": "connect", onclick: connect }, "Connect recorded wallet")]));
 }
 // ---------- judge tour ----------
 // ?tour=1 (replay only): presses each step's primary button after a readable pause, then opens "What's still public".

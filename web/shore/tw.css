@@ -128,9 +128,11 @@ html[data-tour] .toabout{@apply ml-auto;}
 .rx-id{@apply grid gap-1 min-w-0;}
 .rx-k{@apply font-display text-lg font-extrabold uppercase tracking-[.06em] text-ink;}
 .rx-meta{@apply font-mono text-[12px] text-mute;}
-.rx-fig{@apply grid grid-cols-[auto_auto] items-baseline gap-x-2 gap-y-0;}
-.rx-n{@apply font-display text-[40px] font-extrabold leading-none tabular-nums text-ink;}
-.rx-nl{@apply text-[13px] font-semibold text-body;}
+.rx-fig{@apply grid w-full justify-items-start gap-0.5;}
+.rx-out{@apply font-display text-[36px] font-extrabold leading-none tabular-nums text-ink;}
+.rx-out small{@apply ml-1 font-body text-[15px] font-semibold text-gold-ink;}
+.rx-outl{@apply font-mono text-[12px] text-mute;}
+.rx-tally{@apply mt-1 text-[13px] font-semibold text-body;}
 .rx-rows{@apply px-5;}
 .rx-row{@apply grid gap-x-4 gap-y-1 border-b border-dotted border-line py-3 sm:grid-cols-[minmax(0,1fr)_auto];}
 .rx-what{@apply text-[15px] font-semibold text-ink;}
