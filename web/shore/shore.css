@@ -64,7 +64,7 @@ a:hover{text-decoration-color:var(--ink)}
 /* the live ledger replaces the headline once a wallet is connected */
 .ledger{border-top:1px solid var(--ink);padding-top:var(--s4)}
 .lk{font:700 var(--t-s)/1.3 var(--sans);color:var(--ink-2)}
-.hero{font:800 96px/.92 var(--serif);letter-spacing:-.01em;margin-top:var(--s2);font-variant-numeric:tabular-nums lining-nums}
+.hero{font:800 96px/1.05 var(--serif);letter-spacing:-.01em;margin-top:var(--s3);font-variant-numeric:tabular-nums lining-nums}
 .hero small{font:700 var(--t-s)/1 var(--sans);letter-spacing:0;margin-left:var(--s2);color:var(--ink-2)}
 .hero[data-tone="shielded"]{color:var(--ink);box-shadow:inset 0 -.22em 0 var(--gold)}
 .lrows{margin-top:var(--s5);display:grid;grid-template-columns:auto 1fr;font-size:var(--t-s)}
@@ -251,3 +251,8 @@ html[data-tour] .judge .btn{display:none}
 .demand a{color:var(--ink);font-weight:700}
 .biz{margin-top:var(--s3);max-width:68ch;font-size:var(--t-s);line-height:1.6;color:var(--ink-2)}
 @media (max-width:959px){.about{order:4}}
+/* hotfix 2026-10-12: the sticky left column used to slide over "Why now" / "Business model" (same grid container,
+   transparent background). Those sections now live in their own container, and the sticky column is opaque. */
+.side{background:var(--paper)}
+.page-after{padding-top:0}
+@media (min-width:960px){.page-after .about:first-child{margin-top:0}}
