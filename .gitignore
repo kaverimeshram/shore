@@ -20,3 +20,4 @@ data/quote-profiles.json
 deploy/pages/dist/
 deploy/pages/functions/
 .wrangler/
+.progress/LEDGER.md

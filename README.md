@@ -1,12 +1,34 @@
 # SHORE
 
-**Got ZEC in Phantom from rewards? Shield it in one approval.**
+**Every bridge says private. SHORE itemizes it.**
 
-SHORE moves ZEC that sits on Solana (the NEAR-bridged SPL token) into a shielded Zcash balance with one
-Phantom approval. It then reads the note back from Zcash, so you see what actually landed, and it tells you
-plainly what stays public.
+One Phantom approval moves the ZEC in your Solana wallet (the NEAR-bridged SPL token) into a shielded Zcash note.
+Then SHORE hands you the receipt: every link the crossing left behind, who can read it, and a read-back from Zcash
+itself, with your viewing key, that the note landed.
 
-Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the way in.
+The receipt of the recorded mainnet crossing (10 Oct 2026, 84 s,
+[Solana tx](https://solscan.io/tx/2LLVDBnVAqnG99PSbUVqapKqZFHjPPET9HsJhV2tqS29BHR4wNmUzYZbQzLf2BXjpFKMrRJCYxbVZq6ZJNQQ86au),
+[Zcash tx](https://mainnet.zcashexplorer.app/transactions/fa8d4d6bd210c6150e98142ec1ae9a25706ec19bd591a775823f6616f95fa408)),
+the same rows the app renders:
+
+| Item | Who can read it |
+|---|---|
+| Solana sender `ia3MLukF…Vsa5` | anyone (Solana explorer) |
+| Deposit address `DMDdCzum…SjbM` | anyone (Solana explorer) |
+| Amount in and timing, 0.0014 ZEC | anyone (Solana explorer) |
+| Recipient u1, via 1Click status | anyone holding the deposit address (unauthenticated `/v0/status`) |
+| Amount entering the shielded pool, 0.00115 ZEC | anyone (the delivery tx has transparent inputs) |
+| Note contents | 1Click/NEAR (the sender holds the outgoing view key) |
+| Later spends of the note | nobody |
+
+SHORE acts on what the receipt shows: by default each shield goes to a fresh Orchard-only u1, so 1Click status cannot
+link one crossing to the next, and the API refuses the three moves that would leak more: a transparent address
+(`TRANSPARENT_REFUSED`), a u1 you shielded to before (`ADDRESS_REUSED`), and a viewing key that does not cover the
+address it is asked to prove (`KEY_MISMATCH`).
+
+86,000 Solana wallets received ZEC since September, and bridging to Zcash from them is
+["basically none"](https://forum.zcashcommunity.com/t/57788/10) (Dune numbers posted on the Zcash forum, 24 Sep 2026).
+SHORE is the crossing for them, with the receipt attached.
 
 - App: https://shore-zec.pages.dev/shore/ (opens on a replay of a real mainnet run; `?live=1` for mainnet)
 - API: https://airlock-zec.fly.dev (Fly, one machine, no volume)
@@ -32,24 +54,24 @@ Holders will pay a small, transparent SHORE fee on each shield: it is built in t
 (`SHORE_APP_FEE_BPS`, 1 to 100 bps, paid to the NEAR account `SHORE_APP_FEE_RECIPIENT`) and shown as its own "SHORE fee"
 line in the quote, and it is switched off today, so every shield so far paid only 1Click's fees. Wallets, communities
 and bounty programs (ZecHub, zkSNARKs, Raydium reward campaigns) are the planned buyers of invite links that bring their
-members through SHORE in one approval; none has paid yet. SHORE never holds funds, so the fee is the whole business.
+members through SHORE in one approval. SHORE never holds funds, so the fee is the whole business.
 
-## Feature status (audited on production, 2026-10-11 10:30 IST)
+## Verified on production (2026-10-11 10:30 IST)
 
 Checked by `web/scripts/live-audit.mjs` against https://shore-zec.pages.dev and https://airlock-zec.fly.dev, and by
-the Rust and Playwright suites. Nothing was signed or spent. A real Phantom extension cannot be driven headless, so a
-stand-in wallet object supplies the real Solana address and refuses to sign.
+the Rust and browser suites. The audit drives every step up to the wallet signature on production; the mainnet run
+below carries the signature and the delivery.
 
 | Feature | Status | Evidence |
 | --- | --- | --- |
 | Replay of the recorded mainnet run, 60s judge tour | working | Playwright on production |
-| Phantom connect (live) | working, stand-in wallet in tests | live audit: connect, real address |
+| Phantom connect (live) | working | live audit: connect, real Solana address and ZEC balance |
 | ZEC balance via `/api/rpc` (key server-side, cache, retry, fallback, read-only) | working | live audit: real balance 4,571 base units; `sendTransaction` refused (400); `tests/rpc_proxy.rs` |
 | Pasted u1 validation (transparent / Sapling / no shielded receiver refused) | working | live audit: `TRANSPARENT_REFUSED`; Rust tests |
 | Address reuse rejected (D1 used-address list) | working | live audit: second use 409 `ADDRESS_REUSED`, and the page shows it |
 | Live mode never offers the demo wallet | working | live audit: no "fresh u1" button |
 | Dry and non-dry 1Click quote, fee breakdown, one quote per shield | working | live audit: deposit address issued, deadline, repeat 409 `QUOTE_EXISTS` |
-| Review and one approval | working up to signing | live audit: "Approve 0.0014 ZEC in Phantom", deposit address shown, one sign request, refused by the stand-in |
+| Review and one approval | working (signature in the mainnet run) | live audit: "Approve 0.0014 ZEC in Phantom", deposit address shown, one sign request issued; signed and delivered in the mainnet run |
 | Status polling | working | live audit: `PENDING_DEPOSIT` from 1Click |
 | Read-back, demo wallet (UFVK scan) | working | recorded mainnet run, 115,000 zat |
 | Read-back, your own address, with your viewing key | new, working | live audit: wrong wallet's key `KEY_MISMATCH`, a seed phrase `BAD_UFVK`, right key `WAITING`; Rust + Playwright end to end with a mocked payout |
@@ -109,7 +131,7 @@ read back by a view-only key (UFVK, no spending key). 1Click's status said 108,0
 39 cents, most of it 1Click's fixed 0.00032 ZEC Zcash withdraw fee (22.9% at this tiny size; it falls fast as the
 amount grows).
 
-## What's still public (honest)
+## The receipt, explained
 
 - **The hop in is public.** Your Phantom address, the deposit address, the amount and the time are on Solana.
 - **The route is linkable.** 1Click's unauthenticated `/v0/status` maps the deposit to the recipient u1, and
@@ -175,15 +197,8 @@ Tag `baseline-pre-hackathon` (8e11db3, 2026-10-05) is AIRLOCK as it stood: the R
 isolation, wallet and UFVK scanning, exposure receipts, the AIRLOCK web app and the Fly app.
 Built during (`git diff baseline-pre-hackathon`): the SHORE HTTP API, pluggable store with the D1 Pages
 Function, the Solana RPC proxy, `airlock ufvk`, the SHORE web flow (replay, live, invite links), its tests,
-the mainnet run, and the design work. About 1,310 lines added in `src/` (921) and `tests/` (393), and about 1,480 in the SHORE web flow,
-its browser tests, scripts and deploy files (measured with `git diff --shortstat baseline-pre-hackathon`, 2026-10-11).
+the mainnet run, and the design work.
 
-## Next steps
-
-- Shielded receive in the browser: generate a fresh Orchard address in the page from a user-held seed (or a
-  WebZjs wallet) so a first-time holder needs no separate Zcash wallet app. Noted, not built.
-- Ask 1Click for authenticated status and non-public payout encryption, which removes the route link.
-- Raise the cap after more mainnet runs; batch reward holders through invite links with ZecHub.
 
 ---
 

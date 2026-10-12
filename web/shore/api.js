@@ -102,6 +102,11 @@ export async function readbackKey(id, ufvk) {
 
 export async function exposure(id, ctx = {}) {
   if (MODE === "live") return call("/api/exposure/" + encodeURIComponent(id));
+  return recordedExposure(id, ctx);
+}
+
+/** Exposure rows for the recorded mainnet run (replay.json), whatever the page mode. */
+export async function recordedExposure(id = "recorded", ctx = {}) {
   const rec = await loadReplay();
   return { id, addressReused: false, rows: [
     { what: "Solana sender", value: ctx.sender || rec.sender, whoCanSee: "anyone (Solana explorer)", source: "solana tx", exposed: true },

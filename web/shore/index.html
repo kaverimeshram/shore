@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SHORE: shield the ZEC in your Phantom wallet</title>
-<meta name="description" content="Got ZEC in Phantom from rewards? Move it into a shielded Zcash balance with one approval, and read back exactly what landed and what stayed public.">
+<title>SHORE: every bridge says private, SHORE itemizes it</title>
+<meta name="description" content="Move the ZEC in your Solana wallet into a shielded Zcash note with one Phantom approval, then get the receipt: every link the crossing left behind, who can read it, and a read-back from Zcash that the note landed.">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:,">
 <link rel="preload" href="../fonts/figtree-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -28,14 +28,24 @@
 
 <div class="page">
 <section class="intro" id="intro">
-  <p class="eyebrow">Solana ZEC &rarr; shielded Zcash</p>
-  <h1 class="display">Got ZEC in Phantom from rewards? Shield it in one approval.</h1>
-  <p class="lede">The ZEC that landed in your Phantom wallet sits next to your public Solana history. SHORE moves it into a shielded Zcash balance with one approval, then reads the note back from Zcash so you can see it arrived. Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the way in.</p>
+  <h1 class="display">Every bridge says private. SHORE itemizes it.</h1>
+  <p class="lede">One Phantom approval moves the ZEC in your Solana wallet into a shielded Zcash note. Then SHORE hands you the receipt: every link the crossing left behind, who can read it, and a read-back from Zcash itself that the note landed.</p>
+  <div class="hero-cta"><a class="btn" href="?live=1#flow" data-testid="hero-live">Shield my ZEC</a><a class="btn ghost" href="?replay=1&amp;tour=1&amp;speed=3" data-testid="hero-replay">Replay the 84 s mainnet run</a></div>
   <p class="invite" id="invite" hidden></p>
-  <div class="judge" id="judge">
-    <p class="judge-k">Replay of the 10 Oct mainnet run, nothing is sent:</p>
-    <ol class="judge-steps"><li><b>Connect and quote</b></li><li><b>One approval, one crossing</b></li><li><b>Read-back and what is still public</b></li></ol>
+  <figure class="rx" id="rx" aria-labelledby="rx-h">
+    <figcaption class="rx-head"><span class="rx-k" id="rx-h">Receipt</span><span class="rx-meta" id="rx-meta">Mainnet run, 10 Oct 2026</span></figcaption>
+    <ul class="exposed rx-rows" id="rx-rows"></ul>
+    <p class="rx-sum" id="rx-sum"></p>
+  </figure>
+  <div class="refuse" aria-label="What SHORE refuses">
+    <p class="refuse-k">SHORE refuses</p>
+    <ul class="refuse-list">
+      <li><code>TRANSPARENT_REFUSED</code><span>a t-address, which would publish the payout</span></li>
+      <li><code>ADDRESS_REUSED</code><span>a u1 you shielded to before, which would link both crossings</span></li>
+      <li><code>KEY_MISMATCH</code><span>a viewing key that does not cover the address it is asked to prove</span></li>
+    </ul>
   </div>
+  <p class="market"><b>86,000 Solana wallets received ZEC since September. Bridging to Zcash: &ldquo;basically none.&rdquo;</b> <a class="lnk" href="https://forum.zcashcommunity.com/t/57788/10" target="_blank" rel="noopener">Dune numbers, Zcash forum, 24 Sep 2026</a></p>
 </section>
 
 <div class="work">

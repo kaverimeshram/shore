@@ -436,6 +436,24 @@ const DEFAULT_EXPOSED = [
   ["NEAR can decrypt the payout.", "The NEAR Intents solver builds the Zcash transaction, so it holds the outgoing view key for that note. The amount entering the pool is also visible, because the delivery has transparent inputs."],
   ["What is private afterwards:", "spends you make later from the note. Nobody outside your wallet can see those."],
 ];
+const whoKind = (w) => (/anyone/i.test(w) ? "anyone" : /nobody/i.test(w) ? "nobody" : "some");
+const exposedRow = (r) => h("li", { "data-exposed": String(r.exposed), "data-who": whoKind(r.whoCanSee) },
+  r.exposed ? h("b", {}, r.what) : h("strong", {}, r.what),
+  r.value ? h("span", { class: "help" }, /^\d+$/.test(r.value) ? `${zec(r.value)} ZEC` : short(r.value, 10)) : h("span", { class: "help", "aria-hidden": "true" }),
+  h("span", { class: "chip " + ({ anyone: "chip-neg", nobody: "chip-pos", some: "chip-warn" })[whoKind(r.whoCanSee)] }, `${r.exposed ? "Readable by" : "Visible to"}: ${r.whoCanSee}`));
+
+// Hero receipt: the recorded mainnet crossing, itemized with the same rows a live transfer gets.
+async function renderHeroReceipt() {
+  try {
+    const [rec, x] = await Promise.all([api.loadReplay(), api.recordedExposure()]);
+    const open = x.rows.filter((r) => r.exposed).length;
+    put($("rx-meta"), `Mainnet, ${new Date(rec.solana_block_time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${rec.seconds} s · `,
+      link(`https://solscan.io/tx/${rec.solana_tx}`, "Solana tx"), " · ", link(`https://mainnet.zcashexplorer.app/transactions/${rec.zcash_txid}`, "Zcash tx"));
+    put($("rx-rows"), x.rows.map(exposedRow));
+    put($("rx-sum"), h("b", {}, `${open} of ${x.rows.length}`), " items are readable by someone. ", h("b", {}, `${x.rows.length - open}`), ` stays yours: ${x.rows.filter((r) => !r.exposed).map((r) => r.what.toLowerCase()).join(", ")}.`);
+  } catch { $("rx").hidden = true; }
+}
+
 function renderExposureDefault() {
   put($("pub-n"), `${DEFAULT_EXPOSED.length} in general`);
   put($("exposed"), DEFAULT_EXPOSED.map(([b, t], i) => h("li", {}, i < 3 ? h("b", {}, b) : h("strong", {}, b), " ", t)));
@@ -476,6 +494,7 @@ function boot() {
   m.dataset.mode = MODE;
   m.textContent = MODE === "replay" ? "Replay of a mainnet run" : MODE === "mock" ? "Mock data, not real" : "Live on mainnet";
   renderExposureDefault();
+  renderHeroReceipt();
   STEPS.forEach((id) => setStep(id, $(id).dataset.state));
   setCrossing("idle");
   put(body("s-connect"),
