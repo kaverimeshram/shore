@@ -17,7 +17,7 @@ Launchpads (Sapling, SnarksPad, Billet) are where you speculate; SHORE is the wa
 1. Open https://shore-zec.pages.dev/shore/ and press **Try it in 60s** (`?replay=1&tour=1&speed=3`). It plays the
    recorded mainnet run of 2026-10-10 hands-free. No wallet is touched and nothing is sent.
 2. What you are seeing: connect, then a fresh Orchard-only u1 and a 1Click quote with every fee shown; one Phantom approval
-   and the crossing on the tide band; then the view-key read-back of the landed note and "What's still public".
+   and the crossing on the live card (tracker from "Not started" to confirmed, network badges, IST times); then the view-key read-back of the landed note and "What's still public".
 3. Check the proof yourself: the txids under "Mainnet proof" below, all on public explorers.
 4. Live: `?live=1` with Phantom and your own Zcash wallet's u1 (capped at 0.02 ZEC). After it lands, paste that wallet's
    viewing key for the read-back, or open the wallet. Live audit of every step short of signing: "Feature status" below.
