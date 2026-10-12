@@ -28,12 +28,15 @@ Spoken by Kamal, first person. Only the quoted lines are spoken; the headings ar
 > NEAR Intents, which once held about $589,000 for 50 days. SHORE never holds funds, but it can't overrule
 > them. The app says so before you sign.
 
-## 1:30 to 2:00, why me
+## 1:30 to 2:00, why we understand this problem
 
-> Why me? I started AIRLOCK on October 3rd: a Rust client for NEAR Intents 1Click, Tor-isolated quotes
-> and view-only note scanning. I measured 909 live 1Click deposit addresses, and 558 leaked a shielded
-> refund address. SHORE is built on that work. Then I audited every feature on production and wrote down
-> what isn't done: the SHORE fee is built but switched off, and no one has paid yet. Try the replay at
+<!-- source: spikes/leak-scan/FINDINGS.md, commit 3c1eed2 (2026-10-03); README AIRLOCK section -->
+> Why we understand this problem: before SHORE, we scanned 1,501 Zcash mainnet blocks and found 909 live
+> 1Click deposit addresses. 558 of them leaked a shielded refund address. That's why SHORE asks for a fresh
+> address every time and shows what stays public before you sign.
+<!-- source: README "Mainnet proof" (2026-10-10 run: 84 s, 115,000 zat, read back with a view-only key) -->
+> And we don't trust a status page: on our own mainnet run, we read the note back ourselves, and it didn't
+> match what 1Click reported. The fee is built but switched off, and no one has paid yet. Try the replay at
 > shore-zec.pages.dev/shore.
 
 ---
@@ -56,4 +59,5 @@ Spoken by Kamal, first person. Only the quoted lines are spoken; the headings ar
   `spikes/leak-scan/FINDINGS.md`, commit 3c1eed2 (2026-10-03).
 - Production feature audit (2026-10-11 10:30 IST), fee built but switched off, none has paid yet: README
   "Feature status" and "Business model".
+- Why-us uses only measured, product-specific facts; no awards or prizes are claimed.
 - No personal background is claimed beyond what the work and git history show. No team size is mentioned.
