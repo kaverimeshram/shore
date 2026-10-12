@@ -18,7 +18,7 @@
   <div class="appbar-in">
     <a class="mark" href="./" aria-label="SHORE, start over"><span class="mark-dot" aria-hidden="true"></span>SHORE</a>
     <p class="mode chip" id="mode" role="status"></p>
-    <a class="btn btn-sm tour-cta" href="?replay=1&amp;tour=1&amp;speed=3" data-testid="tour">Try it in 60s</a>
+    <a class="btn btn-sm tour-cta" href="?replay=1&amp;tour=1&amp;speed=3" data-testid="tour">Watch the 84 s run</a>
     <a class="toabout" href="#about">Why SHORE</a>
   </div>
 </header>
@@ -27,25 +27,22 @@
 </div>
 
 <div class="page">
-<section class="intro" id="intro">
-  <h1 class="display">Every bridge says private. SHORE itemizes it.</h1>
-  <p class="lede">One Phantom approval moves the ZEC in your Solana wallet into a shielded Zcash note. Then SHORE hands you the receipt: every link the crossing left behind, who can read it, and a read-back from Zcash itself that the note landed.</p>
-  <div class="hero-cta"><a class="btn" href="?live=1#flow" data-testid="hero-live">Shield my ZEC</a><a class="btn ghost" href="?replay=1&amp;tour=1&amp;speed=3" data-testid="hero-replay">Replay the 84 s mainnet run</a></div>
-  <p class="invite" id="invite" hidden></p>
+<section class="intro lead-grid" id="intro">
+  <div class="hero-copy">
+    <h1 class="display">Every bridge says private. SHORE itemizes it.</h1>
+    <p class="lede">One Phantom approval moves the ZEC in your Solana wallet into a shielded Zcash note. Then SHORE hands you the receipt: every link the crossing left behind, who can read it, and a read-back from Zcash itself that the note landed.</p>
+    <div class="hero-cta"><a class="btn" href="?live=1#flow" data-testid="hero-live">Shield my ZEC</a><a class="btn ghost" href="?replay=1&amp;tour=1&amp;speed=3" data-testid="hero-replay">Watch the 84 s run</a></div>
+    <p class="invite" id="invite" hidden></p>
+    <p class="market"><b>86,000 Solana wallets received ZEC since September. Bridging to Zcash: &ldquo;basically none.&rdquo;</b> <a class="lnk" href="https://forum.zcashcommunity.com/t/57788/10" target="_blank" rel="noopener">Dune numbers, Zcash forum, 24 Sep 2026</a></p>
+  </div>
   <figure class="rx" id="rx" aria-labelledby="rx-h">
-    <figcaption class="rx-head"><span class="rx-k" id="rx-h">Receipt</span><span class="rx-meta" id="rx-meta">Mainnet run, 10 Oct 2026</span></figcaption>
-    <ul class="exposed rx-rows" id="rx-rows"></ul>
+    <figcaption class="rx-head">
+      <div class="rx-id"><span class="rx-k" id="rx-h">Receipt</span><span class="rx-meta" id="rx-meta">Mainnet run, 10 Oct 2026</span></div>
+      <div class="rx-fig" id="rx-fig"></div>
+    </figcaption>
+    <ol class="rx-rows" id="rx-rows"></ol>
     <p class="rx-sum" id="rx-sum"></p>
   </figure>
-  <div class="refuse" aria-label="What SHORE refuses">
-    <p class="refuse-k">SHORE refuses</p>
-    <ul class="refuse-list">
-      <li><code>TRANSPARENT_REFUSED</code><span>a t-address, which would publish the payout</span></li>
-      <li><code>ADDRESS_REUSED</code><span>a u1 you shielded to before, which would link both crossings</span></li>
-      <li><code>KEY_MISMATCH</code><span>a viewing key that does not cover the address it is asked to prove</span></li>
-    </ul>
-  </div>
-  <p class="market"><b>86,000 Solana wallets received ZEC since September. Bridging to Zcash: &ldquo;basically none.&rdquo;</b> <a class="lnk" href="https://forum.zcashcommunity.com/t/57788/10" target="_blank" rel="noopener">Dune numbers, Zcash forum, 24 Sep 2026</a></p>
 </section>
 
 <div class="work">

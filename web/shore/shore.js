@@ -443,14 +443,34 @@ const exposedRow = (r) => h("li", { "data-exposed": String(r.exposed), "data-who
   h("span", { class: "chip " + ({ anyone: "chip-neg", nobody: "chip-pos", some: "chip-warn" })[whoKind(r.whoCanSee)] }, `${r.exposed ? "Readable by" : "Visible to"}: ${r.whoCanSee}`));
 
 // Hero receipt: the recorded mainnet crossing, itemized with the same rows a live transfer gets.
+// Guards are the API refusals (src/shore.rs) that protect the row they sit on.
+const RX_GUARDS = {
+  "Recipient u1 via 1Click status": [["TRANSPARENT_REFUSED", "a t-address here would publish the payout"], ["ADDRESS_REUSED", "a u1 used before would link this crossing to the last one"]],
+  "Note contents to the payer": [["KEY_MISMATCH", "the read-back only accepts a viewing key that covers this address"]],
+};
+function rxRow(r) {
+  const who = whoKind(r.whoCanSee);
+  const m = /^(.*?)\s*\((.*)\)$/.exec(r.whoCanSee);
+  const val = r.value ? (/^\d+$/.test(r.value) ? `${zec(r.value)} ZEC` : short(r.value, 8)) : null;
+  const guards = RX_GUARDS[r.what] || [];
+  return h("li", { class: "rx-row", "data-who": who, "data-exposed": String(r.exposed) },
+    h("span", { class: "rx-what" }, r.what),
+    r.exposed
+      ? (val ? h("mark", { class: "rx-val" }, val) : h("mark", { class: "rx-val" }, "value · recipient · memo"))
+      : h("span", { class: "rx-redact", role: "img", "aria-label": "private to you" }),
+    h("span", { class: "rx-who" }, h("b", {}, m ? m[1] : r.whoCanSee), m ? ` · ${m[2]}` : null),
+    guards.length ? h("span", { class: "rx-guards" }, guards.map(([c, t]) => h("span", { class: "rx-guard" }, h("code", {}, c), ` refused: ${t}`))) : null);
+}
 async function renderHeroReceipt() {
   try {
     const [rec, x] = await Promise.all([api.loadReplay(), api.recordedExposure()]);
-    const open = x.rows.filter((r) => r.exposed).length;
+    const guards = Object.values(RX_GUARDS).flat().length;
     put($("rx-meta"), `Mainnet, ${new Date(rec.solana_block_time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${rec.seconds} s · `,
       link(`https://solscan.io/tx/${rec.solana_tx}`, "Solana tx"), " · ", link(`https://mainnet.zcashexplorer.app/transactions/${rec.zcash_txid}`, "Zcash tx"));
-    put($("rx-rows"), x.rows.map(exposedRow));
-    put($("rx-sum"), h("b", {}, `${open} of ${x.rows.length}`), " items are readable by someone. ", h("b", {}, `${x.rows.length - open}`), ` stays yours: ${x.rows.filter((r) => !r.exposed).map((r) => r.what.toLowerCase()).join(", ")}.`);
+    put($("rx-fig"), h("span", { class: "rx-n" }, String(x.rows.length)), h("span", { class: "rx-nl" }, "links itemized"),
+      h("span", { class: "rx-n" }, String(guards)), h("span", { class: "rx-nl" }, "guards enforced"));
+    put($("rx-rows"), x.rows.map(rxRow));
+    put($("rx-sum"), "Private to you after the crossing: ", h("b", {}, x.rows.filter((r) => !r.exposed).map((r) => r.what.toLowerCase()).join(", ")), ". Every other line is public somewhere, and SHORE says where.");
   } catch { $("rx").hidden = true; }
 }
 
