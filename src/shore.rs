@@ -620,7 +620,7 @@ pub fn exposure_json(sess: &Session, raw: &Value, shape: Option<&TxShape>, reuse
         Some(t) => rows.push(row("Amount entering the shielded pool", json!(t.shielded_value_in), "nobody outside: fully shielded delivery", "Zcash chain", false)),
         None => rows.push(row("Amount entering the shielded pool", json!(zcash_tx), "pending: delivery tx not read yet", "Zcash chain", true)),
     }
-    rows.push(row("Note contents to the payer", json!(zcash_tx), "1Click / NEAR solver: the sender of a shielded output can decrypt it with its outgoing viewing key", "protocol", true));
+    rows.push(row("Note contents to the payer", json!(zcash_tx), "anyone: NEAR Intents payouts are encrypted to an all-zero outgoing viewing key, so the address and amount are public (L2Beat)", "protocol", true));
     rows.push(row("Later spends of the note", Value::Null, "nobody: spending a shielded note reveals no link to this delivery", "protocol", false));
     json!({
         "id": sess.id, "rows": rows, "addressReused": reused,
