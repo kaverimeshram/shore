@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({viewport:{width:1440,height:900}});
+await p.goto('https://ui-v2.shore-zec.pages.dev/shore/',{waitUntil:'networkidle'});
+await p.getByRole('button',{name:/Connect recorded wallet/i}).focus();
+await p.keyboard.press('Shift+Tab'); await p.keyboard.press('Tab');
+const r = await p.evaluate(()=>{const e=document.activeElement,c=getComputedStyle(e); let n=e.parentElement,bg; while(n){const b=getComputedStyle(n).backgroundColor; if(b!=='rgba(0, 0, 0, 0)'){bg=b;break} n=n.parentElement} return e.textContent.trim()+' | outline '+c.outlineStyle+' '+c.outlineWidth+' '+c.outlineColor+' offset '+c.outlineOffset+' | parent bg '+bg+' | btn bg '+c.backgroundColor+' | focus-visible '+e.matches(':focus-visible')});
+console.log(r);
+const bb = await p.getByRole('button',{name:/Connect recorded wallet/i}).boundingBox();
+await p.screenshot({path:'d-9-focus-connect.png',clip:{x:bb.x-20,y:bb.y-20,width:bb.width+40,height:bb.height+40}});
+console.log(await p.evaluate(()=>[...new Set([...document.querySelectorAll('body *')].map(e=>getComputedStyle(e).fontFamily.split(',')[0]))].join(',')));
+await b.close();

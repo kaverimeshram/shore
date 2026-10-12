@@ -86,15 +86,16 @@ const L = {};
 // Four summary metrics (balance, lands, fee, elapsed) plus the crossing card's big "current number".
 function ledger(key, label, value, opts = {}) {
   if (key) L[key] = value;
-  for (const k of ["balance", "lands", "fee", "elapsed"]) {
+  for (const k of ["lands", "fee", "eta"]) {
     const el = $("m-" + k); if (!el) continue;
-    if (el.closest(".metric").dataset.idle != null) { delete el.closest(".metric").dataset.idle; put($(`m-${k}-s`), { balance: "ZEC, SPL token", lands: "quoted by 1Click", fee: "of what you send", elapsed: "send to land" }[k]); }
+    if (el.closest(".metric").dataset.idle != null) { delete el.closest(".metric").dataset.idle; put($(`m-${k}-s`), { lands: "quoted by 1Click", fee: "of what you send", eta: "from the quote" }[k]); }
     put(el, L[k] != null ? [].concat(L[k]) : "\u2013");
     el.closest(".metric").dataset.set = L[k] != null ? "" : null;
     if (L[k] == null) delete el.closest(".metric").dataset.set;
   }
-  for (const k of ["lands", "fee", "elapsed"]) { const m = $("ms-" + k); if (m) m.textContent = $("m-" + k).textContent; }
-  $("mstrip").dataset.live = "";
+  for (const k of ["lands", "fee"]) { const m = $("ms-" + k); if (m) m.textContent = $("m-" + k).textContent; }
+  if (L.elapsed) $("ms-elapsed").textContent = L.elapsed;
+  if (S.wallet) $("mstrip").dataset.live = "";
   if (opts.sub) for (const [k, v] of Object.entries(opts.sub)) put($(`m-${k}-s`), v);
   if (opts.hero) { put($("hero-k"), opts.hero[0]); put($("hero-v"), ...[].concat(opts.hero[1])); $("hero-v").dataset.tone = opts.tone || ""; }
   if (opts.chip) { const c = $("cross-chip"); c.textContent = opts.chip[0]; c.className = "chip " + opts.chip[1]; }
@@ -173,7 +174,8 @@ function renderConnected() {
     h("span", { class: "val", "data-testid": "balance" }, `${zec(S.balance)} ZEC`), " on Solana · ",
     addr(S.wallet.address, 4, EXPL.solAcct(S.wallet.address)), MODE !== "live" ? " (recorded wallet)" : "");
   if (S.balance === 0n) body("s-connect").append(h("p", { class: "err" }, "No ZEC (SPL mint A7bd…XaS) in this wallet."));
-  ledger("balance", null, zec(S.balance), { hero: ["Balance on Solana", [zec(S.balance), h("small", {}, "ZEC")]], chip: [MODE === "live" ? "connected" : "recorded wallet", "chip-info"] });
+  ledger("balance", null, zec(S.balance), { hero: ["Balance on Solana", [zec(S.balance), h("small", {}, "ZEC")]], chip: ["not started", "chip-locked"] });
+  put($("clock-cap"), MODE === "live" ? "Connected on Solana mainnet. Nothing sent." : "Recorded wallet, Solana mainnet. Nothing sent.");
   setStep("s-address", "active");
   renderAddress();
 }
@@ -250,7 +252,9 @@ function renderQuote(out) {
     h("p", { class: "chg" }, h("button", { class: "linkbtn", type: "button", onclick: () => reopen("s-quote", renderQuoteForm) }, "Change amount"))));
   setStep("s-quote", "done", "quoted");
   ledger("fee", null, h("span", { class: bps > 1000 ? "warn" : "" }, `${pct}%`), { sub: { fee: `of ${zec(q.amountIn)} ZEC sent` } });
-  ledger("lands", null, zec(q.amountOut), { sub: { lands: "ZEC, quoted by 1Click" }, hero: ["Lands in the shielded pool, quoted", [zec(q.amountOut), h("small", {}, "ZEC")]], chip: ["quoted", "chip-info"] });
+  ledger("lands", null, zec(q.amountOut), { sub: { lands: "ZEC, quoted by 1Click" }, hero: ["Lands shielded, quoted", [zec(q.amountOut), h("small", {}, "ZEC")]], chip: ["quoted, not sent", "chip-info"] });
+  ledger("eta", null, `~${q.timeEstimateSecs}s`, { sub: { eta: "1Click estimate" } });
+  put($("clock-cap"), "Quoted, not sent. Nothing moves until you approve in Phantom.");
   setStep("s-approve", "active");
   renderApprove();
 }
@@ -271,13 +275,22 @@ function renderApprove() {
       if (S.session.source === "own") markUsed(S.session.recipient);
       api.notifyTx(S.session.id, S.sig);
       api.startClock();
-      receipt("s-approve", "signed", "Signed · ", addr(S.sig, 6, EXPL.sol(S.sig)));
+      receipt("s-approve", "signed", "Signed · ", addr(S.sig, 6, EXPL.sol(S.sig)), h("span", { class: "ts" }, MODE === "replay" ? "recorded 10 Oct, 09:22 IST" : IST(new Date().toISOString())));
       setStep("s-land", "active");
       land();
     } catch (e) { put(msg, err(e)); btn.disabled = !(ack.checked || !LIVE); }
   });
+  const usd = (v) => (v != null && v !== "" && !isNaN(+v) ? `$${(+v).toFixed(2)}` : null);
+  const inU = usd(q.amountInUsd), outU = usd(q.amountOutUsd), feeU = inU && outU ? usd(+q.amountInUsd - +q.amountOutUsd) : null;
+  const bps = q.fees?.totalFeeBps ?? 0;
   put(body("s-approve"),
-    h("p", {}, "One SPL transfer of ", h("b", {}, `${zec(q.amountIn)} ZEC`), " to the 1Click deposit address."),
+    h("div", { class: "preview", "data-testid": "preview" },
+      h("p", { class: "pv-line" }, "You send ", h("b", {}, `${zec(q.amountIn)} ZEC`), inU ? ` (~${inU})` : "", " from Phantom."),
+      h("p", { class: "pv-line" }, "About ", h("b", { class: "gold" }, `${zec(q.amountOut)} ZEC`), " arrives shielded in about ", h("b", {}, `${q.timeEstimateSecs}s`), "."),
+      h("p", { class: "pv-line" }, "Fee ", h("b", {}, feeU ? `${feeU}` : `${zec(BigInt(q.amountIn) - BigInt(q.amountOut))} ZEC`), ` (${(bps / 100).toFixed(1)}%), all to 1Click and the Zcash network.`),
+      h("p", { class: "pv-src" }, inU ? `USD from the ${q.usdSource || "1Click quote"}, ${q.quotedAt ? IST(q.quotedAt) : q.usdNote || "at quote time"}.` : "USD price not available for this quote.",
+        " ", h("span", { class: "chip chip-info" }, "Solana mainnet"), " ", h("span", { class: "chip chip-gold" }, "Zcash mainnet"))),
+    h("p", { class: "help" }, "Phantom will show one SPL transfer of ", h("b", {}, `${zec(q.amountIn)} ZEC`), " to the 1Click deposit address."),
     kv([["Deposit address", addr(q.depositAddress, 8, EXPL.solAcct(q.depositAddress))], ["Token", addr(q.mint, 6)], ["Refunds go to", addr(S.wallet.address, 8)]]),
     LIVE ? h("label", { class: "check" }, ack, h("span", {}, "This is mainnet. Real ZEC leaves this wallet, and the hop is public (see the panel).")) : null,
     h("div", { class: "row" }, btn), msg);
@@ -304,7 +317,7 @@ function setCrossing(phase) {
   const c = $("crossing"); c.dataset.phase = phase;
   const at = { idle: -1, send: 0, bridge: 1, landed: 3 }[phase];
   c.querySelectorAll(".node").forEach((n, i) => { n.className = "node" + (i < at ? " on" : i === at ? " now" : ""); });
-  if (phase === "landed" || phase === "idle") tide(1);
+  if (phase === "landed") tide(1); else if (phase === "idle") tide(0);
 }
 function tide(f) {
   const v = Math.max(0, Math.min(1, f)).toFixed(3);
@@ -314,21 +327,21 @@ const tlab = (l, r) => { put($("t-left"), l); put($("t-right"), r); };
 const PHASE_OF = { PENDING_DEPOSIT: "send", KNOWN_DEPOSIT_TX: "send", INCOMPLETE_DEPOSIT: "send", PROCESSING: "bridge", SUCCESS: "landed" };
 async function land() {
   const b = body("s-land");
-  const clock = $("clock") || h("span"), cap = $("clock-cap");
+  const clock = $("clock") || h("span"), cap = $("clock-cap"), sentAt = new Date().toISOString();
   const links = h("div", { class: "linksrow" });
   const note = h("div");
   const now = h("p", {}, "Crossing now. Nothing else to sign.");
   const mini = h("div", { class: "mini-tide", "aria-hidden": "true" }, h("i"));
   const miniPath = h("p", { class: "mini-path" }, h("span", {}, "Solana"), h("span", {}, "NEAR Intents"), h("span", {}, "Zcash"));
-  const miniLab = h("p", { class: "mini-lab", "data-testid": "elapsed" }, "0s elapsed");
-  put(b, now, mini, miniPath, miniLab, links, note);
-  setCrossing("send"); tide(0); tlab("0s elapsed", "");
+  put(b, now, mini, miniPath, links, note);
+  setCrossing("send"); tide(0);
   setCrossing("send");
-  cap.textContent = MODE === "replay" ? "recorded time, replayed faster" : "since you approved";
+  cap.textContent = MODE === "replay" ? "Recorded run, replayed faster. ETA from the quote." : "Sent on Solana mainnet. ETA from the quote.";
+  tlab(`sent ${MODE === "replay" ? "10 Oct, 09:22 IST" : IST(sentAt).replace(/^\d+ \w+, /, "")}`, `ETA ~${S.quote.timeEstimateSecs || 135}s`);
   const start = performance.now();
-  const eta = MODE === "replay" ? (await api.loadReplay()).seconds : S.quote.timeEstimateSecs || 135;
+  const eta = S.quote.timeEstimateSecs || 135;
   const tick = setInterval(() => { const sec = Math.round(((performance.now() - start) / 1000) * api.SPEED);
-    clock.textContent = `${sec}s`; tide(Math.min(0.94, sec / eta)); tlab(`${sec}s elapsed`, `ETA about ${eta}s`); put(miniLab, `${sec}s elapsed, ETA about ${eta}s`); ledger("elapsed", null, `${sec}s`, { sub: { elapsed: MODE === "replay" ? "replayed faster" : "since you approved" }, hero: ["Crossing, elapsed", [String(sec), h("small", {}, "s")]], chip: ["crossing", "chip-warn"] }); }, 250);
+    clock.textContent = `${sec}s`; tide(Math.min(0.94, sec / eta)); L.elapsed = `${sec}s`; ledger(null, null, null, { hero: ["Pending, elapsed", [String(sec), h("small", {}, "s")]], chip: ["pending", "chip-warn"] }); }, 250);
   for (;;) {
     try {
       const s = (S.status = await api.status(S.quote.depositAddress));
@@ -344,8 +357,12 @@ async function land() {
         if (s.status !== "SUCCESS") { put(note, err(new Error(`1Click reports ${s.status}${s.refundReason ? `: ${s.refundReason}` : ""}. Refunds return to your Phantom wallet.`))); return; }
         if (MODE === "replay") { clock.textContent = `${(await api.loadReplay()).seconds}s`; cap.textContent = "send to land, recorded on mainnet"; }
         else cap.textContent = "send to land";
-        ledger("elapsed", null, clock.textContent, { sub: { elapsed: MODE === "replay" ? "send to land, recorded" : "send to land" } });
-        setCrossing("landed"); tlab("Solana", `landed in ${clock.textContent}`); put(miniLab, `Landed in ${clock.textContent}`);
+        L.elapsed = clock.textContent;
+        const confAt = MODE === "replay" ? "10 Oct, 09:24 IST" : IST(new Date().toISOString());
+        ledger(null, null, null, { hero: ["Confirmed, send to land", [clock.textContent.replace("s", ""), h("small", {}, "s")]], chip: ["confirmed", "chip-pos"] });
+        cap.textContent = `Confirmed on Zcash mainnet at height ${s.landed?.height?.toLocaleString("en-US") ?? "?"}, ${confAt}`;
+        $("crossing").dataset.done = "";
+        setCrossing("landed"); tlab(`sent ${MODE === "replay" ? "10 Oct, 09:22 IST" : IST(sentAt).replace(/^\d+ \w+, /, "")}`, `landed in ${clock.textContent}`);
         put(now, "Landed on Zcash."); now.className = "receipt";
         setStep("s-land", "done", "landed");
         readbackLoop(); exposureLoad(); return;
@@ -408,8 +425,7 @@ function renderReadback(r) {
     MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Replay of the recorded mainnet run, 2026-10-10 09:22 IST, file shore-live-run.json.")) : null);
   countUp(amt, r.valueZat, h("small", {}, "ZEC"));
   const hv = h("span"); countUp(hv, r.valueZat, "");
-  put($("clock-cap"), `Landed in ${L.elapsed || "?"}, read back from the note at height ${r.height.toLocaleString("en-US")}`);
-  ledger("lands", null, zec(r.valueZat), { sub: { lands: "ZEC, read back from the note" }, hero: ["Shielded, read back from Zcash", [hv, h("small", {}, "ZEC")]], tone: "shielded", chip: ["shielded", "chip-pos"] });
+  ledger("lands", null, zec(r.valueZat), { sub: { lands: "ZEC, read back" }, chip: ["shielded", "chip-gold"] });
   if (matchMedia("(max-width: 959px)").matches) card.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "center" });
 }
 
@@ -451,9 +467,7 @@ function renderInvite() {
 }
 // Before a wallet connects, the metric row shows the last recorded mainnet run, labelled as such.
 function idleMetrics() {
-  const set = (k, v, sub) => { put($("m-" + k), v); put($(`m-${k}-s`), sub); $("m-" + k).closest(".metric").dataset.idle = ""; };
-  set("lands", "0.00115", "ZEC, last run"); set("fee", "22.9%", "last run");
-  put($("m-elapsed"), "\u2013"); put($("m-elapsed-s"), "starts when you approve");
+  ledger(null, null, null, { hero: ["Crossing", h("span", { class: "hero-word" }, "Not started")], chip: ["not started", "chip-locked"] });
 }
 function boot() {
   renderInvite();

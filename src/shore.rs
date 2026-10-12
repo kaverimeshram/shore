@@ -482,6 +482,8 @@ pub async fn quote(State(s): St, Json(r): Json<QuoteReq>) -> R {
         "fees": { "withdrawFee": qq.withdraw_fee, "refundFee": qq.refund_fee, "totalFeeBps": fee_bps, "shoreFeeBps": req.app_fees.first().map_or(0, |f| f.fee) },
         "minAmount": MIN_AMOUNT.to_string(), "deadline": qq.deadline, "timeEstimateSecs": qq.time_estimate,
         "recipient": sess.recipient, "correlationId": q.correlation_id,
+        "amountInUsd": qq.amount_in_usd, "amountOutUsd": qq.amount_out_usd,
+        "usdSource": "1Click quote", "quotedAt": chrono_now(),
     })))
 }
 
@@ -921,4 +923,16 @@ mod tests {
         assert!(!b.owns(&a0));
         assert_eq!(check_own_address(&a0).unwrap().0, a0);
     }
+}
+
+/// RFC 3339 UTC timestamp for when a quote was fetched (labels the USD values).
+fn chrono_now() -> String {
+    let d = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+    let (days, rem) = (d.div_euclid(86400), d.rem_euclid(86400));
+    // civil-from-days (Howard Hinnant)
+    let z = days + 719468; let era = z.div_euclid(146097); let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365; let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100); let mp = (5 * doy + 2) / 153;
+    let dd = doy - (153 * mp + 2) / 5 + 1; let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", if m <= 2 { y + 1 } else { y }, m, dd, rem / 3600, rem % 3600 / 60, rem % 60)
 }

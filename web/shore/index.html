@@ -82,23 +82,24 @@
 <aside class="side">
   <section class="crossing card" id="crossing" aria-label="Crossing tracker" data-phase="idle">
     <div class="crossing-head">
-      <p class="card-k" id="hero-k">Last mainnet crossing</p>
-      <span class="chip chip-gold" id="cross-chip">recorded</span>
+      <p class="card-k" id="hero-k">Crossing</p>
+      <span class="chip chip-locked" id="cross-chip">not started</span>
     </div>
-    <p class="hero" id="hero-v"><span class="clock" data-testid="clock" id="clock">84s</span></p>
-    <p class="cap" id="clock-cap">Solana to shielded Zcash, 115,000 zat landed</p>
+    <p class="hero" id="hero-v"><span class="clock" data-testid="clock" id="clock">Not started</span></p>
+    <p class="cap" id="clock-cap">Nothing sent yet.</p>
     <div class="tide" aria-hidden="true"><i class="tide-fill" id="tide-fill"></i><i class="tick" style="left:0"></i><i class="tick" style="left:50%"></i><i class="tick" style="left:100%"></i><i class="tide-head"></i></div>
-    <p class="tide-lab"><span id="t-left">start</span><span id="t-right">landed</span></p>
+    <p class="tide-lab"><span id="t-left">Solana</span><span id="t-right">shielded</span></p>
     <ol class="path">
-      <li class="node" data-node="0"><span class="nl">Solana</span><span class="ns">Phantom</span></li>
+      <li class="node" data-node="0"><span class="nl">Solana</span><span class="ns">mainnet</span></li>
       <li class="node" data-node="1"><span class="nl">Bridge</span><span class="ns">NEAR Intents</span></li>
-      <li class="node" data-node="2"><span class="nl">Shielded</span><span class="ns">Zcash</span></li>
+      <li class="node" data-node="2"><span class="nl">Shielded</span><span class="ns">Zcash mainnet</span></li>
     </ol>
     <dl class="strip" id="ledger" aria-live="polite">
       <div class="metric" data-k="lands"><dt>Lands</dt><dd id="m-lands">&ndash;</dd><dd class="metric-s" id="m-lands-s">quoted by 1Click</dd></div>
       <div class="metric" data-k="fee"><dt>Fee</dt><dd id="m-fee">&ndash;</dd><dd class="metric-s" id="m-fee-s">of what you send</dd></div>
-      <div class="metric" data-k="elapsed"><dt>Elapsed</dt><dd id="m-elapsed">&ndash;</dd><dd class="metric-s" id="m-elapsed-s">send to land</dd></div>
+      <div class="metric" data-k="eta"><dt>ETA</dt><dd id="m-eta">&ndash;</dd><dd class="metric-s" id="m-eta-s">from the quote</dd></div>
     </dl>
+    <p class="lastrun">Last mainnet run: 84s send to land, 115,000 zat landed (10 Oct).</p>
   </section>
 </aside>
 </div>

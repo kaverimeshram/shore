@@ -36,7 +36,7 @@
   --color-body:#3d4652; --color-mute:#565f6b; --color-line:#dde1e7;
   --color-action:#2350d8; --color-action-hover:#1b41b4; --color-action-pale:#e6ecfc;
   --color-gold:#f4b728; --color-gold-ink:#7a5200; --color-gold-pale:#fdf1d3;
-  --color-flight:#0e7c86; --color-flight-pale:#dff2f3;
+  --color-flight:#0a5f67; --color-flight-pale:#dff2f3;
   --color-success:#1d7a46; --color-success-pale:#ddf2e5; --color-warning-ink:#8a4b00; --color-warning-pale:#fff0d6;
   --color-danger:#b4232a; --color-danger-pale:#fbe4e5; --color-info-ink:#2b4a6f; --color-info-pale:#e5edf6;
   --radius-input:10px; --radius-card:14px; --radius-pill:999px;
@@ -54,7 +54,8 @@
   input[readonly]{@apply bg-card-2 text-body;}
   summary{cursor:pointer}
   ::selection{background:var(--color-gold-pale)}
-  :focus-visible{outline:2px solid var(--color-action);outline-offset:2px}
+  :focus-visible{outline:3px solid var(--color-action);outline-offset:3px;border-radius:6px}
+  .crossing :focus-visible{outline-color:var(--color-gold)}
 }
 
 @layer components{
@@ -130,17 +131,20 @@ html[data-tour] .toabout{@apply ml-auto;}
 .cap{@apply mt-2 text-sm text-white/75;}
 .tide{--f:0;@apply relative mt-6 h-3 rounded-pill bg-white/15;}
 .tide-fill{@apply absolute inset-y-0 left-0 rounded-pill bg-flight transition-[width] duration-500 ease-out;width:calc(var(--f)*100%)}
-.crossing[data-phase=idle] .tide-fill,.crossing[data-phase=landed] .tide-fill{@apply bg-gold;}
+.crossing[data-phase=landed] .tide-fill{@apply bg-gold;}
+.crossing .tide-fill{@apply bg-[#5fb8c0];}
 .tick{@apply absolute top-1/2 h-5 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-pill bg-white/50;}
 .tide-head{@apply absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white ring-4 ring-flight transition-[left] duration-500 ease-out;left:calc(var(--f)*100%)}
-.crossing[data-phase=idle] .tide-head,.crossing[data-phase=landed] .tide-head{@apply ring-gold;}
+.crossing[data-phase=landed] .tide-head{@apply ring-gold;}
+.crossing[data-phase=idle] .tide-head{@apply bg-white/60 ring-white/20;}
+.crossing .tide-head{@apply ring-[#5fb8c0];}
 .tide-lab{@apply mt-3 flex justify-between font-mono text-[13px] text-white/80 tabular-nums;}
 .path{@apply mt-3 grid grid-cols-3 border-t border-white/15 pt-3;}
-.node{@apply flex flex-col text-white/65;}
+.node{@apply flex flex-col text-white/85;}
 .node:nth-child(2){@apply items-center text-center;}
 .node:nth-child(3){@apply items-end text-right;}
 .node.on,.node.now{@apply text-white;}
-.node.now .nl{@apply text-[#7fd3da];}
+.node.now .nl{@apply text-[#9ad9df];}
 .nl{@apply text-sm font-semibold;}
 .ns{@apply text-[13px];}
 .strip{@apply mt-5 grid grid-cols-3 gap-3 border-t border-white/15 pt-4;}
@@ -260,3 +264,16 @@ html[data-signed] .chg{display:none}
   .readback{scroll-margin-top:130px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.hero-word{@apply text-[40px] tracking-[-.02em] text-white/90;}
+.lastrun{@apply mt-4 border-t border-white/15 pt-3 text-[13px] text-white/75;}
+.crossing[data-done] .strip,.crossing[data-done] .lastrun{display:none}
+.ts{@apply font-mono text-[13px] text-body;}
+.preview{@apply grid gap-1.5 border-b border-line pb-4;}
+.pv-line{@apply text-[17px] leading-snug text-ink;}
+.pv-line b{@apply font-semibold tabular-nums;}
+.pv-line .gold{@apply text-gold-ink;}
+.pv-src{@apply mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-body;}
+.public>summary h2{@apply whitespace-nowrap;}
+.tour-cta{@apply bg-white text-ink ring-1 ring-line hover:bg-card-2;}
+@media (max-width:1023px){ .public>summary h2{font-size:16px} .hero-word{font-size:32px} }
