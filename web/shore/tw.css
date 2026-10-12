@@ -93,7 +93,7 @@
 .mark{@apply inline-flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-ink no-underline;}
 .mark-dot{@apply size-3.5 rounded-full bg-gold ring-4 ring-gold-pale;}
 .mode{@apply bg-white text-body ring-1 ring-line;}
-.mode[data-mode=live]{@apply bg-danger-pale text-danger ring-0;}
+.mode[data-mode=live]{@apply bg-action-pale text-action ring-0;}
 .mode[data-mode=replay]{@apply bg-info-pale text-info-ink ring-0;}
 .tour-cta{@apply ml-auto whitespace-nowrap;}
 html[data-flow] .tour-cta{@apply bg-white text-ink ring-1 ring-line hover:bg-card-2;}
@@ -142,7 +142,7 @@ html[data-tour] .toabout{@apply ml-auto;}
 .rx-row[data-who=nobody] .rx-who b{@apply text-success;}
 .rx-guards{@apply grid gap-1 sm:col-span-2;}
 .rx-guard{@apply text-[13px] leading-snug text-body;}
-.rx-guard code{@apply mr-1 rounded-[3px] bg-ink px-1.5 py-0.5 font-mono text-[11.5px] font-medium text-white;}
+.rx-guard code{@apply mr-1 rounded-[3px] border border-ink/50 px-1.5 py-px font-mono text-[11.5px] font-medium text-ink;}
 .rx-sum{@apply rounded-b-card bg-card-2 px-5 py-3 text-[14px] leading-relaxed text-body;}
 .rx-sum b{@apply font-semibold text-success;}
 
@@ -322,3 +322,13 @@ html[data-signed] .chg{display:none}
 .stamp-sub{@apply font-body text-[14px] font-semibold text-ink;}
 .stamp-foot{@apply mt-1 text-[11.5px] text-gold-ink;overflow-wrap:anywhere}
 @media (prefers-reduced-motion:reduce){.stamp{transform:none}}
+/* r8: the private row is the payoff; receipt first on narrow screens; one replay button. */
+.rx-row[data-exposed="false"]{@apply -mx-5 border-y-2 border-gold bg-gold-pale px-5;}
+.rx-seal{@apply justify-self-start rounded-[4px] border-2 border-gold-ink px-2 py-0.5 font-mono text-[12px] font-semibold uppercase tracking-[.08em] text-gold-ink sm:justify-self-end;}
+.rx-sum-n{@apply mr-2 font-display text-[18px] font-extrabold text-ink;}
+.appbar .tour-cta{display:none}
+@media (max-width:1023px){.lead-grid .hero-copy{display:contents}.lead-grid .stamp,.lead-grid .market{order:3}.lead-grid .rx{order:2}}
+.rx-sum .rx-sum-n{@apply text-ink;}
+.rx-sum b{@apply text-gold-ink;}
+.appbar .toabout{margin-left:auto}
+@media (max-width:1023px){.lead-grid{row-gap:14px}.lead-grid .rx{margin-top:10px}}

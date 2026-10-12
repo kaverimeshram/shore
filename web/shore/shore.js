@@ -457,7 +457,7 @@ function rxRow(r) {
     h("span", { class: "rx-what" }, r.what),
     r.exposed
       ? (val ? h("mark", { class: "rx-val" }, val) : h("mark", { class: "rx-val" }, "value · recipient · memo"))
-      : h("span", { class: "rx-redact", role: "img", "aria-label": "private to you" }),
+      : h("span", { class: "rx-seal" }, "private to you"),
     h("span", { class: "rx-who" }, h("b", {}, m ? m[1] : r.whoCanSee), m ? ` · ${m[2]}` : null),
     guards.length ? h("span", { class: "rx-guards" }, guards.map(([c, t]) => h("span", { class: "rx-guard" }, h("code", {}, c), ` refused: ${t}`))) : null);
 }
@@ -476,7 +476,8 @@ async function renderHeroReceipt() {
       h("span", { class: "stamp-foot" }, `${zec(rec.received_zat)} ZEC read back at block ${Number(rec.zcash_height).toLocaleString("en-US")} with a view-only key`));
     st.hidden = false;
     put($("rx-rows"), x.rows.map(rxRow));
-    put($("rx-sum"), "Private to you after the crossing: ", h("b", {}, x.rows.filter((r) => !r.exposed).map((r) => r.what.toLowerCase()).join(", ")), ". Every other line is public somewhere, and SHORE says where.");
+    const priv = x.rows.filter((r) => !r.exposed);
+    put($("rx-sum"), h("b", { class: "rx-sum-n" }, `${x.rows.length - priv.length} public · ${priv.length} private`), " Private to you after the crossing: ", h("b", {}, priv.map((r) => r.what.toLowerCase()).join(", ")), ". Every public line names who can read it.");
   } catch { $("rx").hidden = true; }
 }
 
