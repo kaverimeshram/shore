@@ -109,7 +109,7 @@ export async function exposure(id, ctx = {}) {
     { what: "Amount in and timing", value: "0.0014 ZEC", whoCanSee: "anyone (Solana explorer)", source: "solana tx", exposed: true },
     { what: "Recipient u1 via 1Click status", value: ctx.recipient || rec.recipient, whoCanSee: "anyone holding the deposit address (unauthenticated /v0/status)", source: "1click status", exposed: true },
     { what: "Amount entering the shielded pool", value: String(rec.received_zat), whoCanSee: "anyone (delivery tx has transparent inputs)", source: "zcash tx", exposed: true },
-    { what: "Note contents to the payer", whoCanSee: "1Click/NEAR (sender holds the outgoing view key)", source: "protocol", exposed: true },
+    { what: "Note contents to the payer", whoCanSee: "anyone (NEAR Intents payouts use an all-zero outgoing viewing key, per L2Beat)", source: "protocol", exposed: true },
     { what: "Later spends of the note", whoCanSee: "nobody", source: "protocol", exposed: false },
   ] };
 }

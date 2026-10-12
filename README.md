@@ -75,7 +75,7 @@ Zcash wallet (Zashi/Zodl or Ywallet) for a fresh receiving u1; for the in-page r
 1. `scripts/live-run.sh check <your Phantom address>` prints both balances and READY or what is missing.
 2. Open https://shore-zec.pages.dev/shore/?live=1, connect Phantom, paste a new u1 from your Zcash wallet, enter 0.0014.
 3. Get quote, read the fees, tick the mainnet box, approve once in Phantom.
-4. Watch the crossing (about 90 seconds last time). `scripts/live-run.sh status <deposit address>` shows the same 1Click status.
+4. Watch the crossing (84 seconds last time; 1Click quotes about 135). `scripts/live-run.sh status <deposit address>` shows the same 1Click status.
 5. Paste your viewing key in the read-back card, or open your Zcash wallet.
 
 ## Who it is for
@@ -84,14 +84,16 @@ People who were paid in ZEC on Solana and never held ZEC before.
 
 - Raydium's CMO, Zcash forum: about 84,000 Solana wallets received ZEC (about 8,700 ZEC) from a ZEC-paired
   reward token; 38,000 of them had never held ZEC on Solana; about half the ZEC is still sitting in those
-  wallets. https://forum.zcashcommunity.com/t/38-000-new-zec-holders-on-solana-in-six-weeks-now-what/57788
+  wallets (onchain, as of 20 Sep 2026; the 24 Sep update in the same thread says 86,000 wallets, 39,000 first-time,
+  53% still hold). https://forum.zcashcommunity.com/t/38-000-new-zec-holders-on-solana-in-six-weeks-now-what/57788
 - Same thread: almost no one bridged; burns from these wallets total 78 ZEC.
   https://forum.zcashcommunity.com/t/57788
 - Dune, ZEC distributed as rewards: https://dune.com/andrayondune/zec-distributed-rewards
 - Zooko pointed those holders at the ZecHub HOWTO: https://x.com/zooko/status/2105044462397485491
 - ZecHub guide "Got ZEC on Solana? Move it to shielded Zcash": https://zechub.wiki/using-zcash/solana-zec-to-shielded
   (PR https://github.com/ZecHub/zechub/pull/2245: "solswap has a Withdraw page too, but it didn't work for us").
-  Today's path is 2 sites, 2+ approvals and about 8 minutes; the guide author's run took 507 s.
+  Today's path is 2 sites (solswap.org to deposit, near.com to withdraw), 2+ approvals and about 8 minutes: in the PR's
+  own test the withdrawal alone took 7 min 57 s (signed 15:59:28, Zcash block 3,498,141 at 16:07:25).
 - The ecosystem pays for this onboarding: ZecHub bounty https://bounties.zechub.wiki/bounty/cmuishtwo0010cvegb8eexpye,
   zkSNARKs "zero to first shielded transaction" bounty https://x.com/zksnarks_/status/2104718302606205130
 
@@ -107,7 +109,10 @@ People who were paid in ZEC on Solana and never held ZEC before.
 read back by a view-only key (UFVK, no spending key). 1Click's status said 108,000 zat; the decrypted note holds
 7,000 zat more, and SHORE shows the decrypted value. Cost: $1.70 in, $1.31 out at quote time, so about
 39 cents, most of it 1Click's fixed 0.00032 ZEC Zcash withdraw fee (22.9% at this tiny size; it falls fast as the
-amount grows).
+amount grows). Quote, fees and status as returned by 1Click: `tests/fixtures/shore-live/quote.json` and
+`status-final.json` (amountIn 140000, amountOut 108000, withdrawFee 32000, $1.6974 in, $1.3094 out). Block times:
+Solana 03:52:15 UTC and Zcash block 3,512,504 at 03:53:39 UTC, so 84 s. The Zcash tx spends 7,960,000 zat of
+transparent inputs, returns 7,830,000 as change, and the remaining 130,000 is the 115,000 zat note plus a 15,000 zat fee.
 
 ## What's still public (honest)
 

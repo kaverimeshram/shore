@@ -33,7 +33,7 @@ test("replay plays the recorded mainnet run end to end", async ({ page }) => {
   await expect(rb).toContainText("3,512,504");
   await expect(rb.locator('a[href*="fa8d4d6bd210c6150e98142ec1ae9a25706ec19bd591a775823f6616f95fa408"]')).toHaveCount(1);
   await expect(rb.locator('a[href*="solscan.io/tx/2LLVDBnV"]')).toHaveCount(1);
-  await expect(rb).toContainText("7000 zat more");
+  await expect(rb).toContainText("7,000 zat more");
   const pub = page.locator("#public");
   await expect(pub).toContainText("Recipient u1 via 1Click status");
   await expect(pub).toContainText("frozen");
@@ -52,7 +52,7 @@ test("refuses transparent, Sapling and reused recipients", async ({ page }) => {
   await own.fill("zs1" + "q".repeat(75)); await use.click();
   await expect(err).toContainText("Sapling");
   await own.fill(u1); await use.click();
-  await expect(err).toContainText("used for an earlier shield");
+  await expect(err).toContainText("already received a shield");
 });
 
 test("what's still public is stated before anything is signed", async ({ page }) => {

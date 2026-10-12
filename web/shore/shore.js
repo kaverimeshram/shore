@@ -76,7 +76,22 @@ function addr(full, n = 6, href = null, attrs = {}) {
   } }, "Copy");
   return h("span", { class: "addr" }, label, b);
 }
-const err = (e) => h("p", { class: "err", role: "alert" }, e.message || String(e), e.code ? ` (${e.code})` : "");
+// Plain-words copy, with a next step, for every error code the API can return to a holder.
+const PLAIN = {
+  TRANSPARENT_REFUSED: "That is a transparent address (t1…), so the ZEC would land in public. Copy the shielded address (u1…) from your Zcash wallet's Receive screen instead.",
+  NOT_UNIFIED: "That is not a Zcash unified address. Copy the address that starts with u1 from your Zcash wallet's Receive screen (Zashi/Zodl, Ywallet) and paste it again.",
+  NO_SHIELDED_RECEIVER: "That address has no shielded part, so the ZEC would land in public. In your Zcash wallet, copy its shielded (u1…) receive address instead.",
+  ADDRESS_REUSED: "This address already received a shield. Using it again lets anyone link both deposits on 1Click's public status page. Get a new receive address in your Zcash wallet and paste that.",
+  BELOW_MINIMUM: "That is below 1Click's minimum of 0.00133334 ZEC for this route. Enter 0.00133334 ZEC or more.",
+  ABOVE_CAP: "That is above SHORE's launch cap of 0.02 ZEC per shield. Enter 0.02 ZEC or less, and shield the rest in another round with a new address.",
+  BAD_AMOUNT: "Enter an amount in ZEC with up to 8 decimals, for example 0.0014.",
+  QUOTE_EXISTS: "This shield already has a deposit address. Reload the page and start a new shield with a new receive address.",
+  BAD_UFVK: "That is not a unified viewing key. In your Zcash wallet, export the viewing key (starts with uview1), and paste that. Never paste a seed phrase or spending key.",
+  KEY_MISMATCH: "This viewing key belongs to a different wallet than the address you shielded to. Paste the viewing key of the wallet you copied that address from, or just open that wallet to see the note.",
+  PAUSED: "Quotes are paused right now. Nothing was sent. Try again later.",
+  UPSTREAM: "1Click did not answer. Nothing was sent. Wait a minute and press the button again.",
+};
+const err = (e) => h("p", { class: "err", role: "alert" }, (e.code && PLAIN[e.code]) || e.message || String(e), e.code ? h("span", { class: "err-code" }, ` (${e.code})`) : "");
 function kv(rows) { return h("dl", { class: "kv" }, rows.filter(Boolean).flatMap(([k, v, cls]) => [h("dt", {}, k), h("dd", { class: cls }, v)])); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -134,10 +149,10 @@ const markUsed = (a) => localStorage.setItem(USED_KEY, JSON.stringify([...new Se
 export function checkRecipient(raw) {
   const a = (raw || "").trim();
   if (!a) return "Paste a shielded address, or let SHORE make a fresh one.";
-  if (/^t[13m]/.test(a)) return "That is a transparent address. SHORE only delivers to shielded receivers.";
-  if (/^zs1/.test(a)) return "That is a Sapling address. Paste a unified address (u1…) with an Orchard receiver.";
-  if (!/^(u1|zu1)[02-9ac-hj-np-z]{100,}$/.test(a)) return "That does not look like a unified address (u1…).";
-  if (used().includes(a)) return "This address was used for an earlier shield. 1Click status ties it to that deposit forever, so use a fresh one.";
+  if (/^t[13m]/.test(a)) return PLAIN.TRANSPARENT_REFUSED;
+  if (/^zs1/.test(a)) return "That is a Sapling address (zs1…). Copy the unified address that starts with u1 from your Zcash wallet's Receive screen instead.";
+  if (!/^(u1|zu1)[02-9ac-hj-np-z]{100,}$/.test(a)) return PLAIN.NOT_UNIFIED;
+  if (used().includes(a)) return PLAIN.ADDRESS_REUSED;
   return null;
 }
 
@@ -173,7 +188,8 @@ function renderConnected() {
   receipt("s-connect", "connected",
     h("span", { class: "val", "data-testid": "balance" }, `${zec(S.balance)} ZEC`), " on Solana · ",
     addr(S.wallet.address, 4, EXPL.solAcct(S.wallet.address)), MODE !== "live" ? " (recorded wallet)" : "");
-  if (S.balance === 0n) body("s-connect").append(h("p", { class: "err" }, "No ZEC (SPL mint A7bd…XaS) in this wallet."));
+  if (S.balance > 0n && S.balance < 133334n) body("s-connect").append(h("p", { class: "err" }, `This wallet holds ${zec(S.balance)} ZEC on Solana, below 1Click's minimum of 0.00133334 ZEC. Add at least ${zec(133334n - S.balance)} ZEC to Phantom, then reload.`));
+  if (S.balance === 0n) body("s-connect").append(h("p", { class: "err" }, "This Phantom wallet holds no ZEC on Solana (token A7bd…XaS), so there is nothing to shield. Add ZEC to it, or connect the wallet that received your rewards, then reload."));
   ledger("balance", null, zec(S.balance), { hero: ["Balance on Solana", [zec(S.balance), h("small", {}, "ZEC")]], chip: ["not started", "chip-locked"] });
   put($("clock-cap"), MODE === "live" ? "Connected on Solana mainnet. Nothing sent." : "Recorded wallet, Solana mainnet. Nothing sent.");
   setStep("s-address", "active");
@@ -194,7 +210,7 @@ function renderAddress() {
   async function make(req) {
     fresh.disabled = own.disabled = true;
     try { S.session = await api.shieldAddress(req); renderAddressDone(); }
-    catch (e) { put(msg, e.message); msg.className = "err"; fresh.disabled = own.disabled = false; }
+    catch (e) { put(msg, (e.code && PLAIN[e.code]) || e.message, e.code ? ` (${e.code})` : ""); msg.className = "err"; fresh.disabled = own.disabled = false; }
   }
   // Fresh addresses come from the SHORE demo wallet (replay and mock only). On mainnet the ZEC must go to the user's own wallet.
   if (LIVE) { put(msg, "Paste a new receiving address from your own Zcash wallet (Zashi/Zodl, Ywallet). The ZEC lands there; SHORE never holds it."); put(b, h("label", { class: "f" }, h("span", { class: "label" }, "Your shielded address (u1…)"), input), msg, h("div", { class: "row" }, own)); return; }
@@ -220,9 +236,11 @@ function renderQuoteForm() {
   const go = h("button", { class: "btn", type: "button", onclick: run }, "Get quote");
   async function run() {
     const m = /^\s*(\d*)(?:\.(\d{0,8}))?\s*$/.exec(amt.value);
-    if (!m || (!m[1] && !m[2])) { put(out, err(new Error("Enter an amount in ZEC, up to 8 decimals."))); return; }
+    if (!m || (!m[1] && !m[2])) { put(out, err({ code: "BAD_AMOUNT" })); return; }
     const base = BigInt((m[1] || "0") + (m[2] || "").padEnd(8, "0"));
-    if (S.balance != null && base > S.balance) { put(out, err(new Error("More than this wallet holds."))); return; }
+    if (base < 133334n) { put(out, err({ code: "BELOW_MINIMUM" })); return; }
+    if (base > 2000000n) { put(out, err({ code: "ABOVE_CAP" })); return; }
+    if (S.balance != null && base > S.balance) { put(out, err(new Error(`Your Phantom wallet holds ${zec(S.balance)} ZEC on Solana, less than ${zec(base)} ZEC. Enter ${zec(S.balance)} or less, or add ZEC to Phantom and reconnect.`))); return; }
     go.disabled = true; put(out, h("p", { class: "help" }, "Asking 1Click…"));
     try { S.quote = await api.quote({ id: S.session.id, amount: String(base), sender: S.wallet.address, dry: false }); renderQuote(out); }
     catch (e) { put(out, err(e)); }
@@ -275,7 +293,7 @@ function renderApprove() {
       if (S.session.source === "own") markUsed(S.session.recipient);
       api.notifyTx(S.session.id, S.sig);
       api.startClock();
-      receipt("s-approve", "signed", "Signed · ", addr(S.sig, 6, EXPL.sol(S.sig)), h("span", { class: "ts" }, MODE === "replay" ? "recorded 10 Oct, 09:22 IST" : IST(new Date().toISOString())));
+      receipt("s-approve", "signed", "Signed · ", addr(S.sig, 6, EXPL.sol(S.sig)), h("span", { class: "ts" }, MODE === "replay" ? "recorded 10 Oct, 09:22:15 IST" : IST(new Date().toISOString())));
       setStep("s-land", "active");
       land();
     } catch (e) { put(msg, err(e)); btn.disabled = !(ack.checked || !LIVE); }
@@ -358,8 +376,8 @@ async function land() {
         if (MODE === "replay") { clock.textContent = `${(await api.loadReplay()).seconds}s`; cap.textContent = "send to land, recorded on mainnet"; }
         else cap.textContent = "send to land";
         L.elapsed = clock.textContent;
-        const confAt = MODE === "replay" ? "10 Oct, 09:24 IST" : IST(new Date().toISOString());
-        ledger(null, null, null, { hero: ["Confirmed, send to land", [clock.textContent.replace("s", ""), h("small", {}, "s")]], chip: ["confirmed", "chip-pos"] });
+        const confAt = MODE === "replay" ? "10 Oct, 09:23:39 IST" : IST(new Date().toISOString());
+        ledger(null, null, null, { hero: ["Landed, send to land", [clock.textContent.replace("s", ""), h("small", {}, "s")]], chip: ["confirmed", "chip-pos"] });
         cap.textContent = `Confirmed on Zcash mainnet at height ${s.landed?.height?.toLocaleString("en-US") ?? "?"}, ${confAt}`;
         $("crossing").dataset.done = "";
         setCrossing("landed"); tlab(`sent ${MODE === "replay" ? "10 Oct, 09:22 IST" : IST(sentAt).replace(/^\d+ \w+, /, "")}`, `landed in ${clock.textContent}`);
@@ -390,7 +408,7 @@ function renderKeyReadback(card) {
   const msg = h("p", { class: "help", "data-testid": "ufvk-msg" });
   const go = h("button", { class: "btn", type: "button", "data-testid": "ufvk-go", onclick: async () => {
     const k = input.value.trim();
-    if (!/^(uview1|uvf1)[0-9a-z]{20,2000}$/.test(k)) { put(msg, "That is not a unified viewing key. Never paste a seed phrase or spending key."); return; }
+    if (!/^(uview1|uvf1)[0-9a-z]{20,2000}$/.test(k)) { put(msg, PLAIN.BAD_UFVK); return; }
     go.disabled = true; put(msg, "Scanning from the payout block with your viewing key…");
     try {
       for (let n = 0; n < 60; n++) {
@@ -421,9 +439,9 @@ function renderReadback(r) {
       S.status?.solanaTx && ["Solana tx", addr(S.status.solanaTx, 8, EXPL.sol(S.status.solanaTx))],
       S.status?.nearTx && ["NEAR tx", addr(S.status.nearTx, 8, EXPL.near(S.status.nearTx))],
       ["Quoted", `${zec(r.quotedOutZat)} ZEC`], ["Difference", `${r.deltaZat >= 0 ? "+" : ""}${zec(r.deltaZat)} ZEC`]]),
-    r.deltaZat ? h("p", { class: "note" }, `The note holds ${r.deltaZat} zat ${r.deltaZat > 0 ? "more" : "less"} than 1Click's status amountOut.`) : null,
-    MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Replay of the recorded mainnet run, 2026-10-10 09:22 IST, file shore-live-run.json.")) : null);
-  countUp(amt, r.valueZat, h("small", {}, "ZEC"));
+    r.deltaZat ? h("p", { class: "note" }, `The note holds ${Math.abs(r.deltaZat).toLocaleString("en-US")} zat ${r.deltaZat > 0 ? "more" : "less"} than 1Click's status said would land (amountOut).`) : null,
+    MODE === "replay" ? h("details", { class: "fold" }, h("summary", {}, "Source"), h("p", { class: "help" }, "Replay of the recorded mainnet run, 10 Oct 2026, 09:22:15 IST. Check it yourself: the Solana, NEAR and Zcash transaction links above are public explorers.")) : null);
+  countUp(amt, r.valueZat, h("small", {}, " ZEC"));
   const hv = h("span"); countUp(hv, r.valueZat, "");
   ledger("lands", null, zec(r.valueZat), { sub: { lands: "ZEC, read back" }, chip: ["shielded", "chip-gold"] });
   if (matchMedia("(max-width: 959px)").matches) card.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "center" });
@@ -433,7 +451,7 @@ function renderReadback(r) {
 const DEFAULT_EXPOSED = [
   ["The hop in is public.", "Your Phantom address, the deposit address, the amount and the time are on Solana for anyone to read."],
   ["1Click status links your Phantom address to your u1.", "Anyone holding the deposit address can call the unauthenticated /v0/status and read the recipient. That is why every shield gets a fresh u1."],
-  ["NEAR can decrypt the payout.", "The NEAR Intents solver builds the Zcash transaction, so it holds the outgoing view key for that note. The amount entering the pool is also visible, because the delivery has transparent inputs."],
+  ["NEAR can decrypt the payout.", "NEAR Intents payouts are encrypted to an all-zero outgoing viewing key, so anyone can decrypt this note's address and amount (L2Beat). The amount entering the pool is also visible, because the delivery has transparent inputs."],
   ["What is private afterwards:", "spends you make later from the note. Nobody outside your wallet can see those."],
 ];
 function renderExposureDefault() {

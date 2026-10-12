@@ -1,5 +1,5 @@
 {
- "source": "runs/worldsfair/zcash/evidence/shore-live-run.json + shore-funded-quote-v2.json (recorded mainnet run, 2026-10-10)",
+ "source": "recorded mainnet run, 2026-10-10; raw 1Click quote and status in tests/fixtures/shore-live/; txids on public explorers",
  "sender": "ia3MLukFMa6zci4nyahxsKVT14yLkFzUkZs3EL5Vsa5",
  "recipient": "u1uufrl3tucq9vjgvssws978y0nm6d6cncqk75qs62htzctwytgpqqsdwlpe5jvl83xqyn2vtkptk4cw535n575yf3nrwpcrydpgrkpgmk",
  "deposit": "DMDdCzumrZBaPPjKBP33o1RgDhW2F2BZPzyYZEk9SjbM",
