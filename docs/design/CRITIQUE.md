@@ -19,3 +19,4 @@ Shots: r3-1440.png, r3-390.png, r3-quote-*.png, r3-crossing-*.png, r3-readback-*
 Independent critic scores: PENDING.
 FINAL: 6.6 min=5 round=1 critic=fresh:grokbot-knowledgework review=/Users/kamal/Desktop/solana/cwf/zcash/projects/airlock/docs/design/v2/design-review.md
 FINAL: 7.6 min=7 round=2 critic=fresh:grokbot-knowledgework review=/Users/kamal/Desktop/solana/cwf/zcash/projects/airlock/docs/design/v2/design-review-r2.md
+FINAL: 7.9 min=7 round=3 critic=fresh:grokbot-knowledgework review=/Users/kamal/Desktop/solana/cwf/zcash/projects/airlock/docs/design/v2/design-review-r3.md
