@@ -465,9 +465,10 @@ async function renderHeroReceipt() {
   try {
     const [rec, x] = await Promise.all([api.loadReplay(), api.recordedExposure()]);
     const guards = Object.values(RX_GUARDS).flat().length;
-    put($("rx-meta"), `Mainnet, ${new Date(rec.solana_block_time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${rec.seconds} s · `,
+    put($("rx-meta"), `Mainnet, ${new Date(rec.solana_block_time).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })} · ${rec.seconds} s · ${zec(rec.received_zat)} ZEC landed at block ${Number(rec.zcash_height).toLocaleString("en-US")} · `,
       link(`https://solscan.io/tx/${rec.solana_tx}`, "Solana tx"), " · ", link(`https://mainnet.zcashexplorer.app/transactions/${rec.zcash_txid}`, "Zcash tx"));
-    put($("rx-fig"), h("span", { class: "rx-tally" }, h("b", {}, String(x.rows.length)), " links itemized", h("i", {}, " · "), h("b", {}, String(guards)), " guards enforced"));
+    const nPriv = x.rows.filter((r) => !r.exposed).length;
+    put($("rx-fig"), h("span", { class: "rx-tally" }, h("b", {}, String(x.rows.length - nPriv)), " public", h("i", {}, " · "), h("b", { class: "rx-tally-priv" }, String(nPriv)), " private", h("i", {}, " · "), h("b", {}, String(guards)), " guards enforced"));
     const st = $("stamp");
     st.href = `https://mainnet.zcashexplorer.app/transactions/${rec.zcash_txid}`;
     put(st, h("span", { class: "stamp-k" }, "Landed shielded"),
@@ -477,7 +478,7 @@ async function renderHeroReceipt() {
     st.hidden = false;
     put($("rx-rows"), x.rows.map(rxRow));
     const priv = x.rows.filter((r) => !r.exposed);
-    put($("rx-sum"), h("b", { class: "rx-sum-n" }, `${x.rows.length - priv.length} public · ${priv.length} private`), " Private to you after the crossing: ", h("b", {}, priv.map((r) => r.what.toLowerCase()).join(", ")), ". Every public line names who can read it.");
+    put($("rx-sum"), "Private to you after the crossing: ", h("b", {}, priv.map((r) => r.what.toLowerCase()).join(", ")), ". Every public line names who can read it.");
   } catch { $("rx").hidden = true; }
 }
 

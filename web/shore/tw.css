@@ -332,3 +332,7 @@ html[data-signed] .chg{display:none}
 .rx-sum b{@apply text-gold-ink;}
 .appbar .toabout{margin-left:auto}
 @media (max-width:1023px){.lead-grid{row-gap:14px}.lead-grid .rx{margin-top:10px}}
+/* r9: verdict leads the header; counterparty rows are amber (some parties), teal stays "in flight". */
+.rx-tally .rx-tally-priv{@apply text-gold-ink;}
+.rx-row[data-who=some] .rx-who b{@apply text-warning-ink;}
+.rx-row[data-who=some] .rx-val{@apply bg-warning-pale;}
