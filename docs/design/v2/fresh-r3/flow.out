@@ -1,0 +1,20 @@
+d /Connect recorded wallet/i 1
+d /fresh u1|fresh/i 1
+d /quote/i 1
+d buttons@quote Copy|rgb(255, 255, 255) ; Copy|rgb(255, 255, 255) ; Change|rgba(0, 0, 0, 0) ; Change amount|rgba(0, 0, 0, 0) ; Copy|rgb(255, 255, 255) ; Copy|rgb(255, 255, 255) ; Copy|rgb(255, 255, 255) ; Approve in Phantom (replay)|rgb(35, 80, 216)
+d /Approve/i 1
+d buttons@end Try it in 60s ; Copy ; Copy ; Copy ; Copy ; Copy ; Copy
+d docH 2358 scrollY 972
+d focus Why SHORE outline:solid 3px rgb(35, 80, 216) shadow:none
+m /Connect recorded wallet/i 1
+m /fresh u1|fresh/i 1
+m /quote/i 1
+m buttons@quote Copy|rgb(255, 255, 255) ; Copy|rgb(255, 255, 255) ; Change|rgba(0, 0, 0, 0) ; Change amount|rgba(0, 0, 0, 0) ; Copy|rgb(255, 255, 255) ; Copy|rgb(255, 255, 255) ; Copy|rgb(255, 255, 255) ; Approve in Phantom (replay)|rgb(35, 80, 216)
+m /Approve/i 1
+m buttons@end Try it in 60s ; Copy ; Copy ; Copy ; Copy ; Copy ; Copy
+m docH 3001 scrollY 1384
+m focus Connect recorded wallet outline:solid 3px rgb(255, 255, 255) shadow:none
+AA FAILS 0
+
+sizes {"12":60,"13":501,"14":736,"15":74,"16":62,"17":22,"18":129,"20":40,"26":18,"28":20,"32":9,"40":1,"44":7,"48":4,"56":8,"64":7}
+min contrast 4.56
