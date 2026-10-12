@@ -36,7 +36,7 @@ SHORE is the crossing for them, with the receipt attached.
 
 ## For judges
 
-1. Open https://shore-zec.pages.dev/shore/ and press **Try it in 60s** (`?replay=1&tour=1&speed=3`). It plays the
+1. Open https://shore-zec.pages.dev/shore/ and press **Watch the 84 s run** (`?replay=1&tour=1&speed=3`). It plays the
    recorded mainnet run of 2026-10-10 hands-free. No wallet is touched and nothing is sent.
 2. What you are seeing: connect, then a fresh Orchard-only u1 and a 1Click quote with every fee shown; one Phantom approval
    and the crossing on the tide band; then the view-key read-back of the landed note and "What's still public".
